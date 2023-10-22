@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, watch, computed, shallowRef } from "vue";
+import { ref, watch, computed } from "vue";
 import socket from "@/client";
 import { User } from "@/types";
 import {
