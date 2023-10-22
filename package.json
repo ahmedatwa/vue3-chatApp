@@ -1,0 +1,51 @@
+{
+  "name": "chat-vue",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vue-tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --fix --ignore-path .gitignore"
+  },
+  "dependencies": {
+    "@mdi/font": "7.0.96",
+    "@socket.io/admin-ui": "^0.5.1",
+    "@vueuse/core": "^10.5.0",
+    "axios": "^1.5.1",
+    "core-js": "^3.29.0",
+    "cors": "^2.8.5",
+    "knex": "^3.0.1",
+    "lodash": "^4.17.21",
+    "pinia": "^2.1.6",
+    "roboto-fontface": "*",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
+    "uuid": "^9.0.1",
+    "vue": "^3.3.4",
+    "vue-axios": "^3.5.2",
+    "vue-socket.io": "^3.0.10",
+    "vue3-emoji-picker": "^1.1.7",
+    "vuetify": "^3.0.0",
+    "webfontloader": "^1.0.0"
+  },
+  "devDependencies": {
+    "@babel/types": "^7.21.4",
+    "@types/lodash": "^4.14.199",
+    "@types/node": "^18.15.0",
+    "@types/socket.io-client": "^3.0.0",
+    "@types/uuid": "^9.0.5",
+    "@types/webfontloader": "^1.6.35",
+    "@types/ws": "^8.5.5",
+    "@vitejs/plugin-vue": "^4.2.3",
+    "@vue/eslint-config-typescript": "^11.0.0",
+    "eslint": "^8.37.0",
+    "eslint-plugin-vue": "^9.3.0",
+    "sass": "^1.69.1",
+    "typescript": "^5.2.2",
+    "vite": "^4.4.5",
+    "vite-plugin-vuetify": "^1.0.0",
+    "vue-tsc": "^1.8.5"
+  }
+}
