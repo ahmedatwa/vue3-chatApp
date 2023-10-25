@@ -2,15 +2,16 @@
 import { MessageFormComponent } from "@/components";
 import { onMounted, computed } from "vue";
 import { User, TypingEvent } from "@/types";
-import { capitalize, reduce, isEmpty } from "lodash";
+import { capitalize, reduce, isEmpty, replace } from "lodash";
 import { useDateFormat } from '@vueuse/core'
 
 // Props
 interface Props {
-  selectedUser: User;
+  selectedUser: User | null;
   room: string | null;
   typing?: TypingEvent | null
   username?: string
+  isLoading: boolean;
 }
 const props = defineProps<Props>();
 
@@ -24,7 +25,7 @@ const emit = defineEmits<{
 
 // group messages by date
 const userMessages = computed(() => {
-  if (props.selectedUser.messages) {
+  if (props.selectedUser?.messages) {
     return reduce(props.selectedUser.messages, (result: any, value) => {
       const date = value.createdAt.split(' ')[0];
       (result[date] || (result[date] = [])).push(value);
@@ -32,7 +33,6 @@ const userMessages = computed(() => {
     }, {});
   }
 })
-
 
 const handleScroll = (): void => {
   const el = document.querySelector(".v-virtual-scroll");
@@ -51,16 +51,21 @@ const onMutate = (() => {
   //emit("update:newMessagesCount", 0);
 })
 
+const dateFormat = (date: string | number, format: string): string => {
+  const formatted = useDateFormat(date, format);
+  return replace(formatted.value, '"', '');
+}
+
 </script>
 <template>
   <v-container class="flex-1-1-100 ma-2 pa-2">
-    <v-card class="mx-auto" id="container">
+    <v-card class="mx-auto" id="container" :loading="isLoading">
       <v-card-title>
         <v-avatar>
-          <v-img v-if="!isEmpty(props.selectedUser.image)" :src="props.selectedUser.image" alt="image"></v-img>
-          <v-icon icon="mdi-account-circle" :color="props.selectedUser.connected ? 'success' : ''" v-else> </v-icon> </v-avatar>
-        <v-badge dot inline :color="props.selectedUser.connected ? 'success' : 'dark'">
-          <p class="mr-1">{{ capitalize(props.selectedUser.username) }}</p>
+          <v-img v-if="!isEmpty(selectedUser?.image)" :src="selectedUser?.image" alt="image"></v-img>
+          <v-icon icon="mdi-account-circle" :color="selectedUser?.connected ? 'success' : 'dark'" v-else> </v-icon> </v-avatar>
+        <v-badge dot inline :color="selectedUser?.connected ? 'success' : 'dark'">
+          <p class="mr-1">{{ capitalize(selectedUser?.username) }}</p>
         </v-badge>
       </v-card-title>
       <v-divider :thickness="3" color="success"></v-divider>
@@ -69,25 +74,25 @@ const onMutate = (() => {
         <template v-slot:default="{ item }">
           <v-list v-for="(message, index) in item" :key="index" :id="`list-${index}`">
             <v-list-subheader :key="index" class="d-flex justify-center">
-              {{ useDateFormat(index, 'dddd, MMMM DD, YYYY') }}
+              {{ dateFormat(index, 'dddd, MMMM DD, YYYY') }}
             </v-list-subheader>
 
 
             <v-list-item v-for="($mess, i) in message" :key="i" :id="`list-${index}`">
               <v-list-item-title v-if="$mess.fromSelf" :key="$mess.from">
-                <div>{{ useDateFormat($mess.createdAt, "HH:MM A") }} <span class="font-weight-bold text-teal">{{
-                  capitalize(props.username) }}</span> : <span>{{ $mess.content }}</span>
-                  <v-img v-if="$mess.file" :width="150" :src="$mess.file"
-                  aspect-ratio="16/9" cover>{{ $mess.name }}</v-img>
-                  
+                <div>{{ dateFormat($mess.createdAt, "HH:MM A") }} <span class="font-weight-bold text-teal">{{
+                  capitalize(username) }}</span> : <span>{{ $mess.content }}</span>
+                  <v-img v-if="$mess.file" :width="150" :src="$mess.file" aspect-ratio="16/9" cover>{{ $mess.name
+                  }}</v-img>
+
                 </div>
               </v-list-item-title>
               <v-list-item-title v-else :key="$mess.to">
-                <div>{{ useDateFormat($mess.createdAt, "HH:MM A") }} <span class="font-weight-bold text-light-blue">
-                    {{ capitalize(props.selectedUser.username) }}</span> : <span>{{ $mess.content }}</span> 
-                    <v-img v-if="$mess.file" :width="150" :src="$mess.file"
-                  aspect-ratio="16/9" cover>{{ $mess.name }}</v-img>
-                   
+                <div>{{ dateFormat($mess.createdAt, "HH:MM A") }} <span class="font-weight-bold text-light-blue">
+                    {{ capitalize(selectedUser?.username) }}</span> : <span>{{ $mess.content }}</span>
+                  <v-img v-if="$mess.file" :width="150" :src="$mess.file" aspect-ratio="16/9" cover>{{ $mess.name
+                  }}</v-img>
+
                 </div>
               </v-list-item-title>
             </v-list-item>
@@ -96,12 +101,12 @@ const onMutate = (() => {
       </v-virtual-scroll>
       <v-sheet>
         <v-card-actions class="w-100 d-inline-block">
-          <MessageFormComponent :key="props.selectedUser.uuid" @submit="$emit('submit:form', $event)"
+          <MessageFormComponent :key="selectedUser?._uuid" @submit="$emit('submit:form', $event)"
             @typing="$emit('update:typing', $event)">
           </MessageFormComponent>
-          <v-expand-x-transition v-if="props.typing">
-            <p class="font-weight-light ma-2">{{ capitalize(props.typing.username) }} is Typing...</p>
-          </v-expand-x-transition>
+          <v-sheet v-if="typing">
+            <p class="font-weight-light ma-2">{{ capitalize(typing.username) }} is Typing...</p>
+          </v-sheet>
         </v-card-actions>
       </v-sheet>
     </v-card>

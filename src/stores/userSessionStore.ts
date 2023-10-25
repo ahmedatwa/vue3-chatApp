@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import { instance } from "@/axios";
-import { UserSessionData, LoggedUser } from "@/types";
+import { UserSessionData, DBUser } from "@/types";
 import socket from "@/client";
 import { useStorage } from "@vueuse/core";
 
@@ -17,15 +17,15 @@ export const useSessionStore = defineStore("userSession", () => {
     try {
       return await instance.get(`/getsessions?connected=1`);
     } catch (err) {
-      console.log(err);
+      responseError.value = err;
     }
   };
 
-  const addSession = async (user: LoggedUser) => {
+  const addSession = async (user: DBUser) => {
     isLoading.value = true;
     await instance
       .post("/addsession", {
-        uuid: user.uuid,
+        _uuid: user._uuid,
         session_id: user.sessionId,
         connected: true,
       })
@@ -33,7 +33,7 @@ export const useSessionStore = defineStore("userSession", () => {
         if (response?.statusText === "Created") {
           socket.auth = {
             _id: user._id,
-            uuid: user.uuid,
+            _uuid: user._uuid,
             sessionId: user.sessionId,
             username: user.username,
             image: user.image,
@@ -42,16 +42,16 @@ export const useSessionStore = defineStore("userSession", () => {
           socket.connect();
           userSessionData.value = {
             _id: user._id,
+            _uuid: user._uuid,
             image: user.image,
-            uuid: user.uuid,
             connected: true,
-            sessionId: user.sessionId,
+            sessionId: user.sessionId!,
             username: user.username,
             createdAt: user.createdAt,
           };
           useStorage("JSESSIOND", user.sessionId);
           (socket as any)._id = user._id;
-          (socket as any).uuid = user.uuid;
+          (socket as any)._uuid = user._uuid;
           (socket as any).username = user.username;
           isLoggedIn.value = true;
         }
@@ -84,13 +84,13 @@ export const useSessionStore = defineStore("userSession", () => {
   };
   // update
   const updateSession = async (session: {
-    uuid?: string;
+    _uuid?: string;
     sessionId?: string;
     connected: boolean;
   }) => {
     await instance
       .post("/updatesession", {
-        uuid: session.uuid,
+        _uuid: session._uuid,
         session_id: session.sessionId,
         connected: session.connected,
       })

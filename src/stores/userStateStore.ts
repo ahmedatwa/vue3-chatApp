@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, watch, computed } from "vue";
 import socket from "@/client";
-import { User } from "@/types";
+import { User, Snackbar } from "@/types";
 import {
   filter,
   includes,
@@ -12,7 +12,7 @@ import {
   find,
   capitalize,
 } from "lodash";
-import { useMessageStore, useSessionStore, useRoomStore } from "@/stores";
+import { useMessageStore, useSessionStore, useChannelStore } from "@/stores";
 import { useStorage } from "@vueuse/core";
 import { instance } from "@/axios";
 
@@ -23,12 +23,12 @@ export const useUserStore = defineStore("userState", () => {
   const filterSearchInput = ref("");
   const isLoading = ref(false);
   const UnreadMessagesTotal = ref(1);
-  const alert = ref("");
+  const newNotification = ref<Snackbar| null>(null)
   const messagesPerUser = new Map();
 
   const settingState = useStorage(
     "APPUSSTIG",
-    { theme: 'light', connectionNotif: false },
+    { theme: 'light', connectionNotif: true },
     localStorage,
     { mergeDefaults: true }
   );
@@ -36,7 +36,7 @@ export const useUserStore = defineStore("userState", () => {
   // Stores
   const messageStore = useMessageStore();
   const sessionStore = useSessionStore();
-  const roomStore = useRoomStore();
+  const channelStore = useChannelStore();
 
   // Filter Users
   const filteredUsers = computed(() => {
@@ -64,7 +64,7 @@ export const useUserStore = defineStore("userState", () => {
   // socket connection established
   socket.on("connect", async () => {
     const [messages, sessions] = await Promise.all([
-      instance.get(`/getmessages?uuid=${sessionStore.userSessionData?.uuid}`),
+      instance.get(`/getmessages?_uuid=${sessionStore.userSessionData?._uuid}`),
       sessionStore.getAllSessions(),
     ]);
     // Messages
@@ -72,7 +72,7 @@ export const useUserStore = defineStore("userState", () => {
       const $m = JSON.parse(`[${message.content}]`);
       forEach($m, (message) => {
         const otherUser =
-          sessionStore.userSessionData?.uuid === message.from
+          sessionStore.userSessionData?._uuid === message.from
             ? message.to
             : message.from;
         if (messagesPerUser.has(otherUser)) {
@@ -86,13 +86,13 @@ export const useUserStore = defineStore("userState", () => {
     forEach(sessions?.data, (user: User) => {
       users.value.push({
         _id: user._id,
-        uuid: user.uuid,
+        _uuid: user._uuid,
         username: user.username,
         connected: user.connected,
-        self: user.uuid === sessionStore.userSessionData?.uuid,
+        self: user._uuid === sessionStore.userSessionData?._uuid,
         image: user.image,
         selected: false,
-        messages: messagesPerUser.get(user.uuid) || [],
+        messages: messagesPerUser.get(user._uuid) || [],
       });
     });
 
@@ -100,24 +100,24 @@ export const useUserStore = defineStore("userState", () => {
     const sorted = sortBy(users.value, (o) => {
       if (o.self === true) return o.self;
     });
-    users.value = uniqBy(sorted, "uuid");
+    users.value = uniqBy(sorted, "_uuid");
 
     //get Last Selected User for default selection
-    const uuid = localStorage.getItem("LTSEDUSER");
-    if (uuid) {
+    const _uuid = localStorage.getItem("LSTSECD");
+    if (_uuid) {
       await instance
-        .get(`/getlastselecteduser?uuid=${uuid}`)
+        .get(`/getlastselecteduser?_uuid=${_uuid}`)
         .then((response) => {
           selectedUser.value = {
             ...response.data,
             selected: true,
-            messages: messagesPerUser.get(response.data.uuid) || [],
+            messages: messagesPerUser.get(response.data._uuid) || [],
           };
         });
     }
 
     // Get Rooms
-    roomStore.getRooms();
+    channelStore.getChannels();
   });
 
   // fired when socket disconnected
@@ -133,49 +133,49 @@ export const useUserStore = defineStore("userState", () => {
   // upon user connection notify existing users
   socket.on("user_connected", (user) => {
     forEach(users.value, (u) => {
-      if (u.uuid === user.uuid) {
+      if (u._uuid === user._uuid) {
         u.connected = true;
         if (getSetting("connectionNotif")) {
-          alert.value = `${capitalize(user.username)} got connected.`;
+          newNotification.value = {title: capitalize(user.username), text: "got connected.", type: 'success'};
         }
         return;
       }
     });
 
     const newUser = find(users.value, {
-      uuid: user.uuid,
+      _uuid: user._uuid,
     });
 
     if (isUndefined(newUser)) {
       users.value.push({
-        uuid: user.uuid,
+        _uuid: user._uuid,
         username: user.username,
         image: user.image,
-        self: user.socketId === sessionStore.userSessionData?.uuid,
+        self: user.socketId === sessionStore.userSessionData?._uuid,
         connected: true,
-        messages: messagesPerUser.get(user.uuid) || [],
+        messages: messagesPerUser.get(user._uuid) || [],
       });
     }
   });
 
-  socket.on("user_disconnected", (uuid) => {
+  socket.on("user_disconnected", (_uuid) => {
     forEach(users.value, async (user) => {
-      if (user.uuid === uuid) {
+      if (user._uuid === _uuid) {
         user.connected = false;
         if (getSetting("connectionNotif")) {
-          alert.value = `${capitalize(user.username)} got disconnected.`;
+          newNotification.value = {title: capitalize(user.username), text: "got disconnected.", type: 'error'};
         }
         return;
       }
     });
   });
 
-  socket.on("client_new_message", ({ from, to, content, file, createdAt }) => {
+  socket.on("client_user_new_message", ({ from, to, content, file, createdAt }) => {
     // reset typing
     messageStore.typing = null;
-    const fromSelf = (socket as any).uuid === from;
+    const fromSelf = (socket as any)._uuid === from;
     forEach(users.value, (user) => {
-      if (user.uuid === (fromSelf ? to : from)) {
+      if (user._uuid === (fromSelf ? to : from)) {
         user.messages.push({
           from: from,
           to: to,
@@ -186,8 +186,9 @@ export const useUserStore = defineStore("userState", () => {
           createdAt: createdAt,
         });
         // console.log(user.uuid === from)
-        if (user.uuid === from) {
+        if (user._uuid === from) {
           user.newMessages = { total: UnreadMessagesTotal.value++, lastMessage: content};
+          newNotification.value = {title: capitalize(user.username), text: content}
         }
         return;
       }
@@ -200,7 +201,7 @@ export const useUserStore = defineStore("userState", () => {
       ...user,
       selected: true,
       newMessages: null,
-      messages: user.messages,
+      messages: [...user.messages],
     };
   };
 
@@ -211,10 +212,10 @@ export const useUserStore = defineStore("userState", () => {
   watch(
     () => messageStore.createdRoom,
     () => {
-      const state = useStorage("LTSEDUSER", selectedUser.value?.uuid);
-      state.value = selectedUser.value?.uuid;
+      const state = useStorage("LSTSECD", selectedUser.value?._uuid);
+      state.value = selectedUser.value?._uuid;
       forEach(users.value, (user) => {
-        if (selectedUser.value?.uuid === user.uuid) {
+        if (selectedUser.value?._uuid === user._uuid) {
           user.newMessages = null;
         }
       });
@@ -227,7 +228,7 @@ export const useUserStore = defineStore("userState", () => {
     filterSearchInput,
     filteredUsers,
     isLoading,
-    alert,
+    newNotification,
     settingState,
     onSelectUser,
   };

@@ -2,7 +2,7 @@
 // connected Users Type
 interface User {
   _id?: number;
-  uuid: string;
+  _uuid: string;
   username: string;
   self: boolean;
   connected: boolean;
@@ -18,8 +18,8 @@ type NewUnreadMessages = {
   lastMessage?: string;
 }
 type userMessages = {
-  from: string | number;
-  to: string | number;
+  from: string;
+  to: string;
   room?: string;
   fromSelf?: boolean;
   content: string;
@@ -31,7 +31,7 @@ type userMessages = {
 
 interface UserSessionData {
   _id?: number;
-  uuid: string;
+  _uuid: string;
   username: string;
   sessionId: string;
   image: string;
@@ -39,22 +39,15 @@ interface UserSessionData {
   createdAt: string;
 }
 
-type DBUsers = {
+type DBUser = {
   _id: number;
-  uuid: number | string;
+  _uuid: string;
+  image: string;
   username: string;
   firstname: string;
   lastname: string;
   createdAt: string;
-};
-
-type LoggedUser = {
-  _id: number;
-  uuid: string;
-  image: string;
-  username: string;
-  createdAt: string;
-  sessionId: string;
+  sessionId?: string;
 };
 
 type TypingEvent = {
@@ -63,39 +56,49 @@ type TypingEvent = {
   isTyping: boolean;
 };
 
-type Room = {
-  _id: number;
-  roomId: string;
-  name: string;
-  createdBy: string;
-};
-
 type Settings = {
   theme: string;
   connectionNotif: boolean;
 };
-// type SocketUserPayload = {
-//   _id?: number;
-//   uuid: string;
-//   socketId: string;
-//   username: string;
-//   address: string;
-//   connected: boolean,
-//   image: string;
-//   secure: boolean;
-//   time: string;
-//   self: boolean;
-//   sessionId: string;
-//   messages: userMessages[];
-// };
+
+type Snackbar = {
+  title?: string;
+  type?: string;
+  text: string;
+}
+
+// Channels
+type Room = {
+  _id: number;
+  _roomId: string;
+  name: string;
+  selected?: boolean;
+  messages: RoomMessages[];
+  newMessages?: NewUnreadMessages | null;
+  createdBy: string;
+  createdAt: string;
+  participants?: [] | null;
+};
+
+type RoomMessages = {
+  _id: string | number;
+  from: string | undefined;
+  username: string | undefined;
+  room: string | number;
+  content: string;
+  file?: string;
+  createdAt: string;
+  updatedAt?: string;
+}
 
 export type {
   User,
   userMessages,
   UserSessionData,
-  DBUsers,
-  LoggedUser,
+  DBUser,
   TypingEvent,
   Room,
+  RoomMessages,
   Settings,
+  Snackbar,
 };

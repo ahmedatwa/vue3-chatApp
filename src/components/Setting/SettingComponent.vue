@@ -29,7 +29,11 @@ interface Setting {
 
 const setting: Setting = reactive({ isDark: false, connectionNotif: true });
 
-const saveSettings = () => {
+
+
+
+
+const saveSettings = async() => {
   isLoading.value = true;
   const darkValue = setting.isDark === false
     ? "light"
@@ -38,6 +42,10 @@ const saveSettings = () => {
     theme: darkValue,
     connectionNotif: setting.connectionNotif,
   })
+
+
+
+
   isAlertVisible.value = true;
   isLoading.value = false
 };

@@ -5,71 +5,74 @@ import { ref, computed } from "vue";
 import { TypingEvent } from "@/types";
 import { useNow, useDateFormat } from "@vueuse/core";
 import { messageAxios } from "@/axios";
-import { isNull } from "lodash";
+import { isNull, escape } from "lodash";
 
 export const useMessageStore = defineStore("messageStore", () => {
   const userUserStore = useUserStore();
   const userSessionStore = useSessionStore();
-  //const messagesData = ref<userMessages[]>([]);
   const isLoading = ref(false);
   const formattedDate = useDateFormat(useNow(), "YYYY-MM-DD HH:mm:ss");
   const typing = ref<TypingEvent | null>(null);
   const uploadedFile = ref<File | null>(null);
 
   const createdRoom = computed((): string | null => {
-    if (userUserStore.selectedUser?.uuid) {
+    if (userUserStore.selectedUser?._uuid) {
       return (
-        userSessionStore.userSessionData?.uuid +
+        userSessionStore.userSessionData?._uuid +
         "__" +
-        userUserStore.selectedUser?.uuid
+        userUserStore.selectedUser?._uuid
       );
     }
     return null;
   });
 
   const sendMessage = async (content: string) => {
-    const message = {
-      from: userSessionStore.userSessionData?.uuid!,
-      to: userUserStore.selectedUser?.uuid!,
-      content: content,
+    userUserStore.selectedUser?.messages.push({
+      from: userSessionStore.userSessionData?._uuid!,
+      to: userUserStore.selectedUser?._uuid!,
+      content: escape(content),
       file: uploadedFile.value
-        ? `http://localhost/project-root/public/images/uploads/${uploadedFile.value?.name}`
-        : null,
+        ? `${import.meta.env.VITE_API_URL}/images/uploads/${
+            uploadedFile.value?.name
+          }`
+        : '',
       fromSelf: true,
       seen: false,
       createdAt: formattedDate.value,
-    };
-    socket.emit("server_new_message", {
+    });
+
+    socket.emit("user_new_message", {
       content: content,
       file: uploadedFile.value
-        ? `http://localhost/project-root/public/images/uploads/${uploadedFile.value?.name}`
+        ? `${import.meta.env.VITE_API_URL}/images/uploads/${
+            uploadedFile.value?.name
+          }`
         : null,
-      to: userUserStore.selectedUser?.uuid,
+      to: userUserStore.selectedUser?._uuid,
       createdAt: formattedDate.value,
     });
 
-    userUserStore.selectedUser?.messages.push(message);
     // save sent Message
     await messageAxios.post("/addmessage", {
-      from: userSessionStore.userSessionData?.uuid!,
-      to: userUserStore.selectedUser?.uuid!,
+      from: userSessionStore.userSessionData?._uuid!,
+      to: userUserStore.selectedUser?._uuid!,
       content: content,
-      fromSelf: (socket as any).uuid === userSessionStore.userSessionData?.uuid,
+      fromSelf: (socket as any)._uuid === userSessionStore.userSessionData?._uuid,
       seen: false,
       createdAt: formattedDate.value,
       room: createdRoom.value,
       session: userSessionStore.userSessionData?.sessionId,
-      messages: message,
+      messages: userUserStore.selectedUser?.messages,
     });
     // upload file
     if (!isNull(uploadedFile.value)) {
       let formData = new FormData();
       formData.append("file", uploadedFile.value);
       formData.append("room", createdRoom.value!);
-      formData.append("uuid", userUserStore.selectedUser?.uuid!);
+      formData.append("uuid", userUserStore.selectedUser?._uuid!);
       await messageAxios.post("/upload", formData).then((response) => {
         if (response.status === 200) {
-          uploadedFile.value = null
+          uploadedFile.value = null;
         }
       });
     }
@@ -78,7 +81,6 @@ export const useMessageStore = defineStore("messageStore", () => {
   return {
     sendMessage,
     uploadedFile,
-   // messagesData,
     createdRoom,
     isLoading,
     typing,

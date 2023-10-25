@@ -1,10 +1,10 @@
 import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { instance } from "@/axios";
-import { DBUsers } from "@/types";
+import { DBUser } from "@/types";
 
 export const useLoginStore = defineStore("loginUser", () => {
-  const users = ref<DBUsers[]>([]);
+  const users = ref<DBUser[]>([]);
   const isLoading = ref(false);
   const username = ref("");
   const responseError = ref();
@@ -14,7 +14,7 @@ export const useLoginStore = defineStore("loginUser", () => {
     return username.value.length > 2;
   });
 
-  const getUsers = async () => {
+  const getAllUsers = async () => {
     isLoading.value = true;
     await instance
       .get("/all")
@@ -43,12 +43,12 @@ export const useLoginStore = defineStore("loginUser", () => {
       .finally(() => {
         isLoading.value = false;
         username.value = "";
-        getUsers();
+        getAllUsers();
       });
   };
 
   return {
-    getUsers,
+    getAllUsers,
     createUser,
     responseResult,
     responseError,

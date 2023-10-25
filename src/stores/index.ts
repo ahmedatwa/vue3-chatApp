@@ -2,6 +2,6 @@ import { useUserStore } from "./userStateStore.ts";
 import { useLoginStore } from "./userLoginStore.ts";
 import { useMessageStore } from "./userMessageStore.ts";
 import { useSessionStore } from "./userSessionStore.ts";
-import { useRoomStore } from "./roomStore.ts";
+import { useChannelStore } from "./userChannelStore.ts";
 
-export { useUserStore, useMessageStore, useSessionStore, useLoginStore, useRoomStore};
+export { useUserStore, useMessageStore, useSessionStore, useLoginStore, useChannelStore};

@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: `${import.meta.env.VITE_API_URL}/api/chat`,
   //timeout: 500,
   headers: {
     "Content-Type": "application/x-www-form-urlencoded",
@@ -25,7 +25,7 @@ instance.interceptors.response.use(function (response) {
 
 
 const messageAxios = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
+  baseURL: `${import.meta.env.VITE_API_URL}/api/chat`,
   //timeout: 500,
   headers: {
     "Content-Type": "application/x-www-form-urlencoded",

@@ -1,24 +1,23 @@
 // Common 
-import ChatComponent from "./Common/ChatComponent.vue";
 import HeaderComponent from "./Common/HeaderComponent.vue";
+import LoginComponent from "./Common/LoginComponent.vue";
+import SearchInputComponent from "./Common/SearchInputComponent.vue";
+import UserListComponent from "./Common/UserListComponent.vue";
 
-// Message
-import MessageComponent from "./Message/MessageComponent.vue";
-import MessageFormComponent from "./Message/MessageFormComponent.vue";
+// Chat
+import ChatComponent from "./Chat/ChatComponent.vue";
+import MessageComponent from "./Chat/MessageComponent.vue";
+import MessageFormComponent from "./Chat/MessageFormComponent.vue";
+import CreateRoomComponent from "./Chat/CreateRoomComponent.vue";
+import ChannelComponent from "./Chat/ChannelComponent.vue";
 
 // Setting
 import SettingComponent from "./Setting/SettingComponent.vue";
 import ProfileComponent from "./Setting/ProfileComponent.vue";
 
-// Users
-import UserListComponent from "./Users/UserListComponent.vue";
-import SearchInputComponent from "./Users/SearchInputComponent.vue";
-import RoomFormComponent from "./Users/RoomFormComponent.vue";
-
 // Loaders
-import LoginComponent from "./LoginComponent.vue";
-import NotificationComponent from "./NotificationComponent.vue";
-import SkeletonLoaderComponent from "./SkeletonLoaderComponent.vue";
+import SnackbarComponent from "./SnackbarComponent.vue";
+import SkeletonComponent from "./SkeletonComponent.vue";
 
 export {
   ChatComponent,
@@ -28,9 +27,10 @@ export {
   HeaderComponent,
   UserListComponent,
   SearchInputComponent,
-  RoomFormComponent,
-  NotificationComponent,
+  CreateRoomComponent,
+  SnackbarComponent,
   SettingComponent,
   ProfileComponent,
-  SkeletonLoaderComponent
+  SkeletonComponent,
+  ChannelComponent
 };
