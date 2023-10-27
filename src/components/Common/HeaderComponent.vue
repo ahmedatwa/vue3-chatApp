@@ -1,29 +1,28 @@
 <script setup lang="ts">
 import { capitalize, isEmpty } from "lodash";
 import { computed, ref, watch } from "vue";
-import { SettingComponent, ProfileComponent } from "@/components";
+import { SettingComponent, ProfileComponent, SearchInputComponent } from "@/components";
 import { Settings } from "@/types";
 
 const isOffline = ref(false);
 const preferences = ref(false);
 const profile = ref(false);
+const searchTerm = ref("");
 
-
-interface Props {
+const props = defineProps<{
   connected: boolean | undefined;
   username: string | undefined;
   image: string | undefined;
   sessionId: string | undefined;
   uuid: string | undefined;
-}
-
-const props = defineProps<Props>();
+}>();
 
 const emit = defineEmits<{
   logout: [uuid: string, sessionId: string];
   "update:status": [value: boolean];
   "toggle:drawer": [value: boolean];
   "update:setting": [value: Settings];
+  "update:search": [value: string];
 }>();
 
 const drawer = ref(true);
@@ -53,11 +52,19 @@ watch(drawer, (value) => {
 const color = ref(false);
 </script>
 <template>
+  <v-container>
   <v-app-bar :elevation="2">
     <template v-slot:prepend>
       <v-app-bar-nav-icon @click.stop="drawer = !drawer" icon="mdi-backburger"></v-app-bar-nav-icon>
     </template>
-    <v-spacer></v-spacer>
+    <v-row>
+      <v-col cols="9" class="mx-auto">
+        <search-input-component v-model:term="searchTerm" @input="$emit('update:search', $event.target.value)"
+      class="mt-5"></search-input-component>
+      </v-col>
+    </v-row>
+      
+
     <v-btn icon>
       <v-icon @click="color = !color" :color="color ? 'red' : ''">mdi-heart</v-icon>
     </v-btn>
@@ -114,7 +121,7 @@ const color = ref(false);
       </v-list>
     </v-menu>
   </v-app-bar>
-
+</v-container>
   <!-- Preferece -->
   <SettingComponent :visible="preferences" @update:modelValue="preferences = $event"
     @update:visible="preferences = $event" @on:update:settings="$emit('update:setting', $event)"></SettingComponent>

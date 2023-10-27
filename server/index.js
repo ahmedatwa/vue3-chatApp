@@ -119,9 +119,9 @@ io.on("connection", async (socket) => {
   });
 
   // channels
-  socket.on("create_room", ({ _roomId, name, createdBy }) => {
+  socket.on("create_channel", ({ _roomId, name, createdBy }) => {
     socket.join(_roomId);
-    socket.broadcast.to(_roomId).emit("client_create_room", {
+    socket.broadcast.to(_roomId).emit("client_create_channel", {
       _roomId: _roomId,
       room: socket.room,
       name: name,
@@ -129,17 +129,30 @@ io.on("connection", async (socket) => {
     });
   });
 
-  socket.on("join_room", ({ _roomId, room, createdBy }) => {
+  socket.on("join_channel", ({ _roomId, room, createdBy }) => {
     socket.join(_roomId);
-    socket.broadcast.to(_roomId).emit("client_join_room", {
+    socket.broadcast.to(_roomId).emit("client_join_channel", {
       username: socket.username,
       roomName: room,
       createdBy: createdBy,
     });
   });
 
+  socket.on("add_users_to_channel", ({ _roomId, roomName, createdBy, users }) => {
+    socket.join(_roomId);
+    users.forEach((user) => {
+      socket.to(user).to(socket._uuid).emit("client_add_users_to_channel", {
+      username: socket.username,
+      roomName: roomName,
+      createdBy: createdBy,
+      to: user
+    });
+    })
+    
+  });
+
   socket.on("new_room_message", (messageContent) => {
-    socket.broadcast.to(messageContent.room).emit("client_new_room_message", messageContent);
+    socket.broadcast.to(messageContent.room).emit("client_new_channel_message", messageContent);
   });
 
   socket.on("room_typing", ({ _roomId, input }) => {
@@ -153,15 +166,15 @@ io.on("connection", async (socket) => {
       });
   });
 
-  socket.on("delete_room_message", (message) => {
+  socket.on("delete_channel_message", (message) => {
     console.log(message)
     socket.broadcast
-      .to(message.room).emit("client_delete_room_message", message);
+      .to(message.room).emit("client_delete_channel_message", message);
   });
 
-    socket.on("edit_room_message", ({channel}) => {
+    socket.on("edit_channel_message", ({channel}) => {
     socket.broadcast
-      .to(channel._roomId).emit("client_edit_room_message", {
+      .to(channel._roomId).emit("client_edit_channel_message", {
       channel,
     });
   });

@@ -18,6 +18,8 @@ type NewUnreadMessages = {
   lastMessage?: string;
 }
 type userMessages = {
+  _id?: string | number;
+  _threadId?: string | null
   from: string;
   to: string;
   room?: string;
@@ -68,27 +70,31 @@ type Snackbar = {
 }
 
 // Channels
-type Room = {
-  _id: number;
+type Channels = {
+  _id: number | string;
   _roomId: string;
   name: string;
   selected?: boolean;
-  messages: RoomMessages[];
+  messages: ChannelMessages[];
   newMessages?: NewUnreadMessages | null;
   createdBy: string;
-  createdAt: string;
-  participants?: [] | null;
+  createdAt: string | Date;
+  participants?: string[];
 };
 
-type RoomMessages = {
+type ChannelMessages = {
   _id: string | number;
   from: string | undefined;
   username: string | undefined;
   room: string | number;
   content: string;
+  oldContent?: string;
   file?: string;
+  deleted?: boolean;
+  updated?: boolean;
   createdAt: string;
-  updatedAt?: string;
+  updatedAt?: string | Date;
+  deletedAt?: string | Date
 }
 
 export type {
@@ -97,8 +103,8 @@ export type {
   UserSessionData,
   DBUser,
   TypingEvent,
-  Room,
-  RoomMessages,
+  ChannelMessages,
+  Channels,
   Settings,
   Snackbar,
 };

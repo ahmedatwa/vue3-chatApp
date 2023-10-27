@@ -17,7 +17,7 @@ const props = defineProps<Props>();
 
 // emits 
 const emit = defineEmits<{
-  "submit:form": [payload: { text: string, file?: File }],
+  "submit:form": [payload: { _threadId: string | null; text: string; file?: File }];
   "update:typing": [value: string],
   "update:seen": [value: boolean],
   "update:newMessagesCount": [value: number],
@@ -41,12 +41,14 @@ const handleScroll = (): void => {
 
 onMounted(() => {
   handleScroll();
+ 
   //emit("update:seen", true);
   //emit("update:newMessagesCount", 0);
 });
 
 const onMutate = (() => {
   handleScroll();
+  
   //emit("update:seen", true);
   //emit("update:newMessagesCount", 0);
 })
@@ -58,7 +60,7 @@ const dateFormat = (date: string | number, format: string): string => {
 
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2">
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`thread-${room}`">
     <v-card class="mx-auto" id="container" :loading="isLoading">
       <v-card-title>
         <v-avatar>
@@ -79,7 +81,7 @@ const dateFormat = (date: string | number, format: string): string => {
 
 
             <v-list-item v-for="($mess, i) in message" :key="i" :id="`list-${index}`">
-              <v-list-item-title v-if="$mess.fromSelf" :key="$mess.from">
+              <v-list-item-title v-if="$mess.fromSelf" :key="$mess.from" :id="`id-${$mess._id}`">
                 <div>{{ dateFormat($mess.createdAt, "HH:MM A") }} <span class="font-weight-bold text-teal">{{
                   capitalize(username) }}</span> : <span>{{ $mess.content }}</span>
                   <v-img v-if="$mess.file" :width="150" :src="$mess.file" aspect-ratio="16/9" cover>{{ $mess.name
@@ -87,7 +89,7 @@ const dateFormat = (date: string | number, format: string): string => {
 
                 </div>
               </v-list-item-title>
-              <v-list-item-title v-else :key="$mess.to">
+              <v-list-item-title v-else :key="$mess.to" :id="`id-${$mess._id}`">
                 <div>{{ dateFormat($mess.createdAt, "HH:MM A") }} <span class="font-weight-bold text-light-blue">
                     {{ capitalize(selectedUser?.username) }}</span> : <span>{{ $mess.content }}</span>
                   <v-img v-if="$mess.file" :width="150" :src="$mess.file" aspect-ratio="16/9" cover>{{ $mess.name
@@ -102,7 +104,7 @@ const dateFormat = (date: string | number, format: string): string => {
       <v-sheet>
         <v-card-actions class="w-100 d-inline-block">
           <MessageFormComponent :key="selectedUser?._uuid" @submit="$emit('submit:form', $event)"
-            @typing="$emit('update:typing', $event)">
+            @typing="$emit('update:typing', $event)" :thread-id="room">
           </MessageFormComponent>
           <v-sheet v-if="typing">
             <p class="font-weight-light ma-2">{{ capitalize(typing.username) }} is Typing...</p>

@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeMount } from "vue";
-import { nanoid } from "nanoid";
-import { useLoginStore } from "@/stores";
+import { v4 as uuidv4 } from "uuid";
+import { useLoginStore, useStorageStore } from "@/stores";
 import { DBUser } from "@/types";
 
 const userLoginStore = useLoginStore();
+const storageStore = useStorageStore();
 const toggle = ref(false);
 const isLogged = ref(false);
 const selected = ref<DBUser | null>(null);
@@ -15,6 +16,7 @@ const emit = defineEmits<{
 
 onBeforeMount(() => {
   const sessionId = localStorage.getItem("JSESSIOND");
+    
   if (sessionId) isLogged.value = true;
 });
 
@@ -24,7 +26,7 @@ onMounted(async () => {
 
 const login = () => {
   if (selected.value)
-    emit("update:selected", { ...selected.value, sessionId: nanoid(36) });
+    emit("update:selected", { ...selected.value, sessionId: uuidv4() });
   isLogged.value = true;
 };
 </script>
@@ -32,9 +34,13 @@ const login = () => {
 <template>
   <v-card class="mx-auto" width="auto" v-if="!isLogged">
     <v-btn @click.stop="toggle = !toggle" icon="mdi-eye-circle" class="d-flex align-center"></v-btn>
-    <v-form @submit.prevent="userLoginStore.createUser" id="create-user-form mt-2" v-if="toggle">
-      <v-text-field label="Add User..." v-model="userLoginStore.username" append-inner-icon="mdi-plus-circle" type="text"
-        :loading="userLoginStore.isLoading" clearable>
+    <v-form id="create-user-form mt-2" v-if="toggle">
+      <v-text-field label="Add User..." v-model="userLoginStore.username" type="text" :loading="userLoginStore.isLoading">
+        <template v-slot:append-inner>
+          <v-btn @click.prevent="userLoginStore.createUser" variant="plain"
+            :disabled="userLoginStore.username.length < 3">
+            <v-icon icon="mdi-plus-circle" color="primary" size="large"></v-icon></v-btn>
+        </template>
       </v-text-field>
     </v-form>
     <v-table>

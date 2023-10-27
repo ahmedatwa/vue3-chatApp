@@ -2,11 +2,12 @@
 import { onUnmounted, onBeforeMount } from "vue";
 import { LoginComponent, ChatComponent } from "@/components";
 import socket from "@/client";
-import { useSessionStore } from "@/stores";
+import { useSessionStore, useStorageStore } from "@/stores";
 import { DBUser } from "@/types";
 import { useTheme } from "vuetify";
 
 const sessionStore = useSessionStore();
+const storageStore = useStorageStore();
 const theme = useTheme();
 
 const onLogin = async (user: DBUser) => {
@@ -14,13 +15,13 @@ const onLogin = async (user: DBUser) => {
 };
 
 onBeforeMount(async () => {
-  const sessionId = localStorage.getItem("JSESSIOND");
+  const sessionId = storageStore.getSessionId();
   if (sessionId) {
     await sessionStore.getSession(sessionId);
   }
-  const prefTheme = localStorage.getItem("theme");
+  const prefTheme = storageStore.getAppSettings("theme");
   if (prefTheme) {
-    theme.global.name.value = prefTheme;
+    theme.global.name.value = prefTheme as string;
   }
 });
 

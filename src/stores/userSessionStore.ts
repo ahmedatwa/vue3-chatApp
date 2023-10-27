@@ -3,21 +3,25 @@ import { ref } from "vue";
 import { instance } from "@/axios";
 import { UserSessionData, DBUser } from "@/types";
 import socket from "@/client";
-import { useStorage } from "@vueuse/core";
+import { useStorageStore } from "@/stores";
 
 export const useSessionStore = defineStore("userSession", () => {
   const userSessionData = ref<UserSessionData>();
   const isLoggedIn = ref(false);
   const isLoading = ref(false);
   const responseError = ref();
-  const responseResult = ref(null)
+  const responseResult = ref(null);
+  const storageStore = useStorageStore();
 
   // All Sockets
   const getAllSessions = async () => {
+    isLoading.value = true;
     try {
-      return await instance.get(`/getsessions?connected=1`);
-    } catch (err) {
-      responseError.value = err;
+      return await instance.get(`/getallsessions?connected=1`);
+    } catch (error) {
+      responseError.value = error;
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -49,14 +53,14 @@ export const useSessionStore = defineStore("userSession", () => {
             username: user.username,
             createdAt: user.createdAt,
           };
-          useStorage("JSESSIOND", user.sessionId);
+          storageStore.setSessionId(user.sessionId!);
           (socket as any)._id = user._id;
           (socket as any)._uuid = user._uuid;
           (socket as any).username = user.username;
           isLoggedIn.value = true;
         }
       })
-      .then((error) => {
+      .catch((error) => {
         responseError.value = error;
       })
       .finally(() => {
@@ -75,7 +79,7 @@ export const useSessionStore = defineStore("userSession", () => {
         socket.connect();
         isLoggedIn.value = true;
       })
-      .then((error) => {
+      .catch((error) => {
         responseError.value = error;
       })
       .finally(() => {
@@ -95,9 +99,9 @@ export const useSessionStore = defineStore("userSession", () => {
         connected: session.connected,
       })
       .then((response) => {
-        responseResult.value = response.data
+        responseResult.value = response.data;
       })
-      .then((error) => {
+      .catch((error) => {
         responseError.value = error;
       })
       .finally(() => {

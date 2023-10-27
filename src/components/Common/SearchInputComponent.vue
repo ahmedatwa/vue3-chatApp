@@ -1,25 +1,20 @@
 <script setup lang="ts">
-defineProps({
-  term: {
-    type: String,
-    required: false,
-    default: "",
-  },
-});
+defineProps<{
+  term?: string;
+}>();
+
 const emit = defineEmits<{
   "update:term": [value: string];
 }>();
 
-const onInput = (event: Event) => {
-  emit("update:term", (event.target as HTMLInputElement).value);
-};
 </script>
 <template>
   <v-text-field
     label="Search..."
+    clearable
     prepend-inner-icon="mdi-magnify"
     :value="term"
-    variant="solo"
-    @input="onInput"
+    variant="underlined"
+    @input="$emit('update:term', ($event.target as HTMLInputElement).value)"
   ></v-text-field>
 </template>

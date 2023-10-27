@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { MessageFormComponent } from "@/components";
-import { ref, onMounted, computed } from "vue";
-import { Room, TypingEvent, RoomMessages } from "@/types";
-import { capitalize, reduce, set, replace } from "lodash";
+import { MessageFormComponent, CreateRoomComponent, ChannelActionMenu } from "@/components";
+import { onMounted, computed } from "vue";
+import { Channels, TypingEvent, ChannelMessages, DBUser } from "@/types";
+import { capitalize, reduce, replace } from "lodash";
 import { useDateFormat } from "@vueuse/core";
 
 // Props
 interface Props {
-  room: Room | null;
+  allUsers: DBUser[];
+  currentChannel: Channels | null;
   typing?: TypingEvent | null;
-  uuid: String | undefined;
+  uuid: string | undefined;
   username: string | undefined;
   isLoading: boolean;
 }
 const props = defineProps<Props>();
-const isEditDisalog = ref(false);
-const selectedToEditMessage = ref<RoomMessages | null>(null)
-const editMessageContent = ref("");
 
 // emits
 const emit = defineEmits<{
@@ -24,8 +22,9 @@ const emit = defineEmits<{
   "update:typing": [value: string];
   "update:seen": [value: boolean];
   "update:newMessagesCount": [value: number];
-  "delete:message": [value: RoomMessages];
-  "edit:message": [value: RoomMessages];
+  // "delete:message": [value: ChannelMessages];
+  "alter:message": [key: string, value: ChannelMessages];
+  "update:channel:users": [value: string[]];
 }>();
 
 const handleScroll = (): void => {
@@ -34,9 +33,9 @@ const handleScroll = (): void => {
 };
 
 const roomMessages = computed(() => {
-  if (props.room?.messages) {
+  if (props.currentChannel?.messages) {
     return reduce(
-      props.room.messages,
+      props.currentChannel.messages,
       (result: any, value) => {
         const date = value.createdAt.split(" ")[0];
         (result[date] || (result[date] = [])).push(value);
@@ -55,35 +54,29 @@ const onMutate = () => {
   handleScroll();
 };
 
-const deleteMessage = (message: RoomMessages) => {
-  emit("delete:message", message);
-};
-
-const onEditMessage = (message: RoomMessages) => {
-  // emit("edit:message", message);
-  selectedToEditMessage.value = message
-  editMessageContent.value = message.content
-  isEditDisalog.value = true
-};
-
-const editMessage = () => {
-  if (selectedToEditMessage.value) {
-    set(selectedToEditMessage.value, 'content', editMessageContent.value);
-    emit("edit:message", selectedToEditMessage.value);
-  }
-  isEditDisalog.value = false
+const onAlterMessage = (key: string, event: ChannelMessages)=> {
+  emit("alter:message", key, event)  
 }
+
+
 
 const dateFormat = (date: string | number, format: string): string => {
   const formatted = useDateFormat(date, format);
-  return replace(formatted.value, '"', '');
-}
+  return replace(formatted.value, '"', "");
+};
 </script>
 <template>
   <v-container class="flex-1-1-100 ma-2 pa-2">
     <v-card class="mx-auto" id="container" :loading="isLoading">
       <v-card-title>
-        {{ capitalize(room?.name) }}
+        {{ capitalize(currentChannel?.name) }}
+        <create-room-component v-if="currentChannel?.createdBy === uuid" title="Invite Users" :allUsers="allUsers" icon="mdi-account-plus" color="grey-lighten-1"
+          :channel-name="currentChannel?.name" :current-user="uuid" :participants="currentChannel?.participants"
+          @invite:channel:users="$emit('update:channel:users', $event)">
+          <template v-slot:invite-user>
+            <v-btn type="submit" block color="indigo-darken-3">Send</v-btn>
+          </template>
+        </create-room-component>
       </v-card-title>
       <v-divider :thickness="3" color="success"></v-divider>
 
@@ -98,25 +91,16 @@ const dateFormat = (date: string | number, format: string): string => {
               <v-list-item-title :key="message._id" :id="`id-${message._id}`" transition="v-slide-y-reverse-transition">
                 <div>
                   <!-- Action Menu -->
-                  <v-btn variant="plain" density="compact" size="xs" prepend-icon="mdi-dots-vertical">
-                    <v-menu activator="parent" location="top" transition="slide-x-transition">
-                      <v-list nav>
-                        <v-list-item :key="`edit`" @click="onEditMessage(message)" v-if="message.from === uuid">
-                          <v-list-item-title><v-icon icon="mdi-pencil"></v-icon></v-list-item-title>
-                        </v-list-item>
-                        <v-list-item :key="`delete`" @click="deleteMessage(message)" class="float-right" v-if="message.from === uuid">
-                          <v-list-item-title>
-                            <v-icon icon="mdi-delete-forever"></v-icon></v-list-item-title>
-                        </v-list-item>
-                      </v-list>
-                    </v-menu>
-                  </v-btn>
+                  <channel-action-menu :message="message" :uuid="uuid" @on:alter:message="onAlterMessage"
+                    ></channel-action-menu>
                   <!-- action menu -->
                   {{ dateFormat(message.createdAt, "HH:MM A") }}
                   <span class="font-weight-bold text-teal" v-if="message.from === uuid">
-                    {{ capitalize(username) }}: </span>
+                    {{ capitalize(username) }}:
+                  </span>
                   <span class="font-weight-bold text-teal" v-else>
-                    {{ capitalize(message.username) }}: </span>
+                    {{ capitalize(message.username) }}:
+                  </span>
                   <span>{{ message.content }}</span>
                   <v-img v-if="message.file" :width="150" :src="message.file" aspect-ratio="16/9" cover>
                     {{ message.name }}</v-img>
@@ -128,30 +112,18 @@ const dateFormat = (date: string | number, format: string): string => {
       </v-virtual-scroll>
       <v-sheet>
         <v-card-actions class="w-100 d-inline-block">
-          <MessageFormComponent :key="room?._roomId" @submit="$emit('submit:form', $event)"
+          <MessageFormComponent :key="currentChannel?._roomId" @submit="$emit('submit:form', $event)"
             @typing="$emit('update:typing', $event)">
           </MessageFormComponent>
-          <v-expand-x-transition v-if="typing">
+          <v-sheet transition="scroll-y-transition" v-if="typing">
             <p class="font-weight-light ma-2">
               {{ capitalize(typing.username) }} is Typing...
             </p>
-          </v-expand-x-transition>
+          </v-sheet>
         </v-card-actions>
       </v-sheet>
     </v-card>
   </v-container>
-
-  <!-- edit Message Dialog -->
-  <v-dialog v-model="isEditDisalog" width="auto">
-    <v-card>
-      <v-textarea clearable auto-grow v-model="editMessageContent">
-      </v-textarea>
-      <v-card-actions>
-        <v-btn color="primary" prepend-icon="mdi-content-save-check-outline" @click="editMessage">Save</v-btn>
-        <v-btn color="error" @click="isEditDisalog = false" class="ms-auto" prepend-icon="mdi-close-circle">Close</v-btn>
-      </v-card-actions>
-    </v-card>
-  </v-dialog>
 </template>
 
 <style scoped>

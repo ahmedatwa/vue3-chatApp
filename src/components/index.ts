@@ -10,6 +10,7 @@ import MessageComponent from "./Chat/MessageComponent.vue";
 import MessageFormComponent from "./Chat/MessageFormComponent.vue";
 import CreateRoomComponent from "./Chat/CreateRoomComponent.vue";
 import ChannelComponent from "./Chat/ChannelComponent.vue";
+import ChannelActionMenu from "./Chat/ChannelActionMenu.vue";
 
 // Setting
 import SettingComponent from "./Setting/SettingComponent.vue";
@@ -32,5 +33,6 @@ export {
   SettingComponent,
   ProfileComponent,
   SkeletonComponent,
-  ChannelComponent
+  ChannelComponent,
+  ChannelActionMenu
 };

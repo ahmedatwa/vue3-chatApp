@@ -31,7 +31,6 @@ export const useLoginStore = defineStore("loginUser", () => {
 
   const createUser = async () => {    
     isLoading.value = true;
-    if(username.value)
     await instance
       .post(`/create?username=${username.value}`)
       .then((response) => {
