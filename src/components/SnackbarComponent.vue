@@ -19,7 +19,6 @@ watch(
     () => props.alert,
     (newAlert) => {
         if (newAlert)
-            // text.value = newV;
             isVisible.value = true;
     }
 );
@@ -27,7 +26,12 @@ watch(
 <template>
     <v-sheet class="d-flex flex-column" v-if="alert">
         <v-snackbar closable :timeout="timeout" :color="alert?.type" v-model="isVisible" location="end top">
-            <p><span v-if="alert.title" class="font-weight-bold">{{ alert.title }}: </span>{{ alert?.text }}</p>
+            <v-sheet v-if="alert.title" color="transparent">
+                <h4 class="font-weight-bold">{{ alert.title }} </h4>
+            </v-sheet>
+            <v-sheet color="transparent">
+                {{ alert?.text }}
+            </v-sheet>
             <template v-slot:actions>
                 <v-btn color="pink" variant="text" @click="isVisible = false">
                     Close

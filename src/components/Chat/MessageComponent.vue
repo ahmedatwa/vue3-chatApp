@@ -121,9 +121,3 @@ const dateFormat = (date: string | number, format: string): string => {
 
   </v-container>
 </template>
-
-<style scoped>
-.p-2 {
-  padding: 4px !important;
-}
-</style>

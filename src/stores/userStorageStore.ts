@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { useNow, useDateFormat, useStorage } from "@vueuse/core";
 import { shallowRef, toValue } from "vue";
+import { Settings } from "@/types"
 
 export const useStorageStore = defineStore("storageStore", () => {
   const formattedDate = useDateFormat(useNow(), "YYYY-MM-DD HH:mm:ss");
@@ -15,22 +16,6 @@ export const useStorageStore = defineStore("storageStore", () => {
     }
   };
 
-  // const getLocalStorage = (name: string, key?: string) => {
-  //   values.value = null;
-  //   if (key) {
-  //     // console.log(key);
-
-  //     const $_ = localStorage.getItem(name);
-  //     if ($_) {
-  //       const items = JSON.parse($_);
-  //       if (items[key]) {
-  //         return items[key];
-  //       }
-  //     }
-  //   }
-
-  //   return localStorage.getItem(name) ? localStorage.getItem(name) : null;
-  // };
   // session id
   const setSessionId = (id: string) => {
     const state = useStorage("JSESSIOND", id, localStorage, {
@@ -65,13 +50,15 @@ export const useStorageStore = defineStore("storageStore", () => {
     state.value.date = formattedDate.value;
   };
 
-  const getAppSettings = (key?: string): object | string | null => {
+  const getAppSettings = (key?: string): Settings | string => {    
     const $_ = localStorage.getItem("APPUSSTIG");
-    const data = shallowRef<object | null>(null);
+    const data = shallowRef<Settings | string>("");
     if ($_) {
-      const items = JSON.parse($_);
-      if (key) {
+      const items = JSON.parse($_);      
+      if (key !== undefined) {
         data.value = items[key];
+      } else {
+        data.value =  items;
       }
     }
     return toValue(data);

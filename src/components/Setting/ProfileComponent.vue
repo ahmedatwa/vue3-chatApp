@@ -1,37 +1,37 @@
 <script setup lang="ts">
 import { ref, watch } from "vue"
+import { UserSessionData } from "@/types";
 
 const username = ref("");
-const isVisible = ref(false);
+const dialog = ref(false);
 
-interface Props {
-    visible: boolean;
-}
-
-const props = defineProps<Props>();
-
+const props = defineProps<{
+    user: UserSessionData | undefined;
+}>()
 const emit = defineEmits<{
-    // "update:visible": [value: boolean]
+    close: [value: boolean]
 }>();
-
-watch(
-    () => props.visible,
-    () => isVisible.value = props.visible
-)
 
 const saveProfile = () => {
     // emit("update:visible", false)
 }
+
+watch(
+    () => props.user,
+    (newU) => {
+        console.log(newU);
+        
+    })
 </script>
 <template>
-    <v-dialog v-model="props.visible" width="500" transition="dialog-top-transition" class="pa-4">
+    <v-dialog v-model="dialog" activator="parent" width="500" transition="dialog-top-transition" class="pa-4">
         <v-card>
             <v-card-title>
                 Preferences
-                <v-icon class="float-right" @click="isVisible = false" icon="mdi-close-circle-outline"></v-icon>
+                <v-icon class="float-right" @click="dialog = false" icon="mdi-close-circle-outline"></v-icon>
             </v-card-title>
             <v-divider :thickness="3" color="info"></v-divider>
-            <v-form @submit.prevent="saveProfile">
+            <v-form @submit.prevent="saveProfile" class="ma-3">
                 <v-text-field v-model="username" label="Name"></v-text-field>
 
                 <v-text-field v-model="username" label="Name"></v-text-field>

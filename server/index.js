@@ -119,6 +119,14 @@ io.on("connection", async (socket) => {
   });
 
   // channels
+
+  // Auto Join Channels on connect
+    socket.on("channels", ( channels ) => {
+     channels.forEach((channel) => {
+      socket.join(channel)
+     })
+  });
+
   socket.on("create_channel", ({ _roomId, name, createdBy }) => {
     socket.join(_roomId);
     socket.broadcast.to(_roomId).emit("client_create_channel", {
@@ -151,15 +159,26 @@ io.on("connection", async (socket) => {
     
   });
 
-  socket.on("new_room_message", (messageContent) => {
-    socket.broadcast.to(messageContent.room).emit("client_new_channel_message", messageContent);
+  socket.on("new_channel_message", (messageContent) => {
+    console.log(messageContent)
+    socket.broadcast.in(messageContent.room).emit("client_new_channel_message", { 
+      _id: messageContent._id, 
+      from: messageContent.from, 
+      username: messageContent.username, 
+      _roomId: messageContent.room,
+      roomName: messageContent.roomName, 
+      content: messageContent.content, 
+      oldContent: messageContent.oldContent, 
+      file: messageContent.file,
+      createdAt: messageContent.createdAt
+    });
   });
 
-  socket.on("room_typing", ({ _roomId, input }) => {
+  socket.on("channel_typing", ({ _roomId, input }) => {
     socket.broadcast
       .to(_roomId)
       .timeout(500)
-      .emit("client_room_typing", {
+      .emit("client_channel_typing", {
         input: input,
         from: socket._uuid,
         username: socket.username,

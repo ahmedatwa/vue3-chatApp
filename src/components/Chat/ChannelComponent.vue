@@ -22,7 +22,7 @@ const emit = defineEmits<{
   "update:typing": [value: string];
   "update:seen": [value: boolean];
   "update:newMessagesCount": [value: number];
-  // "delete:message": [value: ChannelMessages];
+  "reply:message": [id: string | number, relatedContent: string, value: string];
   "alter:message": [key: string, value: ChannelMessages];
   "update:channel:users": [value: string[]];
 }>();
@@ -54,12 +54,13 @@ const onMutate = () => {
   handleScroll();
 };
 
-const onAlterMessage = (key: string, event: ChannelMessages)=> {
-  emit("alter:message", key, event)  
+const onAlterMessage = (key: string, event: ChannelMessages) => {
+  emit("alter:message", key, event)
 }
 
-
-
+const onReplyMessage = (id: string | number, relatedContent: string, content: string) => {
+  emit("reply:message", id, relatedContent, content)
+}
 const dateFormat = (date: string | number, format: string): string => {
   const formatted = useDateFormat(date, format);
   return replace(formatted.value, '"', "");
@@ -70,9 +71,9 @@ const dateFormat = (date: string | number, format: string): string => {
     <v-card class="mx-auto" id="container" :loading="isLoading">
       <v-card-title>
         {{ capitalize(currentChannel?.name) }}
-        <create-room-component v-if="currentChannel?.createdBy === uuid" title="Invite Users" :allUsers="allUsers" icon="mdi-account-plus" color="grey-lighten-1"
-          :channel-name="currentChannel?.name" :current-user="uuid" :participants="currentChannel?.participants"
-          @invite:channel:users="$emit('update:channel:users', $event)">
+        <create-room-component v-if="currentChannel?.createdBy === uuid" title="Invite Users" :allUsers="allUsers"
+          icon="mdi-account-plus" color="#00B8D4" :channel-name="currentChannel?.name" :current-user="uuid"
+          :participants="currentChannel?.participants" @invite:channel:users="$emit('update:channel:users', $event)">
           <template v-slot:invite-user>
             <v-btn type="submit" block color="indigo-darken-3">Send</v-btn>
           </template>
@@ -88,13 +89,18 @@ const dateFormat = (date: string | number, format: string): string => {
             </v-list-subheader>
 
             <v-list-item v-for="(message, index) in messages" :key="index">
-              <v-list-item-title :key="message._id" :id="`id-${message._id}`" transition="v-slide-y-reverse-transition">
-                <div>
+              <v-list-item-title :key="message._id" :id="`id-${message._id}`">
+                <v-sheet>
                   <!-- Action Menu -->
                   <channel-action-menu :message="message" :uuid="uuid" @on:alter:message="onAlterMessage"
-                    ></channel-action-menu>
-                  <!-- action menu -->
+                    @on:reply:message="onReplyMessage"></channel-action-menu>
                   {{ dateFormat(message.createdAt, "HH:MM A") }}
+                  <!-- Reply Message -->
+                  <v-tooltip :text="message.relatedContent" v-if="message.relatedId" location="top">
+                    <template v-slot:activator="{ props }">
+                      <v-icon color="blue-grey-lighten-2" icon="mdi-reply-outline" size="small" v-bind:="props"></v-icon>
+                    </template>
+                  </v-tooltip>
                   <span class="font-weight-bold text-teal" v-if="message.from === uuid">
                     {{ capitalize(username) }}:
                   </span>
@@ -104,7 +110,7 @@ const dateFormat = (date: string | number, format: string): string => {
                   <span>{{ message.content }}</span>
                   <v-img v-if="message.file" :width="150" :src="message.file" aspect-ratio="16/9" cover>
                     {{ message.name }}</v-img>
-                </div>
+                </v-sheet>
               </v-list-item-title>
             </v-list-item>
           </v-list>

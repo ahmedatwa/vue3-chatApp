@@ -61,6 +61,7 @@ type TypingEvent = {
 type Settings = {
   theme: string;
   connectionNotif: boolean;
+  date?: Date;
 };
 
 type Snackbar = {
@@ -71,12 +72,12 @@ type Snackbar = {
 
 // Channels
 type Channels = {
-  _id: number | string;
+  _id?: number | string;
   _roomId: string;
   name: string;
   selected?: boolean;
   messages: ChannelMessages[];
-  newMessages?: NewUnreadMessages | null;
+  newMessages?: NewChannelUnreadMessages | null;
   createdBy: string;
   createdAt: string | Date;
   participants?: string[];
@@ -95,6 +96,14 @@ type ChannelMessages = {
   createdAt: string;
   updatedAt?: string | Date;
   deletedAt?: string | Date
+  relatedId?: string | number | null;
+  relatedContent?: string | null;
+}
+
+type NewChannelUnreadMessages = {
+  total: number;
+  from: string;
+  lastMessage: string;
 }
 
 export type {

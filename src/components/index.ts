@@ -19,6 +19,7 @@ import ProfileComponent from "./Setting/ProfileComponent.vue";
 // Loaders
 import SnackbarComponent from "./SnackbarComponent.vue";
 import SkeletonComponent from "./SkeletonComponent.vue";
+import ConfirmDialogComponent from "./ConfirmDialogComponent.vue"
 
 export {
   ChatComponent,
@@ -34,5 +35,6 @@ export {
   ProfileComponent,
   SkeletonComponent,
   ChannelComponent,
-  ChannelActionMenu
+  ChannelActionMenu,
+  ConfirmDialogComponent
 };

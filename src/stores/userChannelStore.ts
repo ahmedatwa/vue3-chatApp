@@ -1,25 +1,13 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import socket from "@/client";
+import { ref, computed, watch } from "vue";
 import { Channels, Snackbar, TypingEvent, ChannelMessages } from "@/types";
 import { instance } from "@/axios";
 import { useSessionStore } from "@/stores";
 import { useNow, useDateFormat } from "@vueuse/core";
-import {
-  capitalize,
-  forEach,
-  isNull,
-  toNumber,
-  set,
-  merge,
-  findKey,
-  remove,
-  escape,
-  filter,
-  includes,
-  toLower
-} from "lodash";
+import { capitalize, forEach, isNull, toNumber, set, merge } from "lodash";
+import { findKey, remove, escape, filter, includes, toLower } from "lodash";
 import { v4 as uuidv4 } from "uuid";
+import socket from "@/client";
 
 export const useChannelStore = defineStore("channelStore", () => {
   const sessionStore = useSessionStore();
@@ -34,7 +22,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const selectedChannel = ref<Channels | null>(null);
   const errors = ref();
   const filterSearchInput = ref("");
-  
+
   // Filter Channels
   const filteredChannels = computed(() => {
     isLoading.value = true;
@@ -46,7 +34,12 @@ export const useChannelStore = defineStore("channelStore", () => {
     });
   });
 
-  const sendMessage = async (content: string) => {
+  const sendMessage = async (
+    content: string,
+    relatedId?: string | number,
+    relatedContent?: string
+  ) => {
+    isLoading.value = true;
     const messageContent = {
       _id: uuidv4(),
       from: sessionStore.userSessionData?._uuid,
@@ -55,11 +48,12 @@ export const useChannelStore = defineStore("channelStore", () => {
       content: escape(content),
       oldContent: escape(content),
       file: uploadedFile.value
-        ? `${import.meta.env.VITE_API_URL}/images/uploads/${
-            uploadedFile.value?.name
-          }`
+        ? `${import.meta.env.VITE_API_URL}/images/uploads/${uploadedFile.value?.name
+        }`
         : "",
       createdAt: formattedDate.value,
+      relatedId: relatedId ? relatedId : null,
+      relatedContent: relatedContent ? relatedContent : null,
     };
     // push messages to channel
     selectedChannel.value?.messages.push(messageContent);
@@ -81,7 +75,8 @@ export const useChannelStore = defineStore("channelStore", () => {
         }
       });
     }
-    socket.emit("new_room_message", messageContent);
+    socket.emit("new_channel_message", {...messageContent, roomName: selectedChannel.value?.name});
+    isLoading.value = false;
   };
 
   const getChannels = async (uuid: string) => {
@@ -105,8 +100,14 @@ export const useChannelStore = defineStore("channelStore", () => {
         created_at: formattedDate.value,
       })
       .then((response) => {
-        if (response.data) {
-          channels.value.push(response.data);
+        if (response.statusText === "OK") {
+          channels.value.push({
+            _roomId: response.data._roomId,
+            name: response.data.name,
+            createdBy: response.data.created_by,
+            createdAt: response.data.created_at,
+            messages: [],
+          });
           socket.emit("create_channel", {
             _roomId: response.data.room_id,
             name: response.data.name,
@@ -177,34 +178,50 @@ export const useChannelStore = defineStore("channelStore", () => {
       newMessages: null,
       messages: room.messages || [],
     };
-    // Emit Socket
-    socket.emit("join_channel", {
-      _roomId: room._roomId,
-      room: room.name,
-      createdBy: room.createdBy,
-    });
   };
 
-  socket.on("client_new_channel_message", (messageContent) => {
-    //reset typing
-    typing.value = null;
-    selectedChannel.value?.messages.push(messageContent);
+  socket.on("client_new_channel_message", ({
+      _id,
+      from,
+      username,
+      roomName,
+      _roomId,
+      content,
+      oldContent,
+      file,
+      createdAt,
+    }) => {
+      //reset typing
+      typing.value = null;
+      forEach(channels.value, (channel) => {
+        if (channel._roomId === _roomId) {
+          channel.messages.push({
+            _id: _id,
+            from: from,
+            username: username,
+            room: roomName,
+            content: content,
+            oldContent: oldContent,
+            file: file,
+            createdAt: createdAt,
+          });
 
-    forEach(channels.value, (channel) => {
-      if (channel._roomId === messageContent._roomId) {
-        channel.newMessages = {
-          total: UnreadMessagesTotal.value++,
-          lastMessage: messageContent.content,
-        };
-        newNotification.value = {
-          title: capitalize(messageContent.room),
-          text: capitalize(messageContent.username) + messageContent.content,
-        };
-      }
-    });
-  });
+          channel.newMessages = {
+            total: UnreadMessagesTotal.value++,
+            lastMessage: content,
+            from: username,
+          };
+          newNotification.value = {
+            title: capitalize(roomName),
+            text: `${capitalize(username)}: ${content}`,
+            type: "success"
+          };
+        }
+      });
+    }
+  );
 
-  const alterChannelMessage = (key: string, message: ChannelMessages) => {
+  const alterChannelMessage = async (key: string, message: ChannelMessages) => {
     const messageKey = findKey(
       selectedChannel.value?.messages,
       (m: ChannelMessages) => {
@@ -235,9 +252,21 @@ export const useChannelStore = defineStore("channelStore", () => {
           channel: selectedChannel.value,
         });
       }
+
+      // save sent Message
+      await instance.post("/addroommessage", {
+        room: selectedChannel.value?._roomId,
+        createdAt: formattedDate.value,
+        content: selectedChannel.value?.messages,
+      });
     }
   };
 
+  // Leave Channel
+  const leaveChannel = (_uuid: string, channel: Channels) => {
+    console.log(_uuid);
+    
+  }
   // Sockets
   socket.on("client_edit_channel_message", async (message) => {
     console.log(message);
@@ -267,5 +296,6 @@ export const useChannelStore = defineStore("channelStore", () => {
     deleteChannel,
     alterChannelMessage,
     onSelectChannel,
+    leaveChannel
   };
 });

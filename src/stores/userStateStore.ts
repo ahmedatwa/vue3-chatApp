@@ -1,22 +1,11 @@
 import { defineStore } from "pinia";
-import { ref, computed, watch, shallowRef, watchEffect } from "vue";
+import { ref, computed, shallowRef } from "vue";
 import socket from "@/client";
 import { User, Snackbar } from "@/types";
-import {
-  filter,
-  includes,
-  forEach,
-  sortBy,
-  uniqBy,
-  toLower,
-  capitalize,
-} from "lodash";
-import {
-  useMessageStore,
-  useSessionStore,
-  useChannelStore,
-  useStorageStore,
-} from "@/stores";
+import { uniqBy, toLower, capitalize, orderBy } from "lodash";
+import { filter, includes, forEach, sortBy, map } from "lodash";
+import { useMessageStore, useSessionStore } from "@/stores";
+import { useChannelStore, useStorageStore } from "@/stores";
 import { instance } from "@/axios";
 
 export const useUserStore = defineStore("userState", () => {
@@ -36,13 +25,13 @@ export const useUserStore = defineStore("userState", () => {
 
   // Filter Users
   const filteredUsers = computed(() => {
-      isLoading.value = true;
-      setTimeout(() => {
-        isLoading.value = false;
-      }, 500);
-      return filter(users.value, (user) => {
-        return includes(user.username, toLower(filterSearchInput.value));
-      });
+    isLoading.value = true;
+    setTimeout(() => {
+      isLoading.value = false;
+    }, 500);
+    return filter(users.value, (user) => {
+      return includes(user.username, toLower(filterSearchInput.value));
+    });
   });
 
   // socket connection established
@@ -53,13 +42,20 @@ export const useUserStore = defineStore("userState", () => {
       channelStore.getChannels(sessionStore.userSessionData?._uuid!),
     ]);
 
-    // Get Rooms
-    channelStore.channels = channels?.data;
-    // const sortedChannels = sortBy(channelStore.channels, (channel) => {
-    //   return channel.name
-    // });
-    // console.log(sortedChannels);
-    
+    // channels
+    if (channels?.data) {
+      channelStore.channels = orderBy(
+        channels.data,
+        ["createdAt"],
+        ["desc", "asc"]
+      );
+
+      const userChannels = map(channels?.data, "_roomId");
+      if (userChannels) {
+        socket.emit("channels", userChannels);
+      }
+    }
+
     // Messages
     forEach(messages?.data, (thread) => {
       forEach(thread.content, (message) => {
@@ -96,7 +92,6 @@ export const useUserStore = defineStore("userState", () => {
     users.value = uniqBy(sorted, "_uuid");
 
     //get Last Selected User for default selection
-    // const _uuid = localStorage.getItem("LSTSECD");
     const seletcted = storageStore.getLastSelected();
     if (seletcted) {
       await instance
@@ -123,9 +118,7 @@ export const useUserStore = defineStore("userState", () => {
 
   // upon user connection notify existing users
 
-  socket.on(
-    "client_user_new_message",
-    ({ from, to, content, file, createdAt }) => {
+  socket.on("client_user_new_message", ({ from, to, content, file, createdAt }) => {
       // reset typing
       messageStore.typing = null;
       const fromSelf = (socket as any)._uuid === from;
@@ -140,7 +133,7 @@ export const useUserStore = defineStore("userState", () => {
             fromSelf,
             createdAt: createdAt,
           });
-          // console.log(user.uuid === from)
+
           if (user._uuid === from) {
             user.newMessages = {
               total: UnreadMessagesTotal.value++,
@@ -167,20 +160,20 @@ export const useUserStore = defineStore("userState", () => {
     };
   };
 
-    // const Search = computed(() => {
-    //   if(filterSearchInput.value) {
-    //   isLoading.value = true;
-    //   setTimeout(() => {
-    //     isLoading.value = false;
-    //   }, 500);
-    //   return filter(users.value, (user) => {
-    //     return includes(user.username, toLower(filterSearchInput.value));
-    //   });
-    //   // });
-    // } else {
-    //  return  users.value;
-    // }
-    
+  // const Search = computed(() => {
+  //   if(filterSearchInput.value) {
+  //   isLoading.value = true;
+  //   setTimeout(() => {
+  //     isLoading.value = false;
+  //   }, 500);
+  //   return filter(users.value, (user) => {
+  //     return includes(user.username, toLower(filterSearchInput.value));
+  //   });
+  //   // });
+  // } else {
+  //  return  users.value;
+  // }
+
   //});
   /**
    * remove new messages flag on select

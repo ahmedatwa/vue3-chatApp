@@ -1,32 +1,15 @@
 <script setup lang="ts">
-import {
-  UserListComponent,
-  MessageComponent,
-  HeaderComponent,
-  SnackbarComponent,
-  ChannelComponent,
-} from "@/components";
+import { UserListComponent, MessageComponent, HeaderComponent } from "@/components";
+import { SnackbarComponent, ChannelComponent } from "@/components";
 import { ref, onUnmounted, onMounted, watch, shallowRef } from "vue";
-import {
-  useUserStore,
-  useSessionStore,
-  useMessageStore,
-  useChannelStore,
-  useLoginStore,
-  useStorageStore,
-} from "@/stores";
-import socket from "@/client";
+import { useUserStore, useSessionStore, useMessageStore } from "@/stores";
+import { useChannelStore, useLoginStore, useStorageStore } from "@/stores";
 import { capitalize, forEach, find, isUndefined } from "lodash";
-import {
-  User,
-  UserSessionData,
-  Channels,
-  Settings,
-  Snackbar,
-  ChannelMessages,
-} from "@/types";
+import { User, UserSessionData, Channels } from "@/types";
+import { Settings, Snackbar, ChannelMessages } from "@/types";
 import { useTheme } from "vuetify";
 import { watchEffect } from "vue";
+import socket from "@/client";
 
 const userStore = useUserStore();
 const userLoginStore = useLoginStore();
@@ -79,12 +62,12 @@ const onSelect = (_id: string, key: string, value: User | Channels) => {
   storageStore.setLastSelected({ _id, comp: key });
 };
 
-const onSearch = (name: string) => {  
+const onSearch = (name: string) => {
   userStore.filterSearchInput = name;
-  channelStore.filterSearchInput = name
+  channelStore.filterSearchInput = name;
 };
 
-const newMessage = async (payload: {
+const newUserMessage = async (payload: {
   _threadId: string | null;
   text: string;
   file?: File;
@@ -129,6 +112,14 @@ const onAlterChannelMessage = (key: string, message: ChannelMessages) => {
   channelStore.alterChannelMessage(key, message);
 };
 
+const onReplyChannelMessage = (
+  id: string | number,
+  relatedContent: string,
+  content: string
+) => {
+  channelStore.sendMessage(content, id, relatedContent);
+};
+
 socket.on("client_create_channel", (room) => {
   console.log(room);
 });
@@ -150,13 +141,13 @@ socket.on("client_add_users_to_channel", ({ username, roomName, to }) => {
 });
 
 const onChannelTyping = (input: string) => {
-  socket.timeout(500).emit("room_typing", {
+  socket.timeout(500).emit("channel_typing", {
     _roomId: channelStore.selectedChannel?._roomId,
     input: input.length,
   });
 };
 
-socket.on("client_room_typing", ({ input, from, username }) => {
+socket.on("client_channel_typing", ({ input, from, username }) => {
   if (input > 1) {
     channelStore.typing = {
       from: from,
@@ -239,36 +230,36 @@ watch(
   }
 );
 // User Sockets
-socket.on("user_connected", (user) => {  
-    forEach(userStore.users, (u) => {
-      if (u._uuid === user._uuid) {
-        u.connected = true;
-        if (storageStore.getAppSettings("connectionNotif")) {
-          userStore.newNotification = {
-            title: capitalize(user.username),
-            text: "got connected.",
-            type: "success",
-          };
-        }
-        return;
+socket.on("user_connected", (user) => {
+  forEach(userStore.users, (u) => {
+    if (u._uuid === user._uuid) {
+      u.connected = true;
+      if (storageStore.getAppSettings("connectionNotif")) {
+        userStore.newNotification = {
+          title: capitalize(user.username),
+          text: "got connected.",
+          type: "success",
+        };
       }
-    });
-
-    const newUser = find(userStore.users, {
-      _uuid: user._uuid,
-    });
-
-    if (isUndefined(newUser)) {
-      userStore.users.push({
-        _uuid: user._uuid,
-        username: user.username,
-        image: user.image,
-        self: user.socketId === sessionStore.userSessionData?._uuid,
-        connected: true,
-        messages: userStore.messagesPerUser.get(user._uuid) || [],
-      });
+      return;
     }
   });
+
+  const newUser = find(userStore.users, {
+    _uuid: user._uuid,
+  });
+
+  if (isUndefined(newUser)) {
+    userStore.users.push({
+      _uuid: user._uuid,
+      username: user.username,
+      image: user.image,
+      self: user.socketId === sessionStore.userSessionData?._uuid,
+      connected: true,
+      messages: userStore.messagesPerUser.get(user._uuid) || [],
+    });
+  }
+});
 
 socket.on("user_disconnected", (_uuid) => {
   forEach(userStore.users, async (user) => {
@@ -297,8 +288,8 @@ onUnmounted(() => {
   socket.off("session");
   socket.off("user_typing");
   socket.off("client_user_typing");
-  socket.off("room_typing");
-  socket.off("client_room_typing");
+  socket.off("channel_typing");
+  socket.off("client_channel_typing");
   socket.off("new_room_message");
   socket.off("client_new_room_message");
 });
@@ -312,6 +303,7 @@ onUnmounted(() => {
   <div v-if="sessionStore.isLoggedIn">
     <user-list-component
       :drawer="drawer"
+      @update:model-value="updateDrawer"
       :users="userStore.filteredUsers"
       :channels="channelStore.filteredChannels"
       :selected-channel="channelStore.selectedChannel"
@@ -319,18 +311,17 @@ onUnmounted(() => {
       :is-user-loading="userStore.isLoading"
       :_uuid="props.session?._uuid"
       :last-selected-element="lastSelectedElement"
+      @on:leave:channel="channelStore.leaveChannel"
       @on:delete:channel="channelStore.deleteChannel($event)"
       @update:selected="onSelect"
       @user:created:room="channelStore.createChannel($event)"
     ></user-list-component>
 
     <header-component
-      :key="props.session?._uuid"
-      :connected="props.session?.connected"
-      :username="props.session?.username"
-      :sessionId="props.session?.sessionId"
-      :image="props.session?.image"
-      :uuid="props.session?._uuid"
+      :key="session?._uuid"
+      :user-session="session"
+      :user-setting="storageStore.getAppSettings()"
+      :drawer="drawer"
       @logout="doLogout"
       @update:status="goOffline"
       @toggle:drawer="updateDrawer"
@@ -352,6 +343,7 @@ onUnmounted(() => {
             @submit:form="newChannelMessage"
             @update:typing="onChannelTyping"
             @alter:message="onAlterChannelMessage"
+            @reply:message="onReplyChannelMessage"
           >
           </channel-component>
         </section>
@@ -363,7 +355,7 @@ onUnmounted(() => {
             :typing="messageStore.typing"
             :is-loading="sessionStore.isLoading"
             :username="sessionStore.userSessionData?.username"
-            @submit:form="newMessage"
+            @submit:form="newUserMessage"
             @update:typing="onTyping"
             @update:new-messages-count="updateNewMessageCount"
             @update:seen="UpdateSeen"

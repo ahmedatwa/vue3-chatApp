@@ -15,7 +15,7 @@ const props = defineProps<{
   channelName?: string | null;
   currentUser?: string | undefined;
   icon: string;
-  color: string;
+  color?: string;
   title: string;
   subTitle?: string;
 }>();
@@ -32,6 +32,7 @@ const createRoom = () => {
   roomName.value = "";
   isAlertVisible.value = true;
   isLoading.value = false;
+  dialog.value = false
 };
 
 const inviteUsers = async () => {
@@ -39,6 +40,7 @@ const inviteUsers = async () => {
   emit("invite:channel:users", selectedParticipants.value);
   isAlertVisible.value = true;
   isLoading.value = false;
+  dialog.value = false
 };
 
 watch(dialog, (newVal) => {
@@ -57,13 +59,8 @@ watchEffect(() => {
 <template>
   <v-tooltip :text="title" location="top">
     <template v-slot:activator="{ props }">
-      <v-btn
-        :color="color"
-        variant="text"
-        :icon="icon"
-        @click="dialog = true"
-        v-bind="props"
-      ></v-btn>
+      <v-btn variant="plain" @click="dialog = true" v-bind="props" :prepend-icon="icon" color="indigo-darken-1">
+      </v-btn>
     </template>
   </v-tooltip>
   <!-- Room Form -->
@@ -71,29 +68,13 @@ watchEffect(() => {
     <v-card width="350" class="ma-4">
       <v-card-title>
         {{ title }}
-        <v-icon
-          class="float-right"
-          @click="dialog = false"
-          icon="mdi-close-circle-outline"
-        ></v-icon>
+        <v-icon class="float-right" @click="dialog = false" icon="mdi-close-circle-outline"></v-icon>
       </v-card-title>
-      <v-alert
-        text="Changes Saved."
-        type="success"
-        variant="tonal"
-        v-if="isAlertVisible"
-      ></v-alert>
+      <v-alert text="Changes Saved." type="success" variant="tonal" v-if="isAlertVisible"></v-alert>
       <v-form @submit.prevent="createRoom" class="ma-2" name="create-room">
-        <v-text-field
-          label="Channel Name"
-          v-model="roomName"
-          hint="only '_|#|&' allowed"
-          v-if="!channelName"
-          clearable
-          prepend-inner-icon="mdi-forum"
-          :loading="isLoading"
-        >
-      </v-text-field>
+        <v-text-field label="Channel Name" v-model="roomName" hint="only '_|#|&' allowed" v-if="!channelName" clearable
+          prepend-inner-icon="mdi-forum" :loading="isLoading">
+        </v-text-field>
         <slot name="create-room" :inputValue="roomName"></slot>
       </v-form>
       <v-list-subheader v-if="subTitle">{{ subTitle }}</v-list-subheader>
@@ -101,12 +82,8 @@ watchEffect(() => {
         <v-virtual-scroll :height="250" :items="allUsers" v-if="allUsers">
           <template v-slot:default="{ item }">
             <v-list-item>
-              <v-checkbox
-                :label="capitalize(item.username)"
-                :value="item._uuid"
-                v-model="selectedParticipants"
-                hide-details="auto"
-              ></v-checkbox>
+              <v-checkbox :label="capitalize(item.username)" :value="item._uuid" v-model="selectedParticipants"
+                hide-details="auto"></v-checkbox>
             </v-list-item>
           </template>
         </v-virtual-scroll>
