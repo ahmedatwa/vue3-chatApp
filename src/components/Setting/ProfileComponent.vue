@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from "vue"
-import { UserSessionData } from "@/types";
+import type { UserSessionData } from "@/types/Session.ts";
 
 const username = ref("");
 const dialog = ref(false);

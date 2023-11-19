@@ -1,27 +1,27 @@
 import { defineStore } from "pinia";
-import { useNow, useDateFormat, useStorage } from "@vueuse/core";
-import { shallowRef, toValue } from "vue";
-import { Settings } from "@/types"
+import { shallowRef, computed } from "vue";
+import { Settings } from "@/types";
+import { formatDate } from "@/helpers";
 
 export const useStorageStore = defineStore("storageStore", () => {
-  const formattedDate = useDateFormat(useNow(), "YYYY-MM-DD HH:mm:ss");
+  const settingData = shallowRef<Settings | null>(null);
+
+  const appSettings = computed((): Settings | null => {
+    return settingData.value ? settingData.value : getAppSettings();
+  });
+  const sessionId = computed(() => {
+    return getSessionId();
+  });
 
   const setLocalStorage = (key: string, data: object) => {
     if (key) {
-      const state = useStorage(key, { ...data }, localStorage, {
-        mergeDefaults: true,
-      });
-
-      state.value = data;
+      localStorage.setItem(key, JSON.stringify({ ...data }));
     }
   };
 
   // session id
   const setSessionId = (id: string) => {
-    const state = useStorage("JSESSIOND", id, localStorage, {
-      mergeDefaults: true,
-    });
-    state.value = id;
+    localStorage.setItem("JSESSIOND", id);
   };
 
   const getSessionId = (): string | undefined => {
@@ -32,51 +32,43 @@ export const useStorageStore = defineStore("storageStore", () => {
   };
 
   // App Settings
-  const setAppSettings = (setting: {
-    theme: string;
-    connectionNotif: boolean;
-    date?: string;
-  }) => {
-    const state = useStorage(
+  const setAppSettings = (setting: Settings) => {
+    localStorage.setItem(
       "APPUSSTIG",
-      { ...setting, date: formattedDate.value },
-      localStorage,
-      {
-        mergeDefaults: true,
-      }
+      JSON.stringify({
+        ...setting,
+        date: formatDate(),
+      })
     );
-    state.value.theme = setting.theme;
-    state.value.connectionNotif = setting.connectionNotif;
-    state.value.date = formattedDate.value;
+    settingData.value = {
+      theme: setting.theme,
+      connectionNotif: setting.connectionNotif,
+      date: setting.date,
+    };
   };
 
-  const getAppSettings = (key?: string): Settings | string => {    
+  const getAppSettings = (): Settings | null => {
     const $_ = localStorage.getItem("APPUSSTIG");
-    const data = shallowRef<Settings | string>("");
     if ($_) {
-      const items = JSON.parse($_);      
-      if (key !== undefined) {
-        data.value = items[key];
-      } else {
-        data.value =  items;
-      }
+      const items = JSON.parse($_);
+      settingData.value = items;
+      return items;
     }
-    return toValue(data);
+    return null;
   };
 
   // Last Selected
-  const setLastSelected = (selected: Record<"_id" | "comp", string>) => {
-    const state = useStorage(
+  const setLastSelected = (selected: {
+    _id: string | number;
+    comp: string;
+  }) => {
+    localStorage.setItem(
       "LSTSELECD",
-      { ...selected, date: formattedDate.value },
-      localStorage,
-      {
-        mergeDefaults: true,
-      }
+      JSON.stringify({
+        ...selected,
+        date: formatDate(),
+      })
     );
-    state.value._id = selected._id;
-    state.value.comp = selected.comp;
-    state.value.date = formattedDate.value;
   };
 
   const getLastSelected = (): { _id: string; comp: string } | undefined => {
@@ -92,7 +84,8 @@ export const useStorageStore = defineStore("storageStore", () => {
     getLastSelected,
     setLastSelected,
     setSessionId,
-    getAppSettings,
     getSessionId,
+    appSettings,
+    sessionId,
   };
 });

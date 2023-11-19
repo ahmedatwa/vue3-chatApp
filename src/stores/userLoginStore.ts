@@ -1,23 +1,26 @@
 import { defineStore } from "pinia";
-import { ref, computed } from "vue";
-import { instance } from "@/axios";
-import { DBUser } from "@/types";
+import { reactive, ref } from "vue";
+import { instance, userApi } from "@/axios";
+import type { DBUser, CreateUserForm } from "@/types/User.ts";
 
 export const useLoginStore = defineStore("loginUser", () => {
   const users = ref<DBUser[]>([]);
   const isLoading = ref(false);
-  const username = ref("");
+  
+  const form: CreateUserForm = reactive({
+    userName: "",
+    firstName: "",
+    lastName: ""
+  })
+ 
+  
   const responseError = ref();
-  const responseResult = ref(null)
-
-  const isValid = computed(() => {
-    return username.value.length > 2;
-  });
+  const responseResult = ref(null);
 
   const getAllUsers = async () => {
     isLoading.value = true;
     await instance
-      .get("/all")
+      .get(userApi.__AllUsers)
       .then((response): void => {
         users.value = response.data;
       })
@@ -29,19 +32,22 @@ export const useLoginStore = defineStore("loginUser", () => {
       });
   };
 
-  const createUser = async () => {    
+  const createUser = async () => {
     isLoading.value = true;
     await instance
-      .post(`/create?username=${username.value}`)
+      .post(userApi.__createUser, {
+        userName: form?.firstName.toLowerCase() + form?.lastName.toLowerCase(),
+        firstName: form?.firstName,
+        lastName: form?.lastName,
+      })
       .then((response) => {
-        responseResult.value = response.data;
+        users.value.push(...response.data)
       })
       .then((error) => {
         responseError.value = error;
       })
       .finally(() => {
         isLoading.value = false;
-        username.value = "";
         getAllUsers();
       });
   };
@@ -53,7 +59,6 @@ export const useLoginStore = defineStore("loginUser", () => {
     responseError,
     users,
     isLoading,
-    username,
-    isValid
+    form,
   };
 });

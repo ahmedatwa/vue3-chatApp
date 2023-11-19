@@ -1,18 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { Settings } from "@/types";
+import { ref, onMounted, onUnmounted, inject } from "vue";
+import type { Settings } from "@/types";
 
 const isLoading = ref(false);
 const isAlertVisible = ref(false);
 const settingDialog = ref(false);
-
+const settings = inject<Settings>("settings")
 // Settings
 const isDark = ref(false);
 const connectionNotif = ref(false);
-
-const props = defineProps<{
-  setting: Settings | string;
-}>();
 
 const emit = defineEmits<{
   "on:update:settings": [value: Settings];
@@ -33,15 +29,18 @@ const saveSettings = async () => {
 
 
 onMounted(() => {  
-  if (typeof props.setting === "object") {
-    isDark.value = props.setting?.theme === "dark" ? true : false;
-    if (props.setting?.connectionNotif) {
-      connectionNotif.value = props.setting.connectionNotif
+  isAlertVisible.value = false;
+  if (settings) {
+    isDark.value = settings.theme === "dark" ? true : false;
+    if (settings.connectionNotif) {
+      connectionNotif.value = settings.connectionNotif
     }
   }
-  isAlertVisible.value = false;
 });
 
+onUnmounted(() => {
+  isAlertVisible.value = false;
+})
 </script>
 <template>
   <v-dialog v-model="settingDialog" activator="parent" width="auto" transition="dialog-top-transition" class="ma-4">

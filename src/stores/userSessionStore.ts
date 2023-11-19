@@ -1,25 +1,34 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
-import { instance } from "@/axios";
-import { UserSessionData, DBUser } from "@/types";
-import socket from "@/client";
+import { ref, shallowRef } from "vue";
+import { instance, sessionApi } from "@/axios";
+import { DBUser } from "@/types/User.ts";
+import { SessionError, UserSessionData } from "@/types/Session.ts";
 import { useStorageStore } from "@/stores";
+import socket from "@/client";
+import { capitalize } from "@/helpers";
 
 export const useSessionStore = defineStore("userSession", () => {
   const userSessionData = ref<UserSessionData>();
   const isLoggedIn = ref(false);
   const isLoading = ref(false);
-  const responseError = ref();
-  const responseResult = ref(null);
+  const sessionError = shallowRef<SessionError | null>(null);
   const storageStore = useStorageStore();
 
   // All Sockets
   const getAllSessions = async () => {
     isLoading.value = true;
     try {
-      return await instance.get(`/getallsessions?connected=1`);
+      return await instance.get(sessionApi.__getSessions, {
+        params: {
+          connected: 1,
+        },
+      });
     } catch (error) {
-      responseError.value = error;
+      // sessionError.value = {
+      //   code: error.code,
+      //   text: error.message,
+      //   type: "error",
+      // };
     } finally {
       isLoading.value = false;
     }
@@ -28,19 +37,19 @@ export const useSessionStore = defineStore("userSession", () => {
   const addSession = async (user: DBUser) => {
     isLoading.value = true;
     await instance
-      .post("/addsession", {
+      .post(sessionApi.__addSession, {
         _uuid: user._uuid,
-        session_id: user.sessionId,
+        sessionID: user.sessionID,
         connected: true,
       })
-      .then((response) => {
-        if (response?.statusText === "Created") {
+      .then((response) => {        
+        if (response?.statusText === "Created" && response.status === 201) {          
           socket.auth = {
             _id: user._id,
             _uuid: user._uuid,
-            sessionId: user.sessionId,
-            username: user.username,
-            image: user.image,
+            sessionID: user.sessionID,
+            userName: user.userName,
+            //image: user.image,
           };
           // connect socket
           socket.connect();
@@ -49,19 +58,27 @@ export const useSessionStore = defineStore("userSession", () => {
             _uuid: user._uuid,
             image: user.image,
             connected: true,
-            sessionId: user.sessionId!,
-            username: user.username,
+            sessionID: user.sessionID,
+            userName: user.userName,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            displayName: capitalize(user.firstName + " " + user.lastName),
             createdAt: user.createdAt,
           };
-          storageStore.setSessionId(user.sessionId!);
+          storageStore.setSessionId(user.sessionID!);
           (socket as any)._id = user._id;
           (socket as any)._uuid = user._uuid;
-          (socket as any).username = user.username;
+          (socket as any).userName = user.userName;
           isLoggedIn.value = true;
         }
       })
       .catch((error) => {
-        responseError.value = error;
+        sessionError.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
       })
       .finally(() => {
         isLoading.value = false;
@@ -72,15 +89,40 @@ export const useSessionStore = defineStore("userSession", () => {
     isLoading.value = true;
     isLoggedIn.value = false;
     await instance
-      .get(`getsession?session_id=${sessionID}`)
+      .get(sessionApi.__getSession, {
+        params: {
+          sessionID: sessionID,
+          connected: 1,
+        },
+      })
       .then((response) => {
-        if (response.data) userSessionData.value = response.data;
-        socket.auth = { ...userSessionData.value };
-        socket.connect();
-        isLoggedIn.value = true;
+        if (response.data) {
+          userSessionData.value = {
+            _id: response.data._id,
+            _uuid: response.data._uuid,
+            image: response.data.image,
+            connected: response.data.connected,
+            sessionID: response.data.sessionID,
+            email: response.data.sessionID,
+            userName: response.data.userName,
+            firstName: capitalize(response.data.firstName),
+            lastName: capitalize(response.data.lastName),
+            displayName: capitalize(
+              response.data.firstName + " " + response.data.lastName
+            ),
+            createdAt: response.data.createdAt,
+          };
+          socket.auth = { ...userSessionData.value };
+          socket.connect();
+          isLoggedIn.value = true;
+        }
       })
       .catch((error) => {
-        responseError.value = error;
+        sessionError.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
       })
       .finally(() => {
         isLoading.value = false;
@@ -89,36 +131,69 @@ export const useSessionStore = defineStore("userSession", () => {
   // update
   const updateSession = async (session: {
     _uuid?: string;
-    sessionId?: string;
+    sessionID: string;
     connected: boolean;
-  }) => {
+  }) => {    
+    isLoading.value = true;
     await instance
-      .post("/updatesession", {
+      .post(sessionApi.__updateSession, {
         _uuid: session._uuid,
-        session_id: session.sessionId,
+        sessionID: session.sessionID,
         connected: session.connected,
       })
-      .then((response) => {
-        responseResult.value = response.data;
+      .then((response) => {        
+        if (response.status === 201 && response.statusText === "Created")
+          if (session.connected === false) {
+            isLoggedIn.value = false;
+            localStorage.clear();
+            location.reload();
+          }
       })
       .catch((error) => {
-        responseError.value = error;
+        sessionError.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
       })
       .finally(() => {
         isLoading.value = false;
-        isLoggedIn.value = true;
       });
   };
 
+  // Restore
+  const restoreSession = async (sessionID: string) => {
+    isLoading.value = true;
+    await instance
+      .post(sessionApi.__restoreSession, {
+        sessionID,
+      })
+      .then((response) => {        
+        if (response.status === 201 && response.statusText === "Created") {
+          isLoggedIn.value = true;
+          location.reload();
+        }
+      })
+      .catch((error) => {
+        sessionError.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
   return {
     userSessionData,
     isLoggedIn,
     isLoading,
-    responseError,
-    responseResult,
+    sessionError,
     getAllSessions,
     getSession,
     updateSession,
     addSession,
+    restoreSession,
   };
 });

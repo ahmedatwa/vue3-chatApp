@@ -1,22 +1,19 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeMount } from "vue";
-import { v4 as uuidv4 } from "uuid";
-import { useLoginStore, useStorageStore } from "@/stores";
-import { DBUser } from "@/types";
+import { useLoginStore, useSessionStore } from "@/stores";
+import { nanoid } from "nanoid";
+// types
+import type { DBUser } from "@/types/User.ts";
 
 const userLoginStore = useLoginStore();
-const storageStore = useStorageStore();
+const sessionStore = useSessionStore();
+
 const toggle = ref(false);
 const isLogged = ref(false);
 const selected = ref<DBUser | null>(null);
 
-const emit = defineEmits<{
-  "update:selected": [value: DBUser];
-}>();
-
 onBeforeMount(() => {
   const sessionId = localStorage.getItem("JSESSIOND");
-    
   if (sessionId) isLogged.value = true;
 });
 
@@ -24,24 +21,29 @@ onMounted(async () => {
   await userLoginStore.getAllUsers();
 });
 
-const login = () => {
-  if (selected.value)
-    emit("update:selected", { ...selected.value, sessionId: uuidv4() });
-  isLogged.value = true;
+const login = async () => {
+  if (selected.value) {
+    await sessionStore.addSession({
+      ...selected.value,
+      sessionID: nanoid(36)
+    });
+    isLogged.value = true;
+  }
 };
 </script>
 
 <template>
-  <v-card class="mx-auto" width="auto" v-if="!isLogged">
-    <v-btn @click.stop="toggle = !toggle" icon="mdi-eye-circle" class="d-flex align-center"></v-btn>
-    <v-form id="create-user-form mt-2" v-if="toggle">
-      <v-text-field label="Add User..." v-model="userLoginStore.username" type="text" :loading="userLoginStore.isLoading">
-        <template v-slot:append-inner>
-          <v-btn @click.prevent="userLoginStore.createUser" variant="plain"
-            :disabled="userLoginStore.username.length < 3">
-            <v-icon icon="mdi-plus-circle" color="primary" size="large"></v-icon></v-btn>
-        </template>
+  <v-card class="mx-auto" width="500" v-if="!isLogged">
+    <v-btn @click.stop="toggle = !toggle" prepend-icon="mdi-eye-circle" color="indigo" class="ma-4">Add
+      User</v-btn>
+    <v-form id="create-user-form mt-2" v-if="toggle" @submit.prevent="userLoginStore.createUser" class="ma-4">
+      <v-text-field label="firstname" v-model="userLoginStore.form.firstName" type="text"
+        :loading="userLoginStore.isLoading">
       </v-text-field>
+      <v-text-field label="last name" v-model="userLoginStore.form.lastName" type="text"
+        :loading="userLoginStore.isLoading">
+      </v-text-field>
+      <v-btn type="submit" block color="indigo" :disabled="userLoginStore.form.firstName.length < 3">Submit</v-btn>
     </v-form>
     <v-table>
       <thead>
@@ -59,7 +61,7 @@ const login = () => {
                 v-model="selected" />
             </div>
           </td>
-          <td>{{ user.username }}</td>
+          <td>{{ user.userName }}</td>
           <td>{{ user.createdAt }}</td>
         </tr>
         <tr class="text-end">

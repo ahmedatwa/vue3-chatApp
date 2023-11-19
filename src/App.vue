@@ -1,28 +1,32 @@
 <script setup lang="ts">
-import { onUnmounted, onBeforeMount } from "vue";
-import { LoginComponent, ChatComponent } from "@/components";
-import socket from "@/client";
+import { onUnmounted, onBeforeMount, computed } from "vue";
+import { LoginComponent } from "@/components/Common";
+import { ChatComponent } from "@/components/Chat";
+import OverlayComponent from "@/components/OverlayComponent.vue";
+
 import { useSessionStore, useStorageStore } from "@/stores";
-import { DBUser } from "@/types";
-import { useTheme } from "vuetify";
+import socket from "@/client";
 
 const sessionStore = useSessionStore();
 const storageStore = useStorageStore();
-const theme = useTheme();
 
-const onLogin = async (user: DBUser) => {
-  await sessionStore.addSession(user);
-};
+const current = computed(() => {
+  if (sessionStore.isLoggedIn) {
+    return ChatComponent
+  }
+  return LoginComponent
+})
 
 onBeforeMount(async () => {
   const sessionId = storageStore.getSessionId();
   if (sessionId) {
     await sessionStore.getSession(sessionId);
   }
-  const prefTheme = storageStore.getAppSettings("theme");
-  if (prefTheme) {
-    theme.global.name.value = prefTheme as string;
+  const settings = storageStore.appSettings;
+  if (!settings) {
+    storageStore.setAppSettings({ theme: "light", connectionNotif: true })
   }
+
 });
 
 onUnmounted(() => {
@@ -34,25 +38,31 @@ socket.on("connect_error", (err) => {
   if (err.message === "invalid User ID") sessionStore.isLoggedIn = false;
 });
 
-socket.on("error", (err) => {
-  sessionStore.responseError = err;
+socket.on("error", (__err) => {
+  //sessionStore.sessionResponse. = err;
   socket.disconnect();
 });
-</script>
 
+const exitApp = () => {
+  localStorage.clear()
+  location.reload()
+}
+
+const restore = () => {
+  const sessionId = storageStore.getSessionId();
+  if (sessionId) {
+    sessionStore.restoreSession(sessionId);
+  }
+}
+
+const isError = computed(() => {
+  return sessionStore.sessionError !== null ? true : false
+})
+</script>
 <template>
   <v-app>
-    <v-overlay
-      v-model="sessionStore.isLoading"
-      class="align-center justify-center"
-    >
-      <v-progress-circular
-        color="primary"
-        indeterminate
-        size="64"
-      ></v-progress-circular>
-    </v-overlay>
-    <LoginComponent @update:selected="onLogin" v-if="!sessionStore.isLoggedIn"></LoginComponent>
-    <ChatComponent :session="sessionStore.userSessionData" v-else></ChatComponent>
+    <overlay-component v-model:isLoading="sessionStore.isLoading" @exit:app="exitApp" @restore:session="restore"
+      v-model:isError="isError" :error="sessionStore.sessionError"></overlay-component>
+    <component :is="current"></component>
   </v-app>
 </template>

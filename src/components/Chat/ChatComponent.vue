@@ -1,16 +1,19 @@
 <script setup lang="ts">
-import { UserListComponent, MessageComponent, HeaderComponent } from "@/components";
-import { SnackbarComponent, ChannelComponent } from "@/components";
-import { ref, onUnmounted, onMounted, watch, shallowRef } from "vue";
+import { DrawerComponent, HeaderComponent } from "@/components/Common";
+import { MessageComponent } from "@/components/Message";
+import { ChannelComponent } from "@/components/Channel";
+import SnackbarComponent from "@/components/SnackbarComponent.vue";
+import { ref, onUnmounted, onMounted, watch } from "vue";
+import { shallowRef, watchEffect, provide } from "vue";
 import { useUserStore, useSessionStore, useMessageStore } from "@/stores";
 import { useChannelStore, useLoginStore, useStorageStore } from "@/stores";
-import { capitalize, forEach, find, isUndefined } from "lodash";
-import { User, UserSessionData, Channels } from "@/types";
-import { Settings, Snackbar, ChannelMessages } from "@/types";
+import { Channels } from "@/types/Channel.ts";
+import { Settings, Snackbar } from "@/types";
+import { User } from "@/types/User.ts";
 import { useTheme } from "vuetify";
-import { watchEffect } from "vue";
-import socket from "@/client";
+import socket, { _channelEmits, _channelListener } from "@/client";
 
+// Stores
 const userStore = useUserStore();
 const userLoginStore = useLoginStore();
 const sessionStore = useSessionStore();
@@ -20,39 +23,41 @@ const storageStore = useStorageStore();
 
 const newSnackbar = ref<Snackbar | null>(null);
 const drawer = ref(true);
+provide("drawer", drawer);
 const activeComponent = shallowRef("");
 const lastSelectedElement = ref<string | number | null>(null);
+
 const _theme = useTheme();
 
-interface Props {
-  session?: UserSessionData;
-}
-const props = defineProps<Props>();
+provide("settings", storageStore.appSettings);
+provide("user", sessionStore.userSessionData);
 
 const goOffline = ($status: boolean) => {
-  forEach(userStore.users, (user) => {
-    if (user._uuid === props.session?._uuid) {
+  userStore.users.forEach((user) => {
+    if (user._uuid === sessionStore.userSessionData?._uuid) {
       user.connected = $status === true ? false : true;
-      if (props.session) {
-        props.session.connected = $status === true ? false : true;
+      if (sessionStore.userSessionData) {
+        sessionStore.userSessionData.connected =
+          $status === true ? false : true;
       }
       return;
     }
   });
 };
 
-const doLogout = async (_uuid: string, sessionId: string) => {
-  await sessionStore.updateSession({
+const doLogout = async (_uuid: string, sessionID: string) => {
+  sessionStore.updateSession({
     _uuid: _uuid,
-    sessionId: sessionId,
+    sessionID: sessionID,
     connected: false,
   });
-  if (sessionStore?.responseResult === 200) sessionStore.isLoggedIn = false;
-  localStorage.clear();
-  location.reload();
 };
 
-const onSelect = (_id: string, key: string, value: User | Channels) => {
+const onSelect = (
+  _id: string | number,
+  key: string,
+  value: User | Channels
+) => {
   if (key === "user") {
     userStore.onSelectUser({ ...(value as User) });
   } else {
@@ -65,17 +70,6 @@ const onSelect = (_id: string, key: string, value: User | Channels) => {
 const onSearch = (name: string) => {
   userStore.filterSearchInput = name;
   channelStore.filterSearchInput = name;
-};
-
-const newUserMessage = async (payload: {
-  _threadId: string | null;
-  text: string;
-  file?: File;
-}) => {
-  if (payload.file) {
-    messageStore.uploadedFile = payload.file;
-  }
-  messageStore.sendMessage(payload._threadId, payload.text);
 };
 
 const onTyping = (input: string) => {
@@ -92,7 +86,7 @@ socket.on("client_user_typing", ({ input, from, username }) => {
   if (input > 1) {
     messageStore.typing = {
       from: from,
-      username: username,
+      name: username,
       isTyping: true,
     };
   } else {
@@ -101,63 +95,40 @@ socket.on("client_user_typing", ({ input, from, username }) => {
 });
 
 // ----------- Channels ---------- //
-const newChannelMessage = async (payload: { text: string; file?: File }) => {
-  if (payload.file) {
-    channelStore.uploadedFile = payload.file;
-  }
-  channelStore.sendMessage(payload.text);
-};
+// const newChannelMessage = (payload: {
+//   content: string;
+//   files?: FileList | null;
+// }) => {
+//   channelStore.sendMessage(payload);
+// };
 
-const onAlterChannelMessage = (key: string, message: ChannelMessages) => {
-  channelStore.alterChannelMessage(key, message);
-};
+// const onDeleteChannelMessage = (payload: {
+//     _messageId: string | number;
+//     deletedContent: string;
+//     deletedAt: string;
+//     softDelete: boolean;
+//   }) => {
+//   channelStore.deleteChannelMessage(payload);
+// };
 
-const onReplyChannelMessage = (
-  id: string | number,
-  relatedContent: string,
-  content: string
-) => {
-  channelStore.sendMessage(content, id, relatedContent);
-};
+// const onEditChannelMessage = (payload: {
+//   _messageId: string | number;
+//   editContent: string;
+//   content: string;
+//   updatedAt: string;
+// }) => {
+//   channelStore.editChannelMessage(payload);
+// };
 
-socket.on("client_create_channel", (room) => {
-  console.log(room);
-});
+// const onReplyChannelMessage = (payload: {
+//     _messageId: string | number;
+//     editContent: string;
+//     content: string;
+//     updatedAt: string;
+//   }) => {
+//   channelStore.replyChannelMessage(payload);
+// };
 
-socket.on("client_join_channel", ({ username, roomName }) => {
-  newSnackbar.value = {
-    type: "success",
-    text: `${capitalize(username)} has joined room ${capitalize(roomName)}`,
-  };
-});
-
-socket.on("client_add_users_to_channel", ({ username, roomName, to }) => {
-  console.log(channelStore.selectedChannel);
-  if (to === sessionStore.userSessionData?._uuid)
-    newSnackbar.value = {
-      type: "success",
-      text: `${capitalize(username)} has created room ${capitalize(roomName)}`,
-    };
-});
-
-const onChannelTyping = (input: string) => {
-  socket.timeout(500).emit("channel_typing", {
-    _roomId: channelStore.selectedChannel?._roomId,
-    input: input.length,
-  });
-};
-
-socket.on("client_channel_typing", ({ input, from, username }) => {
-  if (input > 1) {
-    channelStore.typing = {
-      from: from,
-      username: username,
-      isTyping: true,
-    };
-  } else {
-    channelStore.typing = null;
-  }
-});
 // ----------- Channels End ---------- //
 
 // update veutify theme
@@ -169,9 +140,31 @@ const updateSettings = (setting: Settings) => {
   _theme.global.name.value = setting.theme;
 };
 
+// Alerts
+const clearNotification = (value: boolean) => {
+  if (value === true) newSnackbar.value = null;
+};
+
+// Watchers
+//new userStore socket Notification
+watch(
+  () => userStore.newNotification,
+  (NewA) => {
+    newSnackbar.value = NewA;
+  }
+);
+
+//new channelStore socket Notification
+watch(
+  () => channelStore.newNotification,
+  (NewA) => {
+    newSnackbar.value = NewA;
+  }
+);
+
 onMounted(() => {
-  if (storageStore.getAppSettings("theme")) {
-    _theme.global.name.value = storageStore.getAppSettings("theme") as string;
+  if (storageStore.appSettings?.theme) {
+    _theme.global.name.value = storageStore.appSettings.theme;
   }
   const $_ = storageStore.getLastSelected();
   if ($_) {
@@ -180,7 +173,9 @@ onMounted(() => {
     if ($_.comp === "user") {
       watchEffect(() => {
         if (userStore.users) {
-          const user = find(userStore.users, ["_uuid", $_._id]);
+          const user = userStore.users.find((element) => {
+            return element._uuid === $_._id;
+          });
           if (user) {
             userStore.selectedUser = {
               ...user,
@@ -193,7 +188,9 @@ onMounted(() => {
     } else {
       watchEffect(() => {
         if (channelStore.channels) {
-          const channel = find(channelStore.channels, ["_roomId", $_._id]);
+          const channel = channelStore.channels.find((element) => {
+            return element._channelID === $_._id;
+          });
           if (channel) {
             channelStore.selectedChannel = {
               ...channel,
@@ -207,92 +204,19 @@ onMounted(() => {
   }
 });
 
-const updateDrawer = (val: boolean) => {
-  drawer.value = val;
-};
-
-// Alerts
-const clearNotification = (value: boolean) => {
-  if (value === true) newSnackbar.value = null;
-};
-
-watch(
-  () => userStore.newNotification,
-  (NewA) => {
-    newSnackbar.value = NewA;
-  }
-);
-
-watch(
-  () => channelStore.newNotification,
-  (NewA) => {
-    newSnackbar.value = NewA;
-  }
-);
-// User Sockets
-socket.on("user_connected", (user) => {
-  forEach(userStore.users, (u) => {
-    if (u._uuid === user._uuid) {
-      u.connected = true;
-      if (storageStore.getAppSettings("connectionNotif")) {
-        userStore.newNotification = {
-          title: capitalize(user.username),
-          text: "got connected.",
-          type: "success",
-        };
-      }
-      return;
-    }
-  });
-
-  const newUser = find(userStore.users, {
-    _uuid: user._uuid,
-  });
-
-  if (isUndefined(newUser)) {
-    userStore.users.push({
-      _uuid: user._uuid,
-      username: user.username,
-      image: user.image,
-      self: user.socketId === sessionStore.userSessionData?._uuid,
-      connected: true,
-      messages: userStore.messagesPerUser.get(user._uuid) || [],
-    });
-  }
-});
-
-socket.on("user_disconnected", (_uuid) => {
-  forEach(userStore.users, async (user) => {
-    if (user._uuid === _uuid) {
-      user.connected = false;
-      if (storageStore.getAppSettings("connectionNotif")) {
-        userStore.newNotification = {
-          title: capitalize(user.username),
-          text: "got disconnected.",
-          type: "error",
-        };
-      }
-      return;
-    }
-  });
-});
-
 onUnmounted(() => {
-  socket.off("connect");
-  socket.off("disconnect");
-  socket.off("users");
-  socket.off("user_connected");
-  socket.off("user_disconnected");
-  socket.off("new_message");
-  socket.off("client_new_message");
-  socket.off("session");
-  socket.off("user_typing");
-  socket.off("client_user_typing");
-  socket.off("channel_typing");
-  socket.off("client_channel_typing");
-  socket.off("new_room_message");
-  socket.off("client_new_room_message");
+  // Channel Emits
+  for (const key in _channelEmits) {
+    socket.off(_channelEmits[key as keyof typeof _channelEmits]);
+  }
+  // Channel Listeners
+  for (const key in _channelListener) {
+    socket.off(_channelListener[key as keyof typeof _channelListener]);
+  }
 });
+
+
+
 </script>
 <template>
   <snackbar-component
@@ -301,61 +225,66 @@ onUnmounted(() => {
   >
   </snackbar-component>
   <div v-if="sessionStore.isLoggedIn">
-    <user-list-component
-      :drawer="drawer"
-      @update:model-value="updateDrawer"
+    <drawer-component
+      :_uuid="sessionStore.userSessionData?._uuid!"
       :users="userStore.filteredUsers"
       :channels="channelStore.filteredChannels"
       :selected-channel="channelStore.selectedChannel"
-      :is-room-loading="channelStore.isLoading"
+      :channels-loading="channelStore.channelsLoading"
       :is-user-loading="userStore.isLoading"
-      :_uuid="props.session?._uuid"
-      :last-selected-element="lastSelectedElement"
+      :last-active-element="lastSelectedElement"
       @on:leave:channel="channelStore.leaveChannel"
-      @on:delete:channel="channelStore.deleteChannel($event)"
       @update:selected="onSelect"
-      @user:created:room="channelStore.createChannel($event)"
-    ></user-list-component>
+      @user:created:channel="channelStore.createChannel($event)"
+    ></drawer-component>
 
     <header-component
-      :key="session?._uuid"
-      :user-session="session"
-      :user-setting="storageStore.getAppSettings()"
-      :drawer="drawer"
+      :key="sessionStore.userSessionData?._uuid"
       @logout="doLogout"
       @update:status="goOffline"
-      @toggle:drawer="updateDrawer"
       @update:setting="updateSettings"
       @update:search="onSearch"
     ></header-component>
+
     <v-main>
       <v-container>
-        <section id="channel" v-if="activeComponent === 'room'">
+        <section id="channel" v-if="activeComponent === 'channel'">
           <channel-component
-            :key="channelStore.selectedChannel?._roomId"
-            :uuid="sessionStore.userSessionData?._uuid"
-            :currentChannel="channelStore.selectedChannel"
-            :username="sessionStore.userSessionData?.username"
+            :key="channelStore.selectedChannel?._channelID"
+            :currentChannel="channelStore?.selectedChannel"
             :is-loading="channelStore.isLoading"
+            :is-messages-loading="channelStore.isMessagesLoading"
             :typing="channelStore.typing"
             :all-users="userLoginStore.users"
-            @update:channel:users="channelStore.addChannelUsers"
-            @submit:form="newChannelMessage"
-            @update:typing="onChannelTyping"
-            @alter:message="onAlterChannelMessage"
-            @reply:message="onReplyChannelMessage"
+            :is-message-delete="channelStore.isMessageDelete"
+            :messages-paginate="channelStore.messagesPagination"
+            @delete-message="channelStore.deleteChannelMessage"
+            @load:more-messages="channelStore.getChannelMessages($event, true)"
+            @send:messageThread="channelStore.sendMessageThread"
+            @update:channel:settings="channelStore.updateChannelSettings"
+            @add:channel:members="channelStore.addChannelMembers"
+            @update:channel:users="channelStore.addChannelMembers"
+            @send:message="channelStore.sendMessage"
+            @update:typing="channelStore.onChannelTyping"
+            @edit-message="channelStore.editChannelMessage"
+            @delete:message="channelStore.deleteChannelMessage"
+            @archive:channel="channelStore.archiveChannel"
+            @update:channel="channelStore.updateChannel"
+            @leave:channel="channelStore.leaveChannel"
+            @download:file="channelStore.downloadFile"
+            @remove:channel:member="channelStore.removeChannelMembers"
           >
           </channel-component>
         </section>
         <section id="message" v-if="activeComponent === 'user'">
           <message-component
+            ref="user"
             :selected-user="userStore.selectedUser"
             :key="userStore.selectedUser?._uuid"
             :room="messageStore.createdRoom"
             :typing="messageStore.typing"
             :is-loading="sessionStore.isLoading"
-            :username="sessionStore.userSessionData?.username"
-            @submit:form="newUserMessage"
+            :current-user="sessionStore.userSessionData!"
             @update:typing="onTyping"
             @update:new-messages-count="updateNewMessageCount"
             @update:seen="UpdateSeen"

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 
-interface Props {
+defineProps<{
     loading: boolean;
     length: number | undefined;
     type: string;
-}
-defineProps<Props>();
+}>();
 
 </script>
 

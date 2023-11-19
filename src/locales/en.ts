@@ -1,0 +1,70 @@
+export default {
+  directMessages: "Direct Messages",
+  textToday: "Today",
+  textPreference: "Preferences",
+  textProfile: "Profile",
+  textDownloads: "Downloads",
+  textSignOut: "Sign out",
+  textReply: "Reply",
+  textThread: "Thread",
+  textEdit: "Edit",
+  textDelete: "Delete",
+  textEdited: "(edited)",
+  textDeleted: "(deleted)",
+  textConfirm: "Are you sure you want to {0}? This can't be undone.",
+  textSendMessage: "Send A Message...",
+  textEditMessage: "Edit Message",
+  button: {
+    submit: "Submit",
+    cancel: "Cancel",
+    close: "Close",
+    save: "Save",
+    confirm: "Confirm",
+    exit: "Exit",
+    restore: "Restore Session",
+  },
+  alert: {
+    success: "Success: Changes have been saved!",
+    error: "Error: ",
+  },
+  channel: {
+    channels: "Channels",
+    createChannel: "Create Channel",
+    addMembers: "Add Members",
+    muteChannel: "Mute Channel",
+    allNotifications: "Get Notificationn for all Messages",
+    archiveChannel: "Archive Channel",
+    channelNotifications: "Channel Notifications",
+    copyMemberNames: "Copy Member Names",
+    copyMemberAddresses: "Copy Member Email Addresses",
+    ChannelID: "Channel ID",
+    leaveChannel: "Leave channel",
+    managedBy: "Channel Managed By",
+    createdBy: "Channel Created By",
+  },
+  input: {
+    channelName: "Channel Name",
+    channelDescription: "Channel Description",
+    channelTopic: "Channel Topic",
+  },
+  tab: {
+    about: "About",
+    members: "Members",
+    settings: "Settings",
+  },
+  help: {
+    channelName: "only '_|#|&' allowed min 3 characters",
+    messageInputHint: "Shift + Return to add new line",
+  },
+  error: {
+    upload: "Warning: Max Upload File Size Exceeds 100kb. filename {0}",
+    sendMessage: "Error: Sending Message Failed.",
+  },
+  success: {
+    newChannelMember: "{0} has invited you to {1} Channel",
+    channel: "Success: You have modified channel!"
+  },
+  rules: {
+    required: "Field is required min 3 characters",
+  }
+};

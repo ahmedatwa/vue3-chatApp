@@ -1,19 +1,18 @@
 import { defineStore } from "pinia";
-import { useUserStore, useSessionStore, useChannelStore } from "@/stores";
-import socket from "@/client";
 import { ref, computed } from "vue";
-import { TypingEvent } from "@/types";
-import { useNow, useDateFormat } from "@vueuse/core";
-import { messageAxios } from "@/axios";
-import { isNull, escape } from "lodash";
 import { v4 as uuidv4 } from "uuid";
+import { esc, formatDate } from "@/helpers";
+import type { TypingEvent } from "@/types";
+import { instance, directMessageApi } from "@/axios";
+import { useUserStore, useSessionStore } from "@/stores";
+import socket from "@/client";
 
 export const useMessageStore = defineStore("messageStore", () => {
   const userStore = useUserStore();
   const sessionStore = useSessionStore();
-  const channelStore = useChannelStore();
+  //const channelStore = useChannelStore();
   const isLoading = ref(false);
-  const formattedDate = useDateFormat(useNow(), "YYYY-MM-DD HH:mm:ss");
+  //const formattedDate = useDateFormat(useNow(), "YYYY-MM-DD HH:mm:ss");
   const typing = ref<TypingEvent | null>(null);
   const uploadedFile = ref<File | null>(null);
 
@@ -31,17 +30,17 @@ export const useMessageStore = defineStore("messageStore", () => {
   const sendMessage = async (_threadId: string | null, content: string) => {
     userStore.selectedUser?.messages.push({
       _id: uuidv4(),
-      _threadId: isNull(_threadId) ? createdRoom.value : _threadId,
+      _threadId: (_threadId !== null) ? createdRoom.value : _threadId,
       from: sessionStore.userSessionData?._uuid!,
       to: userStore.selectedUser?._uuid!,
-      content: escape(content),
+      content: esc(content),
       file: uploadedFile.value
         ? `${import.meta.env.VITE_API_URL}/images/uploads/${
             uploadedFile.value?.name
           }`
         : "",
       fromSelf: true,
-      createdAt: formattedDate.value,
+      createdAt: formatDate()
     });
 
     socket.emit("user_new_message", {
@@ -52,16 +51,16 @@ export const useMessageStore = defineStore("messageStore", () => {
           }`
         : null,
       to: userStore.selectedUser?._uuid,
-      createdAt: formattedDate.value,
+      createdAt: formatDate(),
     });
 
     // save sent Message
-    await messageAxios.post("/addmessage", {
+    await instance.post(directMessageApi.__add_Message, {
       from: sessionStore.userSessionData?._uuid!,
       to: userStore.selectedUser?._uuid!,
-      session: sessionStore.userSessionData?.sessionId,
+      session: sessionStore.userSessionData?.sessionID,
       _roomId: createdRoom.value,
-      createdAt: formattedDate.value,
+      createdAt: formatDate(),
       content: userStore.selectedUser?.messages,
       // from: userSessionStore.userSessionData?._uuid!,
       // to: userUserStore.selectedUser?._uuid!,
@@ -71,16 +70,16 @@ export const useMessageStore = defineStore("messageStore", () => {
       // seen: false,
       // createdAt: formattedDate.value,
       // room: createdRoom.value,
-      // session: userSessionStore.userSessionData?.sessionId,
+      // session: userSessionStore.userSessionData?.sessionID,
       // messages: userUserStore.selectedUser?.messages,
     });
     // upload file
-    if (!isNull(uploadedFile.value)) {
+    if (uploadedFile.value) {
       let formData = new FormData();
       formData.append("file", uploadedFile.value);
       formData.append("room", createdRoom.value!);
       formData.append("_uuid", userStore.selectedUser?._uuid!);
-      await messageAxios.post("/upload", formData).then((response) => {
+      await instance.post("/upload", formData).then((response) => {
         if (response.status === 200) {
           uploadedFile.value = null;
         }
@@ -91,7 +90,11 @@ export const useMessageStore = defineStore("messageStore", () => {
   const getMessages = async (uuid: string) => {
     isLoading.value = true;
     try {
-      return messageAxios.get(`/getmessages?_uuid=${uuid}`);
+      return instance.get(directMessageApi.__get_Messages, {
+        params: {
+          _uuid: uuid
+        }
+      })
     } catch (error) {
     } finally {
       isLoading.value = false;

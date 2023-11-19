@@ -1,17 +1,19 @@
 import { defineStore } from "pinia";
 import { ref, computed, shallowRef } from "vue";
-import socket from "@/client";
-import { User, Snackbar } from "@/types";
-import { uniqBy, toLower, capitalize, orderBy } from "lodash";
-import { filter, includes, forEach, sortBy, map } from "lodash";
 import { useMessageStore, useSessionStore } from "@/stores";
 import { useChannelStore, useStorageStore } from "@/stores";
-import { instance } from "@/axios";
+import { capitalize, isUndefined, arrayUniqueBy } from "@/helpers";
+// types
+import { Snackbar } from "@/types";
+import { Channels } from "@/types/Channel.ts";
+import { User, userMessages, DBUserMessages } from "@/types/User.ts";
+import socket from "@/client";
 
 export const useUserStore = defineStore("userState", () => {
-  const users = shallowRef<User[]>([]);
-  const selectedUser = ref<User | null>(null);
+  const users = ref<User[]>([]);
+  const selectedUser = shallowRef<User | null>(null);
   const filterSearchInput = ref("");
+  //const searchableKeys = ref<string[]>(["firstName", "lastName", "userName"]);
   const isLoading = ref(false);
   const UnreadMessagesTotal = ref(1);
   const newNotification = ref<Snackbar | null>(null);
@@ -29,9 +31,18 @@ export const useUserStore = defineStore("userState", () => {
     setTimeout(() => {
       isLoading.value = false;
     }, 500);
-    return filter(users.value, (user) => {
-      return includes(user.username, toLower(filterSearchInput.value));
-    });
+    return users.value
+      .filter((user: User) => {
+        return user.userName
+          .toLowerCase()
+          .includes(filterSearchInput.value.toLowerCase());
+      })
+      .sort((a, b) => {
+        if (a.self) return -1;
+        if (b.self) return 1;
+        if (a.userName < b.userName) return -1;
+        return a.userName > b.userName ? 1 : 0;
+      });
   });
 
   // socket connection established
@@ -44,71 +55,76 @@ export const useUserStore = defineStore("userState", () => {
 
     // channels
     if (channels?.data) {
-      channelStore.channels = orderBy(
-        channels.data,
-        ["createdAt"],
-        ["desc", "asc"]
-      );
+      const socketChanneles = [] as string[]
+      channels.data.forEach(async (channel: Channels) => {
+        socketChanneles.push(channel._channelID)
+        channelStore.channels.push({
+          _id: channel._id,
+          _channelID: channel._channelID,
+          channelName: capitalize(channel.channelName, false),
+          channelTopic: channel.channelTopic,
+          channelDescription: channel.channelDescription,
+          messagesDistributed: false,
+          messages: [],
+          membersDistributed: false,
+          members: [],
+          newMessages: null,
+          settings: channel.settings,
+          createdBy: channel.createdBy,
+          createdAt: channel.createdAt,
+        });
+      });
 
-      const userChannels = map(channels?.data, "_roomId");
-      if (userChannels) {
-        socket.emit("channels", userChannels);
+      // Send Channel Ids to Server
+      if (socketChanneles) {
+        socket.emit("channels", socketChanneles);
       }
     }
 
     // Messages
-    forEach(messages?.data, (thread) => {
-      forEach(thread.content, (message) => {
-        const otherUser =
-          sessionStore.userSessionData?._uuid === message.from
-            ? message.to
-            : message.from;
-        if (messagesPerUser.has(otherUser)) {
-          messagesPerUser.get(otherUser).push(message);
-        } else {
-          messagesPerUser.set(otherUser, [message]);
-        }
+    if (messages?.data) {
+      messages?.data.forEach((message: DBUserMessages) => {
+        message.content.forEach((content: userMessages) => {
+          const otherUser =
+            sessionStore.userSessionData?._uuid === content.from
+              ? content.to
+              : content.from;
+          if (messagesPerUser.has(otherUser)) {
+            messagesPerUser.get(otherUser).push(content);
+          } else {
+            messagesPerUser.set(otherUser, [content]);
+          }
+        });
       });
-    });
+    }
 
     // sessions
-    forEach(sessions?.data, (user: User) => {
-      users.value.push({
-        _id: user._id,
-        _uuid: user._uuid,
-        username: user.username,
-        connected: user.connected,
-        self: user._uuid === sessionStore.userSessionData?._uuid,
-        image: user.image,
-        selected: false,
-        messages: messagesPerUser.get(user._uuid) || [],
-      });
-    });
-
-    // put the current user first, and sort by username
-    const sorted = sortBy(users.value, (o) => {
-      if (o.self === true) return o.self;
-    });
-    users.value = uniqBy(sorted, "_uuid");
-
-    //get Last Selected User for default selection
-    const seletcted = storageStore.getLastSelected();
-    if (seletcted) {
-      await instance
-        .get(`/getlastselecteduser?_uuid=${seletcted._id}`)
-        .then((response) => {
-          selectedUser.value = {
-            ...response.data,
-            selected: true,
-            messages: messagesPerUser.get(response.data._uuid) || [],
-          };
+    if (sessions?.data) {
+      // unique array
+      const unique = arrayUniqueBy(sessions.data, "_id");
+      if (unique)
+        unique.forEach((user: User) => {
+          users.value.push({
+            _id: user._id,
+            _uuid: user._uuid,
+            userName: user.userName,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            displayName: capitalize(user.firstName + " " + user.lastName),
+            connected: user.connected,
+            self: user._uuid === sessionStore.userSessionData?._uuid,
+            image: user.image,
+            email: user.email,
+            selected: false,
+            messages: messagesPerUser.get(user._uuid) || [],
+          });
         });
     }
   });
 
   // fired when socket disconnected
   socket.on("disconnect", (): void => {
-    forEach(users.value, async (user) => {
+    users.value.forEach(async (user) => {
       if (user.self) {
         user.connected = false;
         return;
@@ -116,39 +132,38 @@ export const useUserStore = defineStore("userState", () => {
     });
   });
 
-  // upon user connection notify existing users
+  // notify existing users
+  socket.on("client_user_new_message", (newMessage) => {
+    // reset typing
+    messageStore.typing = null;
+    const fromSelf = (socket as any)._uuid === newMessage.from;
+    users.value.forEach((user) => {
+      if (user._uuid === (fromSelf ? newMessage.to : newMessage.from)) {
+        user.messages.push({
+          from: newMessage.from,
+          to: newMessage.to,
+          content: newMessage.content,
+          file: newMessage.file,
+          seen: false,
+          fromSelf,
+          createdAt: newMessage.createdAt,
+        });
 
-  socket.on("client_user_new_message", ({ from, to, content, file, createdAt }) => {
-      // reset typing
-      messageStore.typing = null;
-      const fromSelf = (socket as any)._uuid === from;
-      forEach(users.value, (user) => {
-        if (user._uuid === (fromSelf ? to : from)) {
-          user.messages.push({
-            from: from,
-            to: to,
-            content: content,
-            file: file,
-            seen: false,
-            fromSelf,
-            createdAt: createdAt,
-          });
-
-          if (user._uuid === from) {
-            user.newMessages = {
-              total: UnreadMessagesTotal.value++,
-              lastMessage: content,
-            };
-            newNotification.value = {
-              title: capitalize(user.username),
-              text: content,
-            };
-          }
-          return;
+        if (user._uuid === newMessage.from) {
+          user.newMessages = {
+            total: UnreadMessagesTotal.value++,
+            lastMessage: newMessage.content,
+          };
+          newNotification.value = {
+            title: user.displayName,
+            text: newMessage.content,
+            type: "info",
+          };
         }
-      });
-    }
-  );
+        return;
+      }
+    });
+  });
 
   // User Selected
   const onSelectUser = async (user: User) => {
@@ -160,37 +175,62 @@ export const useUserStore = defineStore("userState", () => {
     };
   };
 
-  // const Search = computed(() => {
-  //   if(filterSearchInput.value) {
-  //   isLoading.value = true;
-  //   setTimeout(() => {
-  //     isLoading.value = false;
-  //   }, 500);
-  //   return filter(users.value, (user) => {
-  //     return includes(user.username, toLower(filterSearchInput.value));
-  //   });
-  //   // });
-  // } else {
-  //  return  users.value;
-  // }
+  socket.on("user_connected", (user) => {
+    users.value.forEach((u) => {
+      if (u._uuid === user._uuid) {
+        u.connected = true;
+        if (storageStore.appSettings?.connectionNotif) {
+          newNotification.value = {
+            title: u.displayName,
+            text: "is online.",
+            type: "success",
+          };
+        }
+        return;
+      }
+    });
 
-  //});
-  /**
-   * remove new messages flag on select
-   * Save Last Selected User
-   */
-  // watch(
-  //   () => messageStore.createdRoom,
-  //   () => {
-  //     const state = useStorage("LSTSELECD", selectedUser.value?._uuid);
-  //     state.value = selectedUser.value?._uuid;
-  //     forEach(users.value, (user) => {
-  //       if (selectedUser.value?._uuid === user._uuid) {
-  //         user.newMessages = null;
-  //       }
-  //     });
-  //   }
-  // );
+    const newUser = users.value.find((u) => u._uuid === user._uuid);
+
+    if (isUndefined(newUser)) {
+      users.value.push({
+        _uuid: user._uuid,
+        userName: user.userName,
+        firstName: capitalize(user.firstName),
+        lastName: capitalize(user.lastName),
+        displayName: capitalize(user.firstName + " " + user.lastName),
+        image: user.image,
+        email: user.email,
+        self: user.socketId === sessionStore.userSessionData?._uuid,
+        connected: true,
+        messages: messagesPerUser.get(user._uuid) || [],
+      });
+
+      if (storageStore.appSettings?.connectionNotif) {
+        newNotification.value = {
+          title: user.displayName,
+          text: "is online.",
+          type: "success",
+        };
+      }
+    }
+  });
+
+  socket.on("user_disconnected", (_uuid) => {
+    users.value.forEach(async (user) => {
+      if (user._uuid === _uuid) {
+        user.connected = false;
+        if (storageStore.appSettings?.connectionNotif) {
+          newNotification.value = {
+            title: user.displayName,
+            text: "is offline.",
+            type: "error",
+          };
+        }
+        return;
+      }
+    });
+  });
 
   return {
     users,

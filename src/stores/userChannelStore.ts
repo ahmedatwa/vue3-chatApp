@@ -1,301 +1,788 @@
 import { defineStore } from "pinia";
-import { ref, computed, watch } from "vue";
-import { Channels, Snackbar, TypingEvent, ChannelMessages } from "@/types";
-import { instance } from "@/axios";
+import { ref, computed, shallowRef, inject, watch, reactive } from "vue";
+import { instance, channelApi } from "@/axios";
 import { useSessionStore } from "@/stores";
-import { useNow, useDateFormat } from "@vueuse/core";
-import { capitalize, forEach, isNull, toNumber, set, merge } from "lodash";
-import { findKey, remove, escape, filter, includes, toLower } from "lodash";
-import { v4 as uuidv4 } from "uuid";
-import socket from "@/client";
+import { customAlphabet } from "nanoid";
+import { esc, remove, createDateTime, capitalize } from "@/helpers";
+// types
+import type { Snackbar, TypingEvent } from "@/types";
+import type { Channels } from "@/types/Channel.ts";
+import type { ChannelMembers, ChannelSettings } from "@/types/Channel.ts";
+import type {
+  ChannelForm,
+  UploadedFiles,
+  SendMessageThreadPayload,
+} from "@/types/Channel.ts";
+// socket
+import socket, { _channelEmits, _channelListener } from "@/client";
+import { langKey } from "@/types/Symbols.ts";
 
 export const useChannelStore = defineStore("channelStore", () => {
   const sessionStore = useSessionStore();
+  const $lang = inject(langKey);
 
-  const formattedDate = useDateFormat(useNow(), "YYYY-MM-DD HH:mm:ss");
   const isLoading = ref(false);
+  const isMessagesLoading = ref(false);
+  const channelsLoading = ref(false);
+  const isMessageEdit = ref(false);
+  const isMessageDelete = ref(false);
   const channels = ref<Channels[]>([]);
-  const uploadedFile = ref<File | null>(null);
-  const typing = ref<TypingEvent | null>(null);
-  const UnreadMessagesTotal = ref(1);
-  const newNotification = ref<Snackbar | null>(null);
+  const uploadedFiles = ref<UploadedFiles[]>([]);
+  const typing = shallowRef<TypingEvent | null>(null);
+  const newNotification = shallowRef<Snackbar | null>(null);
   const selectedChannel = ref<Channels | null>(null);
-  const errors = ref();
   const filterSearchInput = ref("");
-
+  const nanoid = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyz", 10);
+  const messagesPagination: {
+    limit: number;
+    offset: number;
+    total: number;
+    end: boolean;
+  } = reactive({ limit: 10, offset: 0, total: 0, end: false });
+  //const messagesLimit = ref(10);
+  //const messagesOffset = ref<number | undefined>(0);
+  //const messagesTotal = ref(0);
+  //const isNewMessage = ref(false);
   // Filter Channels
   const filteredChannels = computed(() => {
-    isLoading.value = true;
+    channelsLoading.value = true;
     setTimeout(() => {
-      isLoading.value = false;
+      channelsLoading.value = false;
     }, 500);
-    return filter(channels.value, (channel) => {
-      return includes(channel.name, toLower(filterSearchInput.value));
-    });
+    return channels.value
+      .filter((channel) => {
+        return channel.channelName
+          .toLowerCase()
+          .includes(filterSearchInput.value.toLowerCase());
+      })
+      .sort((a, b) => {
+        return (
+          new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf()
+        );
+      });
   });
 
-  const sendMessage = async (
-    content: string,
-    relatedId?: string | number,
-    relatedContent?: string
-  ) => {
+  const sendMessage = async (message: {
+    content: string;
+    files?: File[] | null;
+  }) => {
     isLoading.value = true;
-    const messageContent = {
-      _id: uuidv4(),
-      from: sessionStore.userSessionData?._uuid,
-      username: sessionStore.userSessionData?.username,
-      room: selectedChannel.value?._roomId as string,
-      content: escape(content),
-      oldContent: escape(content),
-      file: uploadedFile.value
-        ? `${import.meta.env.VITE_API_URL}/images/uploads/${uploadedFile.value?.name
-        }`
-        : "",
-      createdAt: formattedDate.value,
-      relatedId: relatedId ? relatedId : null,
-      relatedContent: relatedContent ? relatedContent : null,
-    };
-    // push messages to channel
-    selectedChannel.value?.messages.push(messageContent);
-    // save sent Message
-    await instance.post("/addroommessage", {
-      room: selectedChannel.value?._roomId,
-      createdAt: formattedDate.value,
-      content: selectedChannel.value?.messages,
-    });
-    // upload file
-    if (!isNull(uploadedFile.value)) {
-      let formData = new FormData();
-      formData.append("file", uploadedFile.value);
-      formData.append("room", selectedChannel.value?._roomId as string);
-      formData.append("uuid", sessionStore.userSessionData?._uuid as string);
-      await instance.post("/upload", formData).then((response) => {
-        if (response.status === 200) {
-          uploadedFile.value = null;
-        }
-      });
+    // save Files
+    if (message.files?.length) {
+      await uploadFiles(message.files);
     }
-    socket.emit("new_channel_message", {...messageContent, roomName: selectedChannel.value?.name});
-    isLoading.value = false;
+    // save sent Message
+    await instance
+      .post(channelApi.__addChannelMessage, {
+        _channelID: selectedChannel.value?._channelID as string,
+        from: sessionStore.userSessionData?._uuid,
+        fromName: sessionStore.userSessionData?.displayName,
+        content: esc(message.content),
+        files: uploadedFiles.value,
+        createdAt: createDateTime(),
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          selectedChannel.value?.messages.push(response.data);
+          // update server
+          socket.emit(_channelEmits.newMessage, {
+            ...response.data,
+          });
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: $lang?.getLine("error.sendMessage"),
+          text: error.code + " " + error.message,
+          type: "error",
+          timeout: -1,
+          location: "",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  const sendMessageThread = async (payload: SendMessageThreadPayload) => {
+    isLoading.value = true;
+    // save Files
+    if (payload.files?.length) {
+      await uploadFiles(payload.files);
+    }
+    await instance
+      .post(channelApi.__addChannelMessageThread, {
+        from: sessionStore.userSessionData?._uuid,
+        fromName: sessionStore.userSessionData?.displayName,
+        ...payload,
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          selectedChannel.value?.messages.find((message) => {
+            if (message._id === payload._messageID) {
+              message.thread?.push(response.data);
+              return;
+            }
+          });
+          // selectedChannel.value?.messages.push(response.data);
+          // update server
+          // socket.emit(_channelEmits.newMessage, {
+          //  ...response.data,
+          // });
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: $lang?.getLine("error.sendMessage"),
+          text: error.code + " " + error.message,
+          type: "error",
+          timeout: -1,
+          location: "",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
   };
 
   const getChannels = async (uuid: string) => {
-    isLoading.value = true;
+    channelsLoading.value = true;
     try {
-      return await instance.get(`/getrooms?_uuid=${uuid}`);
-    } catch (error) {
-      errors.value = error;
+      return await instance.get(channelApi.__getChannels, {
+        params: {
+          _uuid: uuid,
+        },
+      });
+    } catch (error: any) {
+      newNotification.value = {
+        title: error.code,
+        text: error.message,
+        type: "error",
+      };
     } finally {
-      isLoading.value = false;
+      channelsLoading.value = false;
     }
   };
 
-  const createChannel = async (name: string) => {
-    isLoading.value = true;
+  const getChannelMessages = async (_channelID: string, unshift?: boolean) => {
+    isMessagesLoading.value = true;
     await instance
-      .post("/addroom", {
-        _roomId: uuidv4(),
-        name: name,
-        created_by: sessionStore.userSessionData?._uuid,
-        created_at: formattedDate.value,
+      .get(channelApi.__getChannelMessages, {
+        params: {
+          _channelID: _channelID,
+          limit: messagesPagination.limit,
+          offset: messagesPagination.offset,
+        },
       })
       .then((response) => {
-        if (response.statusText === "OK") {
-          channels.value.push({
-            _roomId: response.data._roomId,
-            name: response.data.name,
-            createdBy: response.data.created_by,
-            createdAt: response.data.created_at,
-            messages: [],
+        if (response.statusText === "OK" && response.status === 200) {
+          const $channel = channels.value?.find((_c) => {
+            return _c._channelID === _channelID;
           });
-          socket.emit("create_channel", {
-            _roomId: response.data.room_id,
-            name: response.data.name,
-            createdBy: response.data.created_by,
-          });
+          if ($channel) {
+            if (unshift) {
+              $channel?.messages.unshift(...response.data);
+            } else {
+              $channel?.messages.push(...response.data);
+              $channel.messagesDistributed = true;
+            }
+            // update offset
+            messagesPagination.offset = Math.ceil(
+              messagesPagination.offset - messagesPagination.limit
+            );
+
+            if (messagesPagination.offset < 0) {
+              messagesPagination.end = true;
+            }
+          }
         }
       })
       .catch((error) => {
-        errors.value = error;
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
       })
       .finally(() => {
-        isLoading.value = false;
+        isMessagesLoading.value = false;
       });
   };
 
-  const addChannelUsers = async (users: string[]) => {
+  const getTotalChannelMessages = async (_channelID: string) => {
+    isMessagesLoading.value = true;
     await instance
-      .post("/addchannelusers", {
-        _roomId: selectedChannel.value?._roomId,
-        users: users,
-        created_by: sessionStore.userSessionData?._uuid,
-        created_at: formattedDate.value,
+      .get(channelApi.__getTotalChannelMessages, {
+        params: {
+          _channelID: _channelID,
+        },
       })
       .then((response) => {
-        if (response.statusText === "OK")
-          socket.emit("add_users_to_channel", {
-            _roomId: response.data.room_id,
-            roomName: response.data.name,
-            createdBy: response.data.created_by,
-            users: users,
-          });
+        if (response.statusText === "OK" && response.status === 200) {
+          messagesPagination.total = response.data;
+          if (messagesPagination.total >= messagesPagination.limit) {
+            messagesPagination.offset = Math.ceil(
+              messagesPagination.total - messagesPagination.limit
+            );
+          }
+          // if (messagesTotal.value >= messagesLimit.value) {
+          //   messagesOffset.value = Math.ceil(
+          //     messagesTotal.value - messagesLimit.value
+          //   );
+          // }
+        }
       })
       .catch((error) => {
-        errors.value = error;
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isMessagesLoading.value = false;
+      });
+  };
+
+  const createChannel = async (channel: ChannelForm) => {
+    isLoading.value = true;
+    await instance
+      .post(channelApi.__addChannel, {
+        _channelID: nanoid(20),
+        ...channel,
+        displayName: sessionStore.userSessionData?.displayName,
+        createdBy: sessionStore.userSessionData?._uuid,
+        createdAt: createDateTime(),
+        settings: {
+          channelNotifications: "all",
+        },
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          channels.value?.push({
+            _id: response.data._id,
+            _channelID: response.data._channelID,
+            channelName: response.data.channelName,
+            channelTopic: response.data.channelTopic,
+            channelDescription: response.data.channelDescription,
+            createdBy: response.data.createdBy,
+            createdAt: response.data.createdAt,
+            members: response.data.members,
+            messages: [],
+          });
+          socket.emit(_channelEmits.create, {
+            _channelID: response.data._channelID,
+            name: response.data.name,
+            createdBy: response.data.createdBy,
+          });
+          newNotification.value = {
+            title: `Success: ${response.data.channelName}`,
+            text: "Channel Created.",
+            type: "success",
+          };
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  const deleteChannel = async ({ _id, _roomId }: Channels) => {
+  const getChannelMembers = async (_channelID: string) => {
     await instance
-      .post("/deletechannel", {
-        _id: _id,
-        _roomId: _roomId,
+      .get(channelApi.__getChannelMembers, {
+        params: {
+          _channelID: _channelID,
+        },
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          const $channel = channels.value?.find((_c) => {
+            return _c._channelID === _channelID;
+          });
+          if ($channel) {
+            $channel.membersDistributed = true;
+            response.data.forEach((res: { _uuid: string; name: string }) => {
+              $channel?.members.push({ _uuid: res._uuid, name: res.name });
+            });
+          }
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+  const addChannelMembers = async (member: ChannelMembers) => {
+    await instance
+      .post(channelApi.__addChannelMembers, {
+        _channelID: selectedChannel.value?._channelID,
+        channelName: selectedChannel.value?.channelName,
+        ...member,
+        createdBy: sessionStore.userSessionData?._uuid,
+        createdAt: createDateTime(),
+        settings: {
+          channelNotifications: "all",
+        },
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          socket.emit(_channelEmits.addMembers, {
+            _channelID: response.data._channelID,
+            _uuid: response.data._uuid,
+            channelName: response.data.channelName,
+            createdBy: response.data.createdBy,
+            name: response.data.name,
+          });
+          newNotification.value = {
+            title: `${response.status} Changes Saved.`,
+            text: "",
+            type: "success",
+          };
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  const removeChannelMembers = async (_uuid: string) => {
+    await instance
+      .post(channelApi.__removeChannelMembers, {
+        _uuid: _uuid,
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          newNotification.value = {
+            title: `${response.status} Changes Saved.`,
+            text: "",
+            type: "success",
+          };
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  // checked deleteChannelMessage
+  const deleteChannelMessage = async (_messageID: string | number) => {
+    if (selectedChannel.value?.messages) {
+      isMessageDelete.value = true;
+      await instance
+        .post(channelApi.__deleteChannelMessage, { _messageID })
+        .then((response) => {
+          if (response.statusText === "OK" && response.status === 200) {
+            selectedChannel.value?.messages.forEach((message, index) => {
+              if (message._id === _messageID) {
+                selectedChannel.value?.messages.splice(index, 1);
+                return;
+              }
+            });
+          }
+        })
+        .catch((error) => {
+          newNotification.value = {
+            title: error.code,
+            text: error.message,
+            type: "error",
+          };
+        })
+        .finally(() => {
+          isMessageDelete.value = false;
+        });
+    }
+  };
+
+  // checked editChannelMessage
+  const editChannelMessage = async (message: {
+    _messageId: string | number;
+    editContent: string;
+    content: string;
+    updatedAt: string;
+  }) => {
+    if (selectedChannel.value?.messages) {
+      isMessageEdit.value = true;
+      await instance
+        .post(channelApi.__updateChannelMessage, {
+          ...message,
+        })
+        .catch((error) => {
+          newNotification.value = {
+            title: error.code,
+            text: error.message,
+            type: "error",
+          };
+        })
+        .finally(() => {
+          isMessageEdit.value = false;
+        });
+      // socket event
+      socket.emit(_channelEmits.editMessage, {
+        channel: selectedChannel.value,
+      });
+    }
+  };
+
+  // const replyChannelMessage = async (message: {
+  //   _messageId: string | number;
+  //   editContent: string;
+  //   content: string;
+  //   updatedAt: string;
+  // }) => {
+  //   if (selectedChannel.value?.messages) {
+  //     isMessageEdit.value = true;
+  //     await instance
+  //       .post(channelApi.__updateChannelMessage, {
+  //         ...message,
+  //       })
+  //       .catch((error) => {
+  //         newNotification.value = {
+  //           title: error.code,
+  //           text: error.message,
+  //           type: "error",
+  //         };
+  //       })
+  //       .finally(() => {
+  //         isMessageEdit.value = false;
+  //       });
+  //     // socket event
+  //     socket.emit(_channelEmits.editMessage, {
+  //       channel: selectedChannel.value,
+  //     });
+  //   }
+  // };
+
+  const archiveChannel = async (_channelID: string) => {
+    isLoading.value = true;
+    await instance
+      .post(channelApi.__archiveChannel, {
+        _channelID: _channelID,
         _uuid: sessionStore.userSessionData?._uuid,
       })
       .then((response) => {
-        if (response.statusText === "OK") {
-          remove(channels.value, (channel) => {
-            return channel._roomId === _roomId;
-          });
+        if (response.statusText === "OK" && response.status === 200) {
+          if (channels.value)
+            remove(channels.value, ["_channelID", _channelID]);
+          newNotification.value = {
+            title: `${response.status} Changes Saved.`,
+            text: "",
+            type: "success",
+          };
         }
       })
       .catch((error) => {
-        errors.value = error;
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
       })
       .finally(() => {
         isLoading.value = false;
       });
   };
 
-  // User Selected
-  const onSelectChannel = (room: Channels) => {
-    selectedChannel.value = {
-      ...room,
-      selected: true,
-      newMessages: null,
-      messages: room.messages || [],
-    };
+  const updateChannel = async (channel: ChannelForm) => {
+    await instance
+      .post(channelApi.__updateChannel, {
+        _channelID: selectedChannel.value?._channelID,
+        ...channel,
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          newNotification.value = {
+            title: $lang?.getLine("success.channel"),
+            text: "",
+            type: "success",
+          };
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
   };
 
-  socket.on("client_new_channel_message", ({
-      _id,
-      from,
-      username,
-      roomName,
-      _roomId,
-      content,
-      oldContent,
-      file,
-      createdAt,
-    }) => {
+  // Leave Channel
+  const leaveChannel = async (_channelID: string) => {
+    await instance
+      .post("/leavechannel", {
+        _channelID: selectedChannel.value?._channelID,
+        _uuid: sessionStore.userSessionData?._uuid,
+      })
+      .then((response) => {
+        if (response.statusText === "OK" && response.status === 200) {
+          newNotification.value = {
+            title: `${response.status} Changes Saved.`,
+            text: "",
+            type: "success",
+          };
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  const uploadFiles = async (files: File[]) => {
+    uploadedFiles.value = [];
+    isLoading.value = true;
+    let formData = new FormData();
+    files.forEach((file) => formData.append("files[]", file));
+    formData.append("_channelID", selectedChannel.value?._channelID as string);
+    formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
+    await instance
+      .post(channelApi.__channelUpload, formData)
+      .then((response) => {
+        if (response.status === 200 && response.statusText === "OK") {
+          uploadedFiles.value?.push(...response.data);
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: $lang?.getLine("error.upload"),
+          text: error.code + " " + error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  const downloadFile = (file: { name: string; path: string }) => {
+    instance.get("/download", {
+      params: {
+        name: file.name,
+        path: file.path,
+      },
+    });
+  };
+
+  const updateChannelSettings = (settings: {
+    _channelID: string;
+    _uuid: string;
+    setting: ChannelSettings;
+  }) => {
+    isLoading.value = true;
+    instance
+      .post(channelApi.__addChannelSettings, {
+        _channelID: settings._channelID,
+        _uuid: settings._uuid,
+        setting: settings.setting,
+      })
+      .then((response) => {
+        if (response.statusText === "Created") {
+          newNotification.value = {
+            title: $lang?.getLine("success.channel"),
+            text: "",
+            type: "success",
+          };
+        }
+      })
+      .catch((error) => {
+        newNotification.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  // Channel Selected
+  const onSelectChannel = async (channel: Channels) => {
+    selectedChannel.value = {
+      ...channel,
+      selected: true,
+      newMessages: null,
+    };
+  };
+  // watchers
+  watch(
+    () => selectedChannel.value?.membersDistributed,
+    async (membersDistributed) => {
+      if (membersDistributed === false && selectedChannel.value) {
+        await getChannelMembers(selectedChannel.value._channelID);
+      }
+    }
+  );
+
+  watch(
+    () => selectedChannel.value?.messagesDistributed,
+    async (messagesDistributed) => {
+      if (messagesDistributed === false && selectedChannel.value) {
+        await getTotalChannelMessages(selectedChannel.value._channelID);
+        await getChannelMessages(selectedChannel.value._channelID);
+      }
+    }
+  );
+  // Sockets
+  socket.on(
+    _channelListener.newMessage,
+    ({ _id, _channelID, from, fromName, content, createdAt }) => {
       //reset typing
       typing.value = null;
-      forEach(channels.value, (channel) => {
-        if (channel._roomId === _roomId) {
-          channel.messages.push({
+      channels.value?.forEach((channel) => {
+        let UnreadMessagesTotal = 1;
+        if (channel._channelID === _channelID) {
+          channel.messages?.push({
             _id: _id,
+            _channelID: _channelID,
             from: from,
-            username: username,
-            room: roomName,
+            fromName: fromName,
             content: content,
-            oldContent: oldContent,
-            file: file,
             createdAt: createdAt,
           });
 
           channel.newMessages = {
-            total: UnreadMessagesTotal.value++,
+            total: UnreadMessagesTotal + 1,
             lastMessage: content,
-            from: username,
+            from: fromName,
           };
-          newNotification.value = {
-            title: capitalize(roomName),
-            text: `${capitalize(username)}: ${content}`,
-            type: "success"
-          };
+
+          // Check for user settings
+          if (channel.settings?.channelNotifications !== "none") {
+            newNotification.value = {
+              title: channel.channelName,
+              text: fromName + ": " + content,
+              type: "success",
+            };
+          }
+          return;
         }
       });
     }
   );
 
-  const alterChannelMessage = async (key: string, message: ChannelMessages) => {
-    const messageKey = findKey(
-      selectedChannel.value?.messages,
-      (m: ChannelMessages) => {
-        return m._id === message._id;
-      }
-    );
-    if (selectedChannel.value?.messages && messageKey) {
-      if (key === "edit") {
-        set(
-          selectedChannel.value.messages,
-          `messages[${messageKey}].content`,
-          message.content
-        );
-        merge(selectedChannel.value?.messages[toNumber(messageKey)], {
-          updatedAt: formattedDate.value,
-          updated: true,
-        });
-        socket.emit("edit_channel_message", {
-          channel: selectedChannel.value,
-        });
-      }
-      if (key === "delete") {
-        merge(selectedChannel.value?.messages[toNumber(messageKey)], {
-          deletedAt: formattedDate.value,
-          deleted: true,
-        });
-        socket.emit("delete_channel_message", {
-          channel: selectedChannel.value,
-        });
-      }
+  socket.on(_channelListener.createChannel, (room) => {
+    console.log(room);
+  });
 
-      // save sent Message
-      await instance.post("/addroommessage", {
-        room: selectedChannel.value?._roomId,
-        createdAt: formattedDate.value,
-        content: selectedChannel.value?.messages,
-      });
-    }
+  socket.on(_channelListener.joinChannel, ({ username, roomName }) => {
+    newNotification.value = {
+      type: "success",
+      text: `${capitalize(username)} has joined room ${capitalize(roomName)}`,
+    };
+  });
+
+  socket.on(_channelListener.addMembers, ({ channelName, from, to }) => {
+    if (to === sessionStore.userSessionData?._uuid)
+      newNotification.value = {
+        type: "success",
+        text: $lang?.getLine("success.newChannelMember", [
+          capitalize(from),
+          capitalize(channelName),
+        ]),
+      };
+  });
+
+  const onChannelTyping = (input: string) => {
+    socket.timeout(500).emit(_channelEmits.typing, {
+      _channelID: selectedChannel.value?._channelID,
+      displayName: sessionStore.userSessionData?.displayName,
+      input: input.length,
+    });
   };
 
-  // Leave Channel
-  const leaveChannel = (_uuid: string, channel: Channels) => {
-    console.log(_uuid);
-    
-  }
-  // Sockets
-  socket.on("client_edit_channel_message", async (message) => {
+  socket.on(_channelListener.typing, ({ input, from, displayName }) => {
+    if (input > 1) {
+      typing.value = {
+        from: from,
+        name: displayName,
+        isTyping: true,
+      };
+    } else {
+      typing.value = null;
+    }
+  });
+
+  socket.on(_channelListener.editMessage, async (message) => {
     console.log(message);
   });
 
-  socket.on("client_delete_channel_message", async (message) => {
+  socket.on(_channelListener.deleteMessage, async (message) => {
     if (selectedChannel.value?.messages) {
-      remove(selectedChannel.value?.messages, (m) => {
-        return m._id === message._id;
-      });
+      remove(selectedChannel.value?.messages, ["_id", message._id]);
     }
   });
 
   return {
     channels,
     selectedChannel,
-    uploadedFile,
+    uploadedFiles,
     isLoading,
     typing,
     newNotification,
     filteredChannels,
     filterSearchInput,
+    channelsLoading,
+    isMessageDelete,
+    isMessagesLoading,
+    updateChannelSettings,
+    removeChannelMembers,
+    getChannelMessages,
+    updateChannel,
     sendMessage,
     getChannels,
     createChannel,
-    addChannelUsers,
-    deleteChannel,
-    alterChannelMessage,
+    addChannelMembers,
+    archiveChannel,
+    onChannelTyping,
     onSelectChannel,
-    leaveChannel
+    leaveChannel,
+    downloadFile,
+    editChannelMessage,
+    deleteChannelMessage,
+    //replyChannelMessage,
+    sendMessageThread,
+    // delete
+    messagesPagination,
+    // messagesOffset,
+    //messagesLimit,
+    // messagesTotal,
+    //replyMessage,
   };
 });
