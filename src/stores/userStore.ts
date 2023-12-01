@@ -1,64 +1,152 @@
 import { defineStore } from "pinia";
 import { ref, shallowRef } from "vue";
 import { instance, sessionApi } from "@/axios";
-import { DBUser } from "@/types/User.ts";
-import { SessionError, UserSessionData } from "@/types/Session.ts";
-import { useStorageStore } from "@/stores";
-import socket from "@/client";
+import { User, UserSessionData } from "@/types/User";
+import { useStorageStore, useDirectMessageStore } from "@/stores";
 import { capitalize } from "@/helpers";
+import socket from "@/client";
+import { nanoid } from "nanoid";
 
-export const useSessionStore = defineStore("userSession", () => {
+export const useUserStore = defineStore("userStore", () => {
+  const allUsers = ref<User[]>([]);
+
   const userSessionData = ref<UserSessionData>();
   const isLoggedIn = ref(false);
   const isLoading = ref(false);
-  const sessionError = shallowRef<SessionError | null>(null);
+  const sessionError = shallowRef();
+  // stores
   const storageStore = useStorageStore();
+  const directMessageStore = useDirectMessageStore();
+
+  const getAllUsers = async () => {
+    isLoading.value = true;
+    await instance
+      .get(sessionApi.__AllUsers)
+      .then((response) => {
+        if (response.status === 200 && response.statusText === "OK") {          
+          response.data.forEach((user: User) => {
+            allUsers.value.push({
+              _id: user._id,
+              _uuid: user._uuid,
+              _channelID: user._channelID,
+              sessionID: null,
+              image: user.image,
+              userName: user.userName,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              displayName: capitalize(user.firstName + " " + user.lastName),
+              email: user.email,
+              createdAt: user.createdAt,
+              messages: [],
+              connected: false
+            });
+          });
+        }
+      })
+      .then((error) => {
+        console.log(error);
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  const createUser = async (form: {
+    userName: string;
+    firstName: string;
+    lastName: string;
+  }) => {
+    isLoading.value = true;
+    await instance
+      .post(sessionApi.__createUser, {
+        userName: form.userName,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        _channelID: nanoid(20)
+      })
+      .then((response) => {
+        allUsers.value.push(response.data);
+      })
+      .then((error: any) => {
+        sessionError.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
 
   // All Sockets
-  const getAllSessions = async () => {
+  const getDirectChannels = async (_uuid: string) => {
     isLoading.value = true;
     try {
-      return await instance.get(sessionApi.__getSessions, {
+      return await instance.get(sessionApi.__getDirectMessagesChannels, {
         params: {
-          connected: 1,
+          _uuid
         },
       });
-    } catch (error) {
-      // sessionError.value = {
-      //   code: error.code,
-      //   text: error.message,
-      //   type: "error",
-      // };
+    } catch (error: any) {
+      sessionError.value = {
+        code: error.code,
+        text: error.message,
+        type: "error",
+      };
     } finally {
       isLoading.value = false;
     }
   };
 
-  const addSession = async (user: DBUser) => {
+  const getUserChannels = async (uuid: string) => {
     isLoading.value = true;
+    try {
+      return await instance.get(sessionApi.__getChannels, {
+        params: {
+          _uuid: uuid,
+        },
+      });
+    } catch (error: any) {
+      sessionError.value = {
+        code: error.code,
+        text: error.message,
+        type: "error",
+      };
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const addSession = async (user: User) => {
+    isLoading.value = true;
+    let sessionID = nanoid(36)
     await instance
       .post(sessionApi.__addSession, {
         _uuid: user._uuid,
-        sessionID: user.sessionID,
         connected: true,
+        sessionID
       })
-      .then((response) => {        
-        if (response?.statusText === "Created" && response.status === 201) {          
+      .then((response) => {
+        if (response?.statusText === "Created" && response.status === 201) {
           socket.auth = {
             _id: user._id,
             _uuid: user._uuid,
-            sessionID: user.sessionID,
+            _channelID: user._channelID,
+            sessionID: sessionID,
             userName: user.userName,
-            //image: user.image,
+            email: user.email,
+            
           };
           // connect socket
           socket.connect();
           userSessionData.value = {
             _id: user._id,
             _uuid: user._uuid,
+            _channelID: user._channelID,
             image: user.image,
             connected: true,
-            sessionID: user.sessionID,
+            sessionID: sessionID,
             userName: user.userName,
             firstName: user.firstName,
             lastName: user.lastName,
@@ -66,9 +154,12 @@ export const useSessionStore = defineStore("userSession", () => {
             displayName: capitalize(user.firstName + " " + user.lastName),
             createdAt: user.createdAt,
           };
-          storageStore.setSessionId(user.sessionID!);
+          directMessageStore.users.push({...userSessionData.value })
+
+          storageStore.setStorage("JSESSIOND", sessionID);
           (socket as any)._id = user._id;
           (socket as any)._uuid = user._uuid;
+          (socket as any)._channelID = user._channelID;
           (socket as any).userName = user.userName;
           isLoggedIn.value = true;
         }
@@ -100,10 +191,11 @@ export const useSessionStore = defineStore("userSession", () => {
           userSessionData.value = {
             _id: response.data._id,
             _uuid: response.data._uuid,
+            _channelID: response.data._channelID,
             image: response.data.image,
             connected: response.data.connected,
             sessionID: response.data.sessionID,
-            email: response.data.sessionID,
+            email: response.data.email,
             userName: response.data.userName,
             firstName: capitalize(response.data.firstName),
             lastName: capitalize(response.data.lastName),
@@ -133,7 +225,7 @@ export const useSessionStore = defineStore("userSession", () => {
     _uuid?: string;
     sessionID: string;
     connected: boolean;
-  }) => {    
+  }) => {
     isLoading.value = true;
     await instance
       .post(sessionApi.__updateSession, {
@@ -141,7 +233,7 @@ export const useSessionStore = defineStore("userSession", () => {
         sessionID: session.sessionID,
         connected: session.connected,
       })
-      .then((response) => {        
+      .then((response) => {
         if (response.status === 201 && response.statusText === "Created")
           if (session.connected === false) {
             isLoggedIn.value = false;
@@ -168,7 +260,7 @@ export const useSessionStore = defineStore("userSession", () => {
       .post(sessionApi.__restoreSession, {
         sessionID,
       })
-      .then((response) => {        
+      .then((response) => {
         if (response.status === 201 && response.statusText === "Created") {
           isLoggedIn.value = true;
           location.reload();
@@ -185,12 +277,17 @@ export const useSessionStore = defineStore("userSession", () => {
         isLoading.value = false;
       });
   };
+
   return {
+    allUsers,
     userSessionData,
     isLoggedIn,
     isLoading,
     sessionError,
-    getAllSessions,
+    createUser,
+    getAllUsers,
+    getUserChannels,
+    getDirectChannels,
     getSession,
     updateSession,
     addSession,

@@ -33,7 +33,7 @@ instrument(io, {
   mode: "development",
 });
 
-io.use(async (socket, next) => {
+io.use((socket, next) => {
   const socketAuth = socket.handshake.auth;
 
   try {
@@ -41,9 +41,9 @@ io.use(async (socket, next) => {
     if (sessionID) {
       socket._id = socketAuth._id;
       socket.sessionID = sessionID;
-      socket._uuid = socketAuth._uuid;
       socket.email = socketAuth.email;
-      socket.userName = socketAuth.userName;
+      socket._channelID = socketAuth._channelID;
+      socket._uuid = socketAuth._uuid;
       return next();
     }
     // socket.sessionId = socketAuth.sessionId;
@@ -57,15 +57,15 @@ io.use(async (socket, next) => {
   }
 });
 
-io.on("connection", async (socket) => {
+io.on("connection", (socket) => {
   // emit session details and save
   const sessionData = {
     _id: socket._id,
     _uuid: socket._uuid,
+    _channelID: socket._channelID,
     sessionID: socket.sessionID,
     userName: socket.userName,
     connected: socket.connected,
-    messages: [],
   };
   socket.emit("session", sessionData);
   // join the "uuid" room
@@ -133,7 +133,7 @@ io.on("connection", async (socket) => {
     socket.join(_roomId);
     socket.broadcast.to(_roomId).emit("client_join_channel", {
       userName: socket.userName,
-      roomName: room,
+      channelName: room,
       createdBy: createdBy,
     });
   });
@@ -159,11 +159,38 @@ io.on("connection", async (socket) => {
     });
   });
 
+    socket.on("new_channel_thread_message", ({ _id, _messageID, _channelID, from, fromName, to, toName, content, createdAt}) => {
+    socket.broadcast.to(_channelID).emit("client_channel_thread_message", { 
+      _id: _id, 
+      _messageID: _messageID,
+      _channelID: _channelID,
+      from: from, 
+      fromName: fromName, 
+      to: to, 
+      toName: toName, 
+      content: content, 
+      createdAt: createdAt
+    });
+  });
+
+
   socket.on("channel_typing", ({ _channelID, input, displayName }) => {
     socket.broadcast
       .to(_channelID)
       .timeout(500)
       .emit("client_channel_typing", {
+        input: input,
+        from: socket._uuid,
+        displayName: displayName,
+      });
+  });
+
+  // thread
+    socket.on("channel_thread_typing", ({ _channelID, input, displayName }) => {
+    socket.broadcast
+      .to(_channelID)
+      .timeout(500)
+      .emit("client_channel_thread_typing", {
         input: input,
         from: socket._uuid,
         displayName: displayName,

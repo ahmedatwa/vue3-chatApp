@@ -20,37 +20,40 @@ setInterval(() => {
 // Channel
 export const _channelEmits = {
   newMessage: "new_channel_message",
+  newThreadMessage: "new_channel_thread_message",
   create: "create_channel",
   addMembers: "add_members_to_channel",
   editMessage: "edit_channel_message",
   deleteMessage: "delete_channel_message",
   typing: "channel_typing",
+  threadTyping: "channel_thread_typing",
 }
 
 export const _channelListener = {
   newMessage: "client_new_channel_message",
+  newThreadMessage: "client_channel_thread_message",
   editMessage: "client_edit_channel_message",
   deleteMessage: "client_delete_channel_message",
-
   createChannel: "client_create_channel",
   joinChannel: "client_join_channel",
   addMembers: "client_add_members_to_channel",
   typing: "client_channel_typing",
-  
-  
-  
-  
+  threadTyping: "client_channel_thread_typing",
 }
 
 // Direct Messages
-
-export const _messageEmits = {
-
+export const _directMessageEmits = {
+  newMessage: "new_direct_message",
+  typing: "user_typing",
+  userDisconnected: "user_disconnected",
 }
 
-export const _messageListener = {
-  
+export const _directMessageListener = {
+  newMessage: "client_new_direct_message",
+  typing: "client_user_typing",
+  userDisconnected: "client_user_disconnected"
 }
+
 export default socket
 
  

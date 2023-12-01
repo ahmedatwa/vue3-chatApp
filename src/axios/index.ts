@@ -3,15 +3,19 @@ import axios from "axios";
 // sessions
 export const sessionApi = {
   __getSessions: "/getallsessions",
+  __getChannels: "/getChannels",
+  __getDirectMessagesChannels: "getDirectMessagesChannels",
   __getSession: "/getsession",
   __addSession: "/addsession",
   __updateSession: "/updatesession",
   __restoreSession: "/restoresession",
+  // 
+  __AllUsers: "/all",
+  __createUser: "/create",
 };
 
 // Channels
 export const channelApi = {
-  __getChannels: "/getChannels",
   __getChannelMessages: "/getChannelMessages",
   __getTotalChannelMessages: "/getTotalChannelMessages",
   __addChannel: "/addChannel",
@@ -31,15 +35,11 @@ export const channelApi = {
 
 // User Messages
 export const directMessageApi = {
-  __add_Message: "/addmessage",
-  __get_Messages: "/getmessages",
+  __addMessage: "/addDirectMessage",
+  __getMessages: "/getDirectMessages",
   __upload: "/upload",
 };
 
-export const userApi = {
-  __AllUsers: "/all",
-  __createUser: "/create",
-};
 
 export const instance = axios.create({
   baseURL: import.meta.env.VITE_API_URL + "/api/chat",
@@ -73,14 +73,14 @@ instance.interceptors.response.use(
 );
 
 // artificial delay
-const timeout = (): Promise<void> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (Math.random() > 0.3) {
-        resolve();
-      } else {
-        reject(new Error("Random Error"));
-      }
-    }, 500);
-  });
-};
+// const timeout = (): Promise<void> => {
+//   return new Promise((resolve, reject) => {
+//     setTimeout(() => {
+//       if (Math.random() > 0.3) {
+//         resolve();
+//       } else {
+//         reject(new Error("Random Error"));
+//       }
+//     }, 500);
+//   });
+// };

@@ -7,19 +7,18 @@ export interface Locales {
 
 type OptionsLocale = {
   [key: string]: { name: string; code: string; strings: object };
-}
+};
 
 export interface Options {
   defaultLocale: string;
   fallbackLocale: string;
-  locales: OptionsLocale
+  locales: OptionsLocale;
 }
 
 export type Translate = (line: string, replacement?: any[]) => string;
 export type SetLocale = (key: string) => void;
 
-export const supportedLocales: InjectionKey<Locales[]> =
-  Symbol("locales");
+export const supportedLocales: InjectionKey<Locales[]> = Symbol("locales");
 
 interface Lang {
   locales: Locales[];
@@ -28,3 +27,4 @@ interface Lang {
 }
 
 export const langKey: InjectionKey<Lang> = Symbol("Lang");
+

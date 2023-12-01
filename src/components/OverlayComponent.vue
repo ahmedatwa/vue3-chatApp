@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import type { SessionError } from "@/types/Session.ts"
+import type { SessionError } from "@/types/Session"
 
 const props = defineProps<{
     isLoading: boolean;

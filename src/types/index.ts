@@ -4,12 +4,6 @@ interface TypingEvent {
   isTyping: boolean;
 }
 
-interface Settings {
-  theme: string;
-  connectionNotif: boolean;
-  date?: Date | string;
-}
-
 interface Snackbar {
   title?: string;
   type: string;
@@ -23,12 +17,37 @@ type Alert = {
   type: string;
   title: string;
   text: string;
-}
+};
 
 interface UploadSettings {
   accept: string;
-  maxSize: number
-  multiple: boolean
+  maxSize: number;
+  multiple: boolean;
 }
 
-export type { TypingEvent, Settings, Snackbar, Alert, UploadSettings };
+interface UserAppSettings {
+  theme: string;
+  leftOff: boolean;
+  muteConnectionNotif: boolean;
+  date?: string;
+}
+
+type UploadedFiles = {
+  _id: number | string;
+  name: string;
+  size: number;
+  type: string;
+  randomName: string;
+  path: URL;
+  _uuid: string;
+  _channelID: string;
+};
+
+export type {
+  TypingEvent,
+  Snackbar,
+  Alert,
+  UploadSettings,
+  UserAppSettings,
+  UploadedFiles,
+};

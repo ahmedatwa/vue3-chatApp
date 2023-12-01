@@ -122,7 +122,6 @@ const createFromTimestamp = (timestamp: string) => {
     .replace("T", " ");
 };
 
-// as keyof typeof obj
 /**
  * @category Object
  * @param {Object} object The object to inspect.
@@ -179,12 +178,14 @@ const remove = (object: object[], needle: string[]) => {
 const reUnescapedHtml = /[&<>"']/g;
 const reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
 const esc = (string: string) => {
-  return string && reHasUnescapedHtml.test(string)
-    ? string.replace(
-        reUnescapedHtml,
-        (chr) => htmlEscapes.value[chr as keyof typeof htmlEscapes.value]
-      )
-    : string || "";
+  const result =
+    string && reHasUnescapedHtml.test(string)
+      ? string.replace(
+          reUnescapedHtml,
+          (chr) => htmlEscapes.value[chr as keyof typeof htmlEscapes.value]
+        )
+      : string || "";
+  return result.replace("\n", "");
 };
 
 function isUndefined(value: any) {
@@ -268,9 +269,9 @@ const bytesToMegabytes = (bytes: number) => {
 // };
 
 /**
- * 
- * @param value 
- * @returns 
+ *
+ * @param value
+ * @returns
  * credit: @https://lodash.com/docs/4.17.15#toNumber
  */
 const toNumber = (value: any) => {
@@ -308,6 +309,38 @@ const toNumber = (value: any) => {
     : +value;
 };
 
+const formatDateLong = (text: string | number) => {
+  const date = new Date(text);
+  const today = new Date();
+  // (Sunday) / current Week
+  const firstDay = new Date(today.setDate(today.getDate() - today.getDay()));
+  // (Saturday) / / current Week
+  const lastDay = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+
+  const weekday = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+
+  //check if my value is between a minimum date and a maximum date
+  if (date >= firstDay && date <= lastDay) {
+    return `${
+      weekday[date.getDay()]
+    }, ${date.getDate()}-${date.getMonth()}-${date.getFullYear()}`;
+  }
+  return new Intl.DateTimeFormat("en", {
+    year: "numeric",
+    month: "long",
+    day: "2-digit",
+    weekday: "long",
+  }).format(date);
+};
+
 export {
   capitalize,
   snakeCase,
@@ -327,4 +360,5 @@ export {
   useNow,
   createDateTime,
   toNumber,
+  formatDateLong,
 };

@@ -1,29 +1,37 @@
 <script setup lang="ts">
 import { computed, ref, watch, inject } from "vue";
-import { SearchInputComponent } from "@/components/Common";
-import { SettingComponent, ProfileComponent } from "@/components/Setting";
+import { SettingComponent, ProfileComponent } from "@/components/User";
+
 // types
-import { UserSessionData } from "@/types/Session.ts";
-import { Settings } from "@/types";
-import { langKey } from "@/types/Symbols.ts";
-  
+import { UserSessionData } from "@/types/User";
+import { UserAppSettings } from "@/types";
+import type { UserProfile } from "@/types/User"
+import { langKey } from "@/types/Symbols";
+
 const drawer = inject<boolean>("drawer")
 const isOffline = ref(false);
 const searchTerm = ref("");
 const lang = inject(langKey)
 const user = inject<UserSessionData>('user')
+const settingsDialog = ref(false)
+const profileDialog = ref(false)
+
+defineProps<{
+  userSettings: UserAppSettings | null
+}>()
 
 const emit = defineEmits<{
-  "logout": [uuid: string, sessionId: string];
+  "logout": [value: { _uuid: string, sessionID: string, connected: boolean }];
   "update:status": [value: boolean];
-  "update:setting": [value: Settings];
+  "update:setting": [value: UserAppSettings];
   "update:search": [value: string];
   "update:locale": [value: string];
+  "update:profile": [value: UserProfile]
 }>();
 
 const logout = () => {
   if (user)
-    emit("logout", user?._uuid, user?.sessionID);
+    emit("logout", { _uuid: user?._uuid, sessionID: user?.sessionID, connected: false });
 };
 
 watch(isOffline, (newStatus) => {
@@ -38,10 +46,6 @@ const status = computed(() => {
   }
 });
 
-const updateSettings = (settings: Settings) => {
-  emit("update:setting", settings);
-};
-
 </script>
 <template>
   <v-container>
@@ -51,8 +55,8 @@ const updateSettings = (settings: Settings) => {
       </template>
       <v-row>
         <v-col cols="9" class="mx-auto">
-          <search-input-component v-model:term="searchTerm" @input="$emit('update:search', $event.target.value)"
-            class="mt-5"></search-input-component>
+          <v-text-field label="Search..." prepend-inner-icon="mdi-magnify" :model-value="searchTerm"
+            @update:model-value="$emit('update:search', $event)" variant="underlined" class="mt-5"></v-text-field>
         </v-col>
       </v-row>
       <v-btn icon density="compact" class="me-2" color="primary">
@@ -95,29 +99,35 @@ const updateSettings = (settings: Settings) => {
             </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
-          <v-list-item key="profile" value="profile">
+          <v-list-item key="profile" value="profile" @click="profileDialog = !profileDialog">
             <v-list-item-title>
               <v-icon icon="mdi-account-edit"></v-icon>
-              {{ $lang('textProfile') }}</v-list-item-title>
-            <profile-component :user="user"></profile-component>
+              {{ $lang('text.userProfile') }}</v-list-item-title>
           </v-list-item>
-          <v-list-item key="setting" value="setting">
-            <v-list-item-title><v-icon icon="mdi-cog"></v-icon> {{ $lang('textPreference') }}</v-list-item-title>
-            <setting-component @on:update:settings="updateSettings"></setting-component>
+          <v-list-item key="setting" value="setting" @click="settingsDialog = !profileDialog">
+            <v-list-item-title><v-icon icon="mdi-cog"></v-icon>
+              {{ $lang('text.userPreferences') }}
+            </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item key="downloads" value="downloads" class="pointer">
             <v-list-item-title>
               <v-icon icon="mdi-download-box"></v-icon>
-              {{ $lang('textDownloads') }}</v-list-item-title>
+              {{ $lang('text.userDownloads') }}</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item @click.stop="logout" key="logout">
-            <v-list-item-title><v-icon icon="mdi-logout"></v-icon> {{ $lang('textSignOut') }}
+            <v-list-item-title><v-icon icon="mdi-logout"></v-icon> {{ $lang('button.signOut') }}
             </v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
     </v-app-bar>
+    <!-- settings -->
+    <setting-component v-model:model-value="settingsDialog" :user-settings="userSettings"
+      @on:update:settings="$emit('update:setting', $event)"></setting-component>
+    <!-- profile -->
+    <profile-component :user="user" v-model:model-value="profileDialog"
+      @on:update:profile="$emit('update:profile', $event)"></profile-component>
   </v-container>
 </template>

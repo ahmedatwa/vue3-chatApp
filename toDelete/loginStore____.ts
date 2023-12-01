@@ -1,9 +1,9 @@
 import { defineStore } from "pinia";
 import { reactive, ref } from "vue";
 import { instance, userApi } from "@/axios";
-import type { DBUser, CreateUserForm } from "@/types/User.ts";
+import type { DBUser, CreateUserForm } from "@/types/User";
 
-export const useLoginStore = defineStore("loginUser", () => {
+export const useLoginStore = defineStore("loginStore", () => {
   const users = ref<DBUser[]>([]);
   const isLoading = ref(false);
   
@@ -17,20 +17,6 @@ export const useLoginStore = defineStore("loginUser", () => {
   const responseError = ref();
   const responseResult = ref(null);
 
-  const getAllUsers = async () => {
-    isLoading.value = true;
-    await instance
-      .get(userApi.__AllUsers)
-      .then((response): void => {
-        users.value = response.data;
-      })
-      .then((error) => {
-        responseError.value = error;
-      })
-      .finally(() => {
-        isLoading.value = false;
-      });
-  };
 
   const createUser = async () => {
     isLoading.value = true;
@@ -48,12 +34,10 @@ export const useLoginStore = defineStore("loginUser", () => {
       })
       .finally(() => {
         isLoading.value = false;
-        getAllUsers();
       });
   };
 
   return {
-    getAllUsers,
     createUser,
     responseResult,
     responseError,

@@ -4,12 +4,10 @@ import { createPinia } from "pinia";
 import axios from "axios";
 import { registerPlugins } from "@/plugins";
 
-import en from "./locales/en.ts";
-import ar from "./locales/ar.ts";
+import {en, ar} from "./locales";
 import language from "./plugins/language";
 
 const pinia = createPinia();
-
 pinia.use(() => ({ axios }));
 // vue
 const app = createApp(App);

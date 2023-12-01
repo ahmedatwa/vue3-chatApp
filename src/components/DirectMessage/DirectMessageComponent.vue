@@ -1,40 +1,40 @@
 <script setup lang="ts">
-import { MessageFormComponent } from "@/components/Message";
-import { onMounted, computed } from "vue";
-import { TypingEvent } from "@/types";
-import { User } from "@/types/User.ts";
-import { UserSessionData } from "@/types/Session.ts"
+import { onMounted, computed, ref } from "vue";
+import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 import { formatDate, formatTimeShort } from '@/helpers'
+// types
+import type { TypingEvent } from "@/types";
+import type { User } from "@/types/User.ts";
 
-//const settings = inject<Settings>("settings")
+
+const messageInput = ref("")
+const uploadedFiles = ref<File[]>([]);
+
 // Props
-interface Props {
+const props = defineProps<{
   selectedUser: User | null;
-  room: string | null;
   typing?: TypingEvent | null;
-  currentUser: UserSessionData;
-  isLoading: boolean;
-}
-const props = defineProps<Props>();
+  isLoadingUsers: boolean;
+}>();
 
 // emits 
 const emit = defineEmits<{
-  "submit:form": [payload: { _threadId: string | null; text: string; file?: File[] }];
+  "sendMessage": [payload: { content: string; files?: File[] }];
   "update:typing": [value: string],
   "update:seen": [value: boolean],
   "update:newMessagesCount": [value: number],
 }>()
 
 // group messages by date
-const userMessages = computed(() => {
-  if (props.selectedUser?.messages) {
-    return props.selectedUser.messages.reduce((result: any, value) => {
-      const date = value.createdAt.split(' ')[0];
-      (result[date] || (result[date] = [])).push(value);
-      return result;
-    }, {});
-  }
-})
+// const userMessages = computed(() => {
+//   if (props.selectedUser?.messages) {
+//     return props.selectedUser.messages.reduce((result: any, value) => {
+//       const date = value.createdAt.split(' ')[0];
+//       (result[date] || (result[date] = [])).push(value);
+//       return result;
+//     }, {});
+//   }
+// })
 
 const handleScroll = (): void => {
   const el = document.querySelector(".v-virtual-scroll");
@@ -45,22 +45,26 @@ onMounted(() => {
   handleScroll();
 });
 
-const onMutate = (() => {
-  handleScroll();
 
-  //emit("update:seen", true);
-  //emit("update:newMessagesCount", 0);
-})
+const updateEmoji = (emoji: string) => {
+  messageInput.value += emoji;
+};
 
-// const dateFormat = (date: string | number, format: string): string => {
-//   const formatted = useDateFormat(date, format);
-//   return replace(formatted.value, '"', '');
-// }
+const sendMessage = () => {
+  emit("sendMessage", {
+    content: messageInput.value,
+    files: uploadedFiles.value,
+  });
+  messageInput.value = "";
+  uploadedFiles.value = [];
+  //isScroll.value = true
+};
+
 
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`thread-${room}`">
-    <v-card class="mx-auto" id="container" :loading="isLoading">
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`direct-message-${selectedUser?._uuid}`">
+    <v-card class="mx-auto" id="container" :loading="isLoadingUsers">
       <v-card-title>
         <v-avatar>
           <v-img v-if="selectedUser?.image" :src="selectedUser?.image" alt="image"></v-img>
@@ -72,7 +76,7 @@ const onMutate = (() => {
       </v-card-title>
       <v-divider :thickness="3" color="success"></v-divider>
 
-      <v-virtual-scroll :height="500" :items="[userMessages]" v-mutate="onMutate">
+      <v-virtual-scroll :height="500" :items="[selectedUser?.messages]">
         <template v-slot:default="{ item }">
           <v-list v-for="(message, index) in item" :key="index" :id="`list-${index}`">
             <v-list-subheader :key="index" class="d-flex justify-center">
@@ -103,12 +107,11 @@ const onMutate = (() => {
       </v-virtual-scroll>
       <v-sheet>
         <v-card-actions class="w-100 d-inline-block">
-          <MessageFormComponent :key="selectedUser?._uuid" @submit="$emit('submit:form', $event)"
-            @typing="$emit('update:typing', $event)" >
-          </MessageFormComponent>
-          <v-sheet v-if="typing">
-            <p class="font-weight-light ma-2">{{ typing.name }} is Typing...</p>
-          </v-sheet>
+          <chat-form-component :key="`channel-${selectedUser?._uuid}`" v-model:model-value="messageInput"
+          v-model:files="uploadedFiles" @update:emoji="updateEmoji" :text-area-row-height="10" :text-area-rows="2"
+          @submit="sendMessage" :text-area-label="$lang('text.sendMessage')" autoGrow upload>
+        </chat-form-component>
+        <chat-typing-component v-if="typing" :typing="typing"></chat-typing-component>
         </v-card-actions>
       </v-sheet>
     </v-card>

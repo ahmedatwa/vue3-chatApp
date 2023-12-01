@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { DBUser } from "@/types/User.ts";
-import type { UserSessionData } from "@/types/Session.ts"
 import { ref, computed, shallowRef, onMounted } from "vue"
-import { reactive, watch } from "vue"
-import type { Channels, ChannelForm, ChannelMembers, ChannelSettings } from "@/types/Channel.ts";
-import DialogComponent from "@/components/DialogComponent.vue";
-import { capitalize, writeClipboard } from "@/helpers";
+import { reactive } from "vue"
+import { ChannelMembersComponent } from "@/components/Channel"
+
+import { writeClipboard } from "@/helpers";
+import type { UserSessionData } from "@/types/User"
+import type { Channels, ChannelForm, ChannelSettings } from "@/types/Channel";
 
 // Channel
 const channelForm: ChannelForm = reactive({
@@ -14,20 +14,21 @@ const channelForm: ChannelForm = reactive({
   channelDescription: "",
 })
 
+const isArchiveChannelDialog = ref(false)
+const isLeaveChannelDialog = ref(false)
 const dialog = shallowRef(false);
 const channelTab = ref("about");
-const channelSettings = ref<ChannelSettings>({
-  channelNotifications: "all"
+const channelSettings: ChannelSettings = reactive({
+  muteNotifications: "none"
 });
 const isCopiedId = shallowRef(false);
 const isCopiedEmails = shallowRef(false);
 const isCopiedNames = shallowRef(false);
-const selectedMembers = ref<ChannelMembers | null>(null);
-const channelMemebers = ref<ChannelMembers[]>([])
+const isEditTopic = ref(false)
+const isEditDesc = ref(false)
 
 // Props
 const props = defineProps<{
-  allUsers?: DBUser[];
   channel?: Channels | null;
   title?: string;
   create?: boolean;
@@ -38,35 +39,20 @@ const props = defineProps<{
 
 // emits
 const emit = defineEmits<{
-  "on:create:channel": [value: ChannelForm];
-  "on:update:channel": [value: ChannelForm];
-  "on:add:channel:members": [value: ChannelMembers];
-  "on:leave:channel": [value: string];
-  "on:archive:channel": [value: string]
-  "on:remove:member": [value: string];
-  "on:channel:settings": [value: { _channelID: string, _uuid: string, setting: ChannelSettings }]
+  "on:createChannel": [value: ChannelForm];
+  "on:updateChannel": [value: ChannelForm];
+  "on:leaveChannel": [value: string];
+  "on:archiveChannel": [value: string]
+  "on:channelSettings": [value: { _channelID: string, _uuid: string, setting: ChannelSettings }]
 }>();
 
 // methods
 const createChannel = () => {
-  emit("on:create:channel", { ...channelForm });
+  emit("on:createChannel", { ...channelForm });
   channelForm.channelName = ''
   channelForm.channelDescription = ""
   channelForm.channelTopic = ""
-  if (props.currentUser) {
-    channelMemebers.value.push({
-      _uuid: props.currentUser._uuid,
-      name: props.currentUser.displayName
-    })
-  }
-
 };
-
-const users = computed(() => {
-  return props.allUsers?.map(({ _uuid, firstName, lastName }) => {
-    return { _uuid: _uuid, name: capitalize(firstName + " " + lastName) };
-  });
-});
 
 const dialogTitle = computed(() => {
   if (props.channel) {
@@ -78,12 +64,12 @@ const dialogTitle = computed(() => {
 
 const archiveChannel = () => {
   if (props.channel)
-    emit("on:archive:channel", props.channel?._channelID)
+    emit("on:archiveChannel", props.channel?._channelID)
 };
 
 const leaveChannel = () => {
   if (props.channel)
-    emit("on:leave:channel", props.channel?._channelID)
+    emit("on:leaveChannel", props.channel?._channelID)
 }
 const copyChannelId = () => {
   if (props.channel)
@@ -92,8 +78,8 @@ const copyChannelId = () => {
 };
 
 const copyChannelNames = () => {
-  const names = props.allUsers?.map(({ firstName, lastName }) => {
-    return firstName + " " + lastName;
+  const names = props.channel?.members?.map(({ displayName }) => {
+    return displayName;
   });
   if (names) {
     writeClipboard(names.join(","))
@@ -101,7 +87,7 @@ const copyChannelNames = () => {
   }
 };
 const copyChannelEmails = () => {
-  const emails = props.allUsers?.map(({ email }) => {
+  const emails = props.channel?.members?.map(({ email }) => {
     return email;
   });
   if (emails) writeClipboard(emails.join(","));
@@ -113,59 +99,40 @@ onMounted(() => {
     channelForm.channelName = props.channel.channelName
     channelForm.channelTopic = props.channel.channelTopic
     channelForm.channelDescription = props.channel.channelDescription
-    channelMemebers.value = props.channel.members
     if (props.channel.settings) {
-      channelSettings.value = props.channel.settings
+      channelSettings.muteNotifications = props.channel.settings.muteNotifications
     }
+  }
 
+  if (props.members) {
+    channelTab.value = "members"
   }
 })
 
-watch(
-  () => selectedMembers.value,
-  (newMember) => {
-    if (newMember) {
-      if (channelMemebers.value.indexOf(newMember) < 0) {
-        channelMemebers.value.push(newMember)
-        selectedMembers.value = null
-        emit("on:add:channel:members", newMember)
-      }
-    }
-  }
-)
 
-watch(
-  ()=> props.members,
-  (members) => {
-    if(members) {
-      channelTab.value = "members"
-    }
-  })
+
 const saveSettings = () => {
   if (props.channel && props.currentUser)
-    emit("on:channel:settings", {
+    emit("on:channelSettings", {
       _channelID: props.channel?._channelID,
       _uuid: props.currentUser?._uuid,
-      setting: channelSettings.value,
+      setting: channelSettings,
     })
 }
 
 
-const isEditTopic = ref(false)
-const isEditDesc = ref(false)
 const updateChannel = (key: string) => {
-  if(key === "topic") {
+  if (key === "topic") {
     isEditTopic.value = true
   } else {
     isEditDesc.value = true
   }
-  emit("on:update:channel", channelForm)
+  emit("on:updateChannel", channelForm)
 }
 
-const removeMember = (index: number, _uuid: string) => {
-  channelMemebers.value.splice(index, 1)
-  emit("on:remove:member", _uuid)
-}
+
+
+
 </script>
 <template>
   <!-- Room Form -->
@@ -177,10 +144,10 @@ const removeMember = (index: number, _uuid: string) => {
       </v-card-title>
       <v-divider :thickness="3" color="error" class="mb-3"></v-divider>
       <v-tabs v-model="channelTab" color="deep-purple-accent-4" align-tabs="center">
-        <v-tab key="about" value="about" v-if="!members">{{ $lang("tab.about") }}</v-tab>
-        <v-tab key="members" value="members" v-if="channel?.createdBy === currentUser?._uuid && members">
+        <v-tab key="about" value="about">{{ $lang("tab.about") }}</v-tab>
+        <v-tab key="members" value="members" v-if="channel?.createdBy === currentUser?._uuid">
           {{ $lang("tab.members") }}</v-tab>
-        <v-tab key="settings" value="settings" v-if="channel?.createdBy === currentUser?._uuid && !create && !members">
+        <v-tab key="settings" value="settings" v-if="channel?.createdBy === currentUser?._uuid && !create">
           {{ $lang("tab.settings") }}</v-tab>
       </v-tabs>
       <v-window v-model="channelTab" class="ma-4">
@@ -194,7 +161,8 @@ const removeMember = (index: number, _uuid: string) => {
               prepend-inner-icon="mdi-information-outline">
               <template v-slot:append v-if="!create">
                 <v-slide-x-reverse-transition mode="out-in">
-                  <v-btn icon variant="text" :key="`topic-${isEditTopic}`" :disabled="channelForm.channelTopic.length < 3">
+                  <v-btn icon variant="text" :key="`topic-${isEditTopic}`"
+                    :disabled="channelForm.channelTopic.length < 3">
                     <v-icon color="primary" :icon="isEditTopic ? 'mdi-check-all' : 'mdi-content-save-all'"
                       @click="updateChannel('topic')"></v-icon>
                   </v-btn>
@@ -205,7 +173,8 @@ const removeMember = (index: number, _uuid: string) => {
               prepend-inner-icon="mdi-information-outline" auto-grow>
               <template v-slot:append v-if="!create">
                 <v-slide-x-reverse-transition mode="out-in">
-                  <v-btn icon variant="text" :key="`desc-${isEditDesc}`" :disabled="channelForm.channelDescription.length < 3">
+                  <v-btn icon variant="text" :key="`desc-${isEditDesc}`"
+                    :disabled="channelForm.channelDescription.length < 3">
                     <v-icon color="primary" :icon="isEditDesc ? 'mdi-check-all' : 'mdi-content-save-all'"
                       @click="updateChannel('desc')"></v-icon>
                   </v-btn>
@@ -228,31 +197,14 @@ const removeMember = (index: number, _uuid: string) => {
         </v-window-item>
         <!-- Members -->
         <v-window-item value="members" key="members">
-          <v-combobox placeholder="Search Users" :items="users" item-title="name" prepend-inner-icon="mdi-magnify"
-            id="add-channel-users" density="comfortable" variant="solo" v-model="selectedMembers" label="Select"
-            clearable>
-          </v-combobox>
-          <div rounded="rounded" class="mx-auto members-list p-2 rounded" height="20" width="auto">
-            <ul>
-              <v-slide-x-transition tag="ul" group>
-                <li v-for="(member, index) in channelMemebers" :key="member._uuid">
-                  <v-btn color="red" :disabled="member._uuid === currentUser?._uuid" icon="mdi-close" variant="text"
-                    @click="removeMember(index, member._uuid)" :key="index"></v-btn> {{ member.name }}
-                </li>
-              </v-slide-x-transition>
-            </ul>
-          </div>
+          <channel-members-component :channel="channel"></channel-members-component>
         </v-window-item>
         <v-window-item value="settings" key="settings">
-          <v-sheet elevation="2" rounded :border="true" class="pa-2">
-            <v-radio-group v-model="channelSettings.channelNotifications">
-              <p>{{ $lang("channel.channelNotifications") }} <v-btn icon="mdi-content-save-cog" density="compact"
-                  @click="saveSettings" variant="text" color="indigo"></v-btn></p>
-              <v-radio :label="$lang('channel.allNotifications')" value="all"></v-radio>
-              <v-radio :label="$lang('channel.muteChannel')" value="none"></v-radio>
-            </v-radio-group>
+          <v-sheet class="pa-2">
+            <v-switch v-model="channelSettings.muteNotifications" color="success" :label="$lang('channel.muteChannel')"
+              @update:model-value="saveSettings" true-value="none" false-value="all"></v-switch>
           </v-sheet>
-          <v-divider class="my-2" color="blue" thickness="4"></v-divider>
+          <v-divider class="my-2" color="blue" thickness="2"></v-divider>
           <v-btn block :prepend-icon="isCopiedNames ? 'mdi-check-all' : 'mdi-content-copy'" color="blue-grey-darken-1"
             @click="copyChannelNames" variant="tonal">{{ $lang("channel.copyMemberNames") }}</v-btn>
           <v-divider class="my-2" color="orange"></v-divider>
@@ -260,30 +212,36 @@ const removeMember = (index: number, _uuid: string) => {
             " color="blue-grey-darken-1" @click="copyChannelEmails" variant="tonal">
             {{ $lang("channel.copyMemberAddresses") }}</v-btn>
           <v-divider class="my-2" color="orange"></v-divider>
-          <v-btn prepend-icon="mdi-archive" color="blue-lighten-1" block>
+          <!-- Archive Channel -->
+          <v-btn prepend-icon="mdi-archive" color="blue-lighten-1"
+            @click="isArchiveChannelDialog = !isArchiveChannelDialog" block>
             {{ $lang("channel.archiveChannel") }}
-            <dialog-component icon="mdi-alert-circle" :title-text="$lang('channel.archiveChannel')"
-              title-icon="mdi-archive" key="archive-channel">
-              <template #main>
-                <v-sheet>{{ $lang('textConfirm', ['archive channel']) }}</v-sheet>
-              </template>
-              <template #buttons>
-                <v-btn @click="archiveChannel" prepend-icon="mdi-check-circle-outline" color="#EF5350"
-                  :loading="isLoading" block>{{ $lang("button.confirm") }}</v-btn>
-              </template>
-            </dialog-component>
+            <v-dialog v-model="isArchiveChannelDialog" key="archive-channel">
+              <v-card prepend-icon="mdi-archive" :title="$lang('channel.archiveChannel')"
+                :text="$lang('text.confirm', ['archive channel'])" width="400" class="mx-auto">
+                <v-card-actions>
+                  <v-btn color="red" prepend-icon="mdi-close" class="me-auto">{{ $lang('button.cancel') }}</v-btn>
+                  <v-btn @click="archiveChannel" prepend-icon="mdi-check-circle-outline" color="indigo"
+                    :loading="isLoading">{{ $lang("button.confirm") }}</v-btn>
+                </v-card-actions>
+              </v-card>
+            </v-dialog>
           </v-btn>
           <v-divider class="my-2" color="orange"></v-divider>
-          <v-btn color="red-darken-1" prepend-icon="mdi-exit-run" block>
+          <!-- Leave Channel -->
+          <v-btn color="red-darken-1" prepend-icon="mdi-exit-run" @click="isLeaveChannelDialog = !isLeaveChannelDialog"
+            block>
             {{ $lang("channel.leaveChannel") }}
-            <dialog-component icon="mdi-alert-circle" :title-text="$lang('textConfirm')"
-              :title="$lang('channel.leaveChannel')" key="leave-channel">
-              <template v-slot:prepend-button>
-                <v-btn @click="leaveChannel" prepend-icon="mdi-check-circle-outline" color="indigo" variant="tonal"
-                  block>{{
+            <v-dialog v-model:model-value="isLeaveChannelDialog" key="leave-channel">
+              <v-card prepend-icon="mdi-exit-run" :title="$lang('channel.leaveChannel')"
+                :text="$lang('text.confirm', ['leave channel'])" width="400" class="mx-auto">
+                <v-card-actions>
+                  <v-btn color="red" prepend-icon="mdi-close" class="me-auto">{{ $lang('button.cancel') }}</v-btn>
+                  <v-btn @click="leaveChannel" prepend-icon="mdi-check-circle-outline" color="indigo" block>{{
                     $lang("button.confirm") }}</v-btn>
-              </template>
-            </dialog-component>
+                </v-card-actions>
+              </v-card>
+            </v-dialog>
           </v-btn>
           <v-divider class="my-2" color="orange"></v-divider>
           <v-sheet>
@@ -304,5 +262,4 @@ const removeMember = (index: number, _uuid: string) => {
   max-height: 300px;
   padding: 1px;
 }
-
 </style>

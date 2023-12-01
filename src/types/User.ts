@@ -1,20 +1,37 @@
 interface User {
-  _id?: number;
+  _id: number;
   _uuid: string;
+  _channelID: string;
+  channelMembers?: {_uuid: string}[];
   userName: string;
   displayName: string;
   firstName: string;
   lastName: string;
   email: string;
-  self: boolean;
+  image: string;
+  sessionID: string | null;
+  self?: boolean;
   connected: boolean;
   selected?: boolean;
-  image: string;
   typing?: boolean;
+  settings?: UserSettings | null;
+  messagesDistributed?: boolean;
   newMessages?: NewUnreadMessages | null;
-  messages: userMessages[];
+  messages?: UserMessages[];
+  createdAt: string;
+  updatedAt?: string;
 }
 
+type Channel = {
+  _channelID: string | number;
+  lastMessage: string;
+  createdAt: string;
+  updatedAt?: string;
+}
+type UserSettings = {
+  muteNotification: boolean
+}
+ 
 type NewUnreadMessages = {
   total?: number;
   lastMessage?: string;
@@ -24,11 +41,11 @@ type DBUserMessages = {
   _channelId: string;
   createdAt: string;
   updatedAt: string;
-  content: userMessages[]
+  content: UserMessages[]
 }
-type userMessages = {
-  _id?: string | number;
-  _threadId?: string | null
+type UserMessages = {
+  _id: string | number;
+  _roomID?: string | null
   from: string;
   to: string;
   room?: string;
@@ -40,30 +57,47 @@ type userMessages = {
   createdAt: string;
 };
 
-
-
-type DBUser = {
-  _id: number;
-  _uuid: string;
-  image: string;
-  userName: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  createdAt: string;
-  sessionID: string;
-};
-
-
 interface CreateUserForm {
   userName: string;
   firstName: string;
   lastName: string;
 }
+
+interface UserProfile {
+  displayName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  image?: string
+}
+
+interface TypingEvent {
+  from: string;
+  name: string;
+  isTyping: boolean;
+}
+
+interface UserSessionData {
+  _id: number;
+  _uuid: string;
+  _channelID: string;
+  userName: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  email: string;
+  sessionID: string;
+  image: string;
+  connected: boolean;
+  createdAt: string;
+}
+
 export type {
   User,
-  userMessages,
-  DBUser,
+  UserMessages,
   DBUserMessages,
-  CreateUserForm
+  CreateUserForm,
+  UserProfile,
+  TypingEvent,
+  UserSessionData
 };

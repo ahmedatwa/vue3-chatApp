@@ -3,66 +3,62 @@ import { onUnmounted, onBeforeMount, computed } from "vue";
 import { LoginComponent } from "@/components/Common";
 import { ChatComponent } from "@/components/Chat";
 import OverlayComponent from "@/components/OverlayComponent.vue";
-
-import { useSessionStore, useStorageStore } from "@/stores";
+import { useUserStore, useStorageStore } from "@/stores";
 import socket from "@/client";
 
-const sessionStore = useSessionStore();
-const storageStore = useStorageStore();
+const userStore = useUserStore()
+const storageStore = useStorageStore()
 
-const current = computed(() => {
-  if (sessionStore.isLoggedIn) {
+const current = computed(() => {  
+  if (userStore.isLoggedIn) {
     return ChatComponent
   }
   return LoginComponent
 })
 
 onBeforeMount(async () => {
-  const sessionId = storageStore.getSessionId();
-  if (sessionId) {
-    await sessionStore.getSession(sessionId);
+  if (storageStore.sessionID) {
+    await userStore.getSession(storageStore.sessionID);
   }
-  const settings = storageStore.appSettings;
-  if (!settings) {
-    storageStore.setAppSettings({ theme: "light", connectionNotif: true })
+
+  if (!storageStore.userStorageSettings) {
+    storageStore.setStorage("APPUSSTIG", { theme: "light", muteConnectionNotif: false, leftOff: true })
   }
 
 });
 
 onUnmounted(() => {
   socket.off("connect_error");
-  sessionStore.isLoggedIn = false;
+  userStore.isLoggedIn = false;
 });
 
 socket.on("connect_error", (err) => {
-  if (err.message === "invalid User ID") sessionStore.isLoggedIn = false;
+  if (err.message === "invalid User ID") userStore.isLoggedIn = false;
 });
 
 socket.on("error", (__err) => {
-  //sessionStore.sessionResponse. = err;
+  //userStore.sessionResponse. = err;
   socket.disconnect();
 });
 
 const exitApp = () => {
-  localStorage.clear()
-  location.reload()
+  storageStore.destroy()
 }
 
 const restore = () => {
-  const sessionId = storageStore.getSessionId();
-  if (sessionId) {
-    sessionStore.restoreSession(sessionId);
+  if (storageStore.sessionID) {
+    userStore.restoreSession(storageStore.sessionID);
   }
 }
 
 const isError = computed(() => {
-  return sessionStore.sessionError !== null ? true : false
+  return userStore.sessionError !== null ? true : false
 })
 </script>
 <template>
   <v-app>
-    <overlay-component v-model:isLoading="sessionStore.isLoading" @exit:app="exitApp" @restore:session="restore"
-      v-model:isError="isError" :error="sessionStore.sessionError"></overlay-component>
+    <overlay-component v-model:isLoading="userStore.isLoading" @exit:app="exitApp" @restore:session="restore"
+      v-model:isError="isError" :error="userStore.sessionError"></overlay-component>
     <component :is="current"></component>
   </v-app>
 </template>

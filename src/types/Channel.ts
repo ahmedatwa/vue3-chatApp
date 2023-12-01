@@ -1,10 +1,12 @@
 type ChannelMembers = {
   _uuid: string;
-  name: string;
+  displayName: string;
+  email: string;
+  createdAt?: string; 
 };
 
 type ChannelSettings = {
-  channelNotifications: string;
+  muteNotifications: string;
 };
 interface Channels {
   _id: number;
@@ -16,8 +18,8 @@ interface Channels {
   messagesDistributed?: boolean;
   membersDistributed?: boolean;
   messages: ChannelMessages[];
-  messagesTotal?: number;
-  members: ChannelMembers[];
+  pagination?: Pagination | null;
+  members?: ChannelMembers[];
   newMessages?: NewChannelUnreadMessages | null;
   settings?: ChannelSettings;
   createdBy: string;
@@ -26,7 +28,7 @@ interface Channels {
 
 interface ChannelMessages {
   _id: number;
-  _channelID: string | number;
+  _channelID: string;
   from: string;
   fromName: string;
   content: string;
@@ -38,25 +40,22 @@ interface ChannelMessages {
   isEdit?: boolean;
   editContent?: string;
   isReply?: boolean;
-  thread?: MessageThread[];
+  isSeen?: boolean;
+  isDelivered?: boolean;
+  thread: MessageThread[];
 }
 
 type MessageThread = {
   _id: number;
   _messageID: number;
+  _channelID: string;
   from: string;
   fromName: string;
   to: string;
   toName: string;
-  filess: File[];
-  createdAt: string;
-};
-type ChannelMessageReply = {
   content: string;
-  files?: FileList | null;
-  relatedId?: string | number;
-  relatedContent?: string;
-  editContent?: string;
+  files?: File[];
+  createdAt?: string;
 };
 
 type UploadedFiles = {
@@ -69,6 +68,7 @@ type UploadedFiles = {
   _uuid: string;
   _channelID: string;
 };
+
 type NewChannelUnreadMessages = {
   total: number;
   from: string;
@@ -87,24 +87,36 @@ interface SendChannelMessagePayload {
   files?: FileList;
 }
 
-interface SendMessageThreadPayload {
+interface SendThreadPayload {
   _messageID: number;
-  _channelID: string | number;
+  _channelID: string;
   to: string;
   toName: string;
   content: string;
   files?: File[];
 }
 
+interface Pagination {
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+interface Typing {
+  from: string;
+  name: string;
+  isTyping: boolean;
+}
+
 export type {
   ChannelMessages,
   Channels,
   ChannelForm,
-  UploadedFiles,
   SendChannelMessagePayload,
-  ChannelMessageReply,
   ChannelMembers,
   ChannelSettings,
   MessageThread,
-  SendMessageThreadPayload
+  SendThreadPayload,
+  Pagination,
+  Typing,
 };

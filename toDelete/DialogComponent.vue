@@ -1,8 +1,4 @@
 <script setup lang="ts">
-import { ref } from "vue";
-//import type { Alert } from "@/types"
-
-const dialog = ref(false);
 
 interface Props {
     titleText: string;
@@ -12,6 +8,7 @@ interface Props {
     persistent?: boolean;
     scrollable?: boolean
     transition?: string | boolean;
+    modelValue: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
@@ -20,19 +17,25 @@ withDefaults(defineProps<Props>(), {
     titleColor: "success",
     persistent: false,
     scrollable: false,
-    transition: "dialog-bottom-transition"
-
+    transition: "dialog-bottom-transition",
 })
+
+
+
+defineEmits<{
+    "update:modelValue": [value: boolean]
+}>()
 </script>
 <template>
-    <v-dialog v-model="dialog" activator="parent" width="auto" :height="height" :transition="transition" scrollable
-        persistent>
+    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" width="auto"
+        :height="height" :transition="transition" :scrollable="scrollable" :persistent="persistent">
         <v-card>
             <v-card-title>
-                <v-icon @click="dialog = false" :icon="titleIcon"></v-icon>
-                {{ titleText }}
-                <v-icon class="float-right" icon="mdi-close-circle-outline" @click="dialog = false" color="error"></v-icon>
+                <v-icon :icon="titleIcon"></v-icon>{{ titleText }}
+                <v-icon class="float-right" icon="mdi-close-circle-outline" @click="$emit('update:modelValue', false)"
+                    color="error"></v-icon>
             </v-card-title>
+            <v-divider :thickness="3" color="success"></v-divider>
             <v-card-text class="ma-auto">
                 <slot name="main"></slot>
             </v-card-text>
