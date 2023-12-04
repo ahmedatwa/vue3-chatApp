@@ -22,11 +22,13 @@ export const _channelEmits = {
   newMessage: "new_channel_message",
   newThreadMessage: "new_channel_thread_message",
   create: "create_channel",
-  addMembers: "add_members_to_channel",
+  
   editMessage: "edit_channel_message",
   deleteMessage: "delete_channel_message",
   typing: "channel_typing",
   threadTyping: "channel_thread_typing",
+  updateMembers: "update_members_channel",
+  removedMembers: "remove_members_channel",
 }
 
 export const _channelListener = {
@@ -36,9 +38,10 @@ export const _channelListener = {
   deleteMessage: "client_delete_channel_message",
   createChannel: "client_create_channel",
   joinChannel: "client_join_channel",
-  addMembers: "client_add_members_to_channel",
   typing: "client_channel_typing",
   threadTyping: "client_channel_thread_typing",
+  updateMembers: "client_update_members_channel",
+  removedMembers: "client_remove_members_channel",
 }
 
 // Direct Messages

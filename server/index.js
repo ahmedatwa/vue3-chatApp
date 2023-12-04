@@ -74,8 +74,8 @@ io.on("connection", (socket) => {
   // notify existing users
   socket.broadcast.emit("user_connected", sessionData);
   // forward the private message to the right recipient (and to other tabs of the sender)
-  socket.on("user_new_message", ({ content, file, to, createdAt, count }) => {
-    socket.to(to).to(socket._uuid).emit("client_user_new_message", {
+  socket.on("new_direct_message", ({ content, file, to, createdAt, count }) => {
+    socket.to(to).to(socket._uuid).emit("client_new_direct_message", {
       content,
       file,
       from: socket._uuid,
@@ -86,7 +86,7 @@ io.on("connection", (socket) => {
   });
 
   // notify user typing event
-  socket.on("user_typing", ({ to, input }) => {
+  socket.on("user_typing", ({ to, input, displayName }) => {
     socket
       .to(to)
       .to(socket._uuid)
@@ -94,7 +94,8 @@ io.on("connection", (socket) => {
       .emit("client_user_typing", {
         input: input,
         from: socket._uuid,
-        userName: socket.userName,
+        to,
+        displayName: displayName,
       });
   });
 
@@ -111,7 +112,37 @@ io.on("connection", (socket) => {
   });
 
   // channels
+  // checked
+  socket.on("update_members_channel", (payload) => {
+    socket.join(payload._channelID);
+    payload.members.forEach((member) => {
+      socket.to(member._uuid).to(socket._uuid).emit("client_update_members_channel", {
+        _channelID: payload._channelID,
+        _id: payload._id,
+        channelName: payload.channelName,
+        from: payload.from,
+        fromName: payload.fromName,
+        channelName: payload.channelName,
+        to: member._uuid,
+        displayName: member.displayName,
+        email: member.email,
+        createdAt: payload.createdAt
+      })
+    })
+  });
 
+socket.on("remove_members_channel", (payload) => {
+  console.log(payload)
+    payload.removed.forEach((member) => {
+      socket.to(member._uuid).to(socket._uuid).emit("client_remove_members_channel", {
+        _uuid: member._uuid,
+        _channelID: payload._channelID
+      })
+    })
+  });
+
+
+// end
   // Auto Join Channels on connect
     socket.on("channels", ( channels ) => {
      channels.forEach((channel) => {
@@ -119,34 +150,26 @@ io.on("connection", (socket) => {
      })
   });
 
-  socket.on("create_channel", ({ _roomId, name, createdBy }) => {
-    socket.join(_roomId);
-    socket.broadcast.to(_roomId).emit("client_create_channel", {
-      _roomId: _roomId,
+  socket.on("create_channel", ({ _channelID, name, createdBy }) => {
+    socket.join(_channelID);
+    socket.broadcast.to(_channelID).emit("client_create_channel", {
+      _channelID: _channelID,
       room: socket.room,
       name: name,
       createdBy: createdBy,
     });
   });
 
-  socket.on("join_channel", ({ _roomId, room, createdBy }) => {
-    socket.join(_roomId);
-    socket.broadcast.to(_roomId).emit("client_join_channel", {
+  socket.on("join_channel", ({ _channelID, room, createdBy }) => {
+    socket.join(_channelID);
+    socket.broadcast.to(_channelID).emit("client_join_channel", {
       userName: socket.userName,
       channelName: room,
       createdBy: createdBy,
     });
   });
 
-  socket.on("add_members_to_channel", ({ _channelID, _uuid, channelName, createdBy, name }) => {
-    socket.join(_channelID);
-    socket.to(_uuid).to(_uuid).emit("client_add_members_to_channel", {
-      channelName: channelName,
-      from: socket.userName,
-      to: _uuid
-    })
-    
-  });
+
 
   socket.on("new_channel_message", ({ _id, _channelID, from, fromName, content, createdAt}) => {
     socket.broadcast.to(_channelID).emit("client_new_channel_message", { 

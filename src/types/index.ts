@@ -1,8 +1,4 @@
-interface TypingEvent {
-  from: string;
-  name: string;
-  isTyping: boolean;
-}
+
 
 interface Snackbar {
   title?: string;
@@ -25,12 +21,7 @@ interface UploadSettings {
   multiple: boolean;
 }
 
-interface UserAppSettings {
-  theme: string;
-  leftOff: boolean;
-  muteConnectionNotif: boolean;
-  date?: string;
-}
+
 
 type UploadedFiles = {
   _id: number | string;
@@ -44,10 +35,8 @@ type UploadedFiles = {
 };
 
 export type {
-  TypingEvent,
   Snackbar,
   Alert,
   UploadSettings,
-  UserAppSettings,
   UploadedFiles,
 };

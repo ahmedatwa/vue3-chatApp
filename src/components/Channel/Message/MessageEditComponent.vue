@@ -40,7 +40,7 @@ const onEditEmoji = (emoji: any) => {
     <div>
     <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)"
         :id="`edit-message${message._id}`" transition="dialog-bottom-transition">
-        <v-card class="mx-auto" width="400" height="300">
+        <v-card class="mx-auto" width="440" height="auto">
             <v-card-title>
                 <v-icon icon="mdi-circle-edit-outline"></v-icon> {{ $lang('text.editMessage') }}
                 <v-icon class="float-right" icon="mdi-close-circle-outline" @click="$emit('update:modelValue', false)"

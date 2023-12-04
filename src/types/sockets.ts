@@ -19,18 +19,28 @@ interface NewThreadMessage {
   createdAt: string;
 }
 
-interface Typing {
-  _channelID: string;
-  from: string;
-  input: string;
-  displayName: string;
-}
 
-interface AddMembers {
+
+type AddMembers = {
+  _id: number;
+  _channelID: string;
   channelName: string;
   from: string;
+  email: string,
+  fromName: string;
   to: string;
-}
+  toName: string;
+  createdAt: string;
+};
+
+// interface AddMembers {
+//   channelName: string;
+//   createdAt: string;
+//   displayName: string;
+//   email: string;
+//   from: string;
+//   to: string
+// }
 
 interface NewChannel {
   _channelID: string;
@@ -46,7 +56,6 @@ interface JoinChannel {
 export type {
   ChannelMessage,
   NewThreadMessage,
-  Typing,
   AddMembers,
   NewChannel,
   JoinChannel,

@@ -1,21 +1,26 @@
 import { defineStore } from "pinia";
 import { ref, computed, inject, reactive, shallowRef, watch } from "vue";
 import { instance, channelApi } from "@/axios";
-import { useUserStore } from "@/stores";
+import { useSessionStore } from "@/stores";
 import { nanoid } from "nanoid";
 import { esc, remove, createDateTime, capitalize } from "@/helpers";
 // types
-import type { Snackbar, TypingEvent, UploadedFiles } from "@/types";
+import type { Snackbar, UploadedFiles } from "@/types";
 import type { Channels, ChannelForm, SendThreadPayload } from "@/types/Channel";
-import type { ChannelMembers, ChannelSettings, ChannelMessages } from "@/types/Channel";
+import type {
+  ChannelMembers,
+  ChannelSettings,
+  ChannelMessages,
+  ChannelTyping,
+} from "@/types/Channel";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
 import type { NewThreadMessage, AddMembers } from "@/types/sockets";
-import type { NewChannel, JoinChannel, Typing } from "@/types/sockets";
+import type { NewChannel, JoinChannel } from "@/types/sockets";
 import { langKey } from "@/types/Symbols";
 
 export const useChannelStore = defineStore("channelStore", () => {
-  const userStore = useUserStore();
+  const sessionStore = useSessionStore();
   const $lang = inject(langKey);
 
   const isLoading = reactive({
@@ -27,7 +32,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const isMessageDelete = shallowRef(false);
   const channels = ref<Channels[]>([]);
   const uploadedFiles = ref<UploadedFiles[]>([]);
-  const typing = ref<Record<"channel" | "thread", TypingEvent | null>>({
+  const typing = ref<Record<"channel" | "thread", ChannelTyping | null>>({
     channel: null,
     thread: null,
   });
@@ -66,8 +71,8 @@ export const useChannelStore = defineStore("channelStore", () => {
     await instance
       .post(channelApi.__addChannelMessage, {
         _channelID: selectedChannel.value?._channelID,
-        from: userStore.userSessionData?._uuid,
-        fromName: userStore.userSessionData?.displayName,
+        from: sessionStore.userSessionData?._uuid,
+        fromName: sessionStore.userSessionData?.displayName,
         content: esc(message.content),
         files: uploadedFiles.value,
         createdAt: createDateTime(),
@@ -107,8 +112,8 @@ export const useChannelStore = defineStore("channelStore", () => {
     }
     await instance
       .post(channelApi.__addChannelMessageThread, {
-        from: userStore.userSessionData?._uuid,
-        fromName: userStore.userSessionData?.displayName,
+        from: sessionStore.userSessionData?._uuid,
+        fromName: sessionStore.userSessionData?.displayName,
         to: payload.to,
         toName: payload.toName,
         _channelID: payload._channelID,
@@ -234,11 +239,11 @@ export const useChannelStore = defineStore("channelStore", () => {
       .post(channelApi.__addChannel, {
         _channelID: nanoid(15),
         ...channel,
-        displayName: userStore.userSessionData?.displayName,
-        createdBy: userStore.userSessionData?._uuid,
+        displayName: sessionStore.userSessionData?.displayName,
+        createdBy: sessionStore.userSessionData?._uuid,
         createdAt: createDateTime(),
         settings: {
-          muteNotifications: "all",
+          muteNotifications: "none",
         },
       })
       .then((response) => {
@@ -290,10 +295,10 @@ export const useChannelStore = defineStore("channelStore", () => {
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
-            if (selectedChannel.value) {
-              selectedChannel.value.membersDistributed = true;
-              selectedChannel.value?.members?.push(...response.data);
-            }
+          if (selectedChannel.value) {
+            selectedChannel.value.membersDistributed = true;
+            selectedChannel.value?.members?.push(...response.data);
+          }
         }
       })
       .catch((error) => {
@@ -307,60 +312,73 @@ export const useChannelStore = defineStore("channelStore", () => {
         isLoading.messages = false;
       });
   };
-  const addChannelMembers = async (member: ChannelMembers) => {
+
+  const getChannels = async (uuid: string) => {
+    isLoading.channels = true;
+    try {
+      return await instance.get(channelApi.__getChannels, {
+        params: {
+          _uuid: uuid,
+        },
+      });
+    } catch (error: any) {
+      newAlert.value = {
+        code: error.code,
+        text: error.message,
+        type: "error",
+      };
+    } finally {
+      isLoading.channels = false;
+    }
+  };
+
+  const updateChannelMembers = async (payload: {
+    add: ChannelMembers[];
+    remove: ChannelMembers[];
+  }) => {
     isLoading.channels = true;
     await instance
-      .post(channelApi.__addChannelMembers, {
+      .post(channelApi.__updateChannelMembers, {
         _channelID: selectedChannel.value?._channelID,
         channelName: selectedChannel.value?.channelName,
-        ...member,
-        createdBy: userStore.userSessionData?._uuid,
+        members: [...payload.add],
         createdAt: createDateTime(),
         settings: {
-          channelNotifications: "all",
+          muteNotifications: "none",
         },
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
-          socket.emit(_channelEmits.addMembers, {
-            _channelID: response.data._channelID,
-            _uuid: response.data._uuid,
-            channelName: response.data.channelName,
-            createdBy: response.data.createdBy,
-            name: response.data.name,
-          });
-          newAlert.value = {
-            title: $lang?.getLine("channel.success.updated"),
-            text: "",
-            type: "success",
-          };
-        }
-      })
-      .catch((error) => {
-        newAlert.value = {
-          title: error.code,
-          text: error.message,
-          type: "error",
-        };
-      })
-      .finally(() => {
-        isLoading.channels = false;
-      });
-  };
+          let fromName = "";
+          for (let i = 0; i < payload.add.length; i++) {
+            if (payload.add[i]._uuid === selectedChannel.value?.createdBy) {
+              fromName = payload.add[i].displayName;
+            }
+            break;
+          }
 
-  const removeChannelMembers = async (_uuid: string) => {
-    isLoading.channels = true;
-    await instance
-      .post(channelApi.__removeChannelMembers, {
-        _uuid: _uuid,
-      })
-      .then((response) => {
-        if (response.statusText === "OK" && response.status === 200) {
-          newAlert.value = {
-            title: $lang?.getLine("channel.success.updated"),
-            text: "",
-            type: "success",
-          };
+          if (fromName) {
+            socket.emit(_channelEmits.updateMembers, {
+              ...response.data,
+              fromName: fromName,
+              from: selectedChannel.value?.createdBy,
+              _id: selectedChannel.value?._id,
+              channelName: selectedChannel.value?.channelName,
+            });
+            newAlert.value = {
+              title: $lang?.getLine("channel.success.updated"),
+              text: "",
+              type: "success",
+            };
+          }
+
+          // Removed Sockets
+          if (payload.remove) {
+            socket.emit(_channelEmits.removedMembers, {
+              removed: payload.remove,
+              _channelID: selectedChannel.value?._channelID,
+            });
+          }
         }
       })
       .catch((error) => {
@@ -436,22 +454,26 @@ export const useChannelStore = defineStore("channelStore", () => {
     }
   };
 
-  const archiveChannel = async (_channelID: string) => {
+  const archiveChannel = async (payload: {
+    _channelID: string;
+    name: string;
+  }) => {
     isLoading.channels = true;
     await instance
       .post(channelApi.__archiveChannel, {
-        _channelID: _channelID,
-        _uuid: userStore.userSessionData?._uuid,
+        _channelID: payload._channelID,
+        _uuid: sessionStore.userSessionData?._uuid,
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
-          if (channels.value)
-            remove(channels.value, ["_channelID", _channelID]);
-          newAlert.value = {
-            title: $lang?.getLine("channel.success.updated"),
-            text: "",
-            type: "success",
-          };
+          if (channels.value) {
+            remove(channels.value, ["_channelID", payload._channelID]);
+            newAlert.value = {
+              title: $lang?.getLine("channel.success.archived", [payload.name]),
+              text: "",
+              type: "success",
+            };
+          }
         }
       })
       .catch((error) => {
@@ -495,20 +517,29 @@ export const useChannelStore = defineStore("channelStore", () => {
   };
 
   // Leave Channel
-  const leaveChannel = async (_channelID: string) => {
+  const leaveChannel = async (payload: {
+    _channelID: string;
+    name: string;
+  }) => {
     isLoading.channels = true;
     await instance
-      .post("/leavechannel", {
-        _channelID: selectedChannel.value?._channelID,
-        _uuid: userStore.userSessionData?._uuid,
+      .post(channelApi.__leaveChannel, {
+        _channelID: payload._channelID,
+        _uuid: sessionStore.userSessionData?._uuid,
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
-          newAlert.value = {
-            title: $lang?.getLine("channel.success.updated"),
-            text: "",
-            type: "success",
-          };
+          const index = channels.value.findIndex(
+            (channel) => channel._channelID === payload._channelID
+          );
+          if (index) {
+            channels.value.splice(index, 1);
+            newAlert.value = {
+              title: $lang?.getLine("channel.success.updated"),
+              text: "",
+              type: "success",
+            };
+          }
         }
       })
       .catch((error) => {
@@ -529,7 +560,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     let formData = new FormData();
     files.forEach((file) => formData.append("files[]", file));
     formData.append("_channelID", selectedChannel.value?._channelID as string);
-    formData.append("_uuid", userStore.userSessionData?._uuid as string);
+    formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
     await instance
       .post(channelApi.__channelUpload, formData)
       .then((response) => {
@@ -598,6 +629,7 @@ export const useChannelStore = defineStore("channelStore", () => {
       newMessages: null,
       messagesDistributed: false,
       messages: [],
+      members: [],
       pagination: {
         limit: paginationLimit.value,
         total: channel.pagination?.total || 0,
@@ -642,12 +674,12 @@ export const useChannelStore = defineStore("channelStore", () => {
   socket.on(_channelListener.newMessage, (message: ChannelMessages) => {
     //reset typing
     typing.value.channel = null;
-    const _channel = channels.value.find(
-      (chann) => chann._channelID === message._channelID
+    const found = channels.value.find(
+      (c) => c._channelID === message._channelID
     );
 
-    if (_channel) {
-      _channel.messages.push({
+    if (found) {
+      found.messages.push({
         _id: message._id,
         _channelID: message._channelID,
         from: message.from,
@@ -657,15 +689,15 @@ export const useChannelStore = defineStore("channelStore", () => {
         thread: [],
       });
       // Check for user settings
-      if (_channel.settings?.muteNotifications === "all") {
-        _channel.newMessages = {
-          total: UnreadMessagesTotal.count + 1,
+      if (found.settings?.muteNotifications === "none") {
+        found.newMessages = {
+          total: UnreadMessagesTotal.count++,
           lastMessage: message.content,
           from: message.fromName,
         };
 
         newAlert.value = {
-          title: _channel.channelName,
+          title: found.channelName,
           text: message.fromName + ": " + message.content,
           type: "success",
         };
@@ -690,7 +722,7 @@ export const useChannelStore = defineStore("channelStore", () => {
       });
 
       // Check for user settings
-      if (_channel.settings?.muteNotifications === "all") {
+      if (_channel.settings?.muteNotifications === "none") {
         _channel.newMessages = {
           total: UnreadMessagesTotal.count + 1,
           lastMessage: event.content,
@@ -721,33 +753,65 @@ export const useChannelStore = defineStore("channelStore", () => {
       ]),
     };
   });
+
   // Adding Members to Channel Event
-  socket.on(_channelListener.addMembers, (event: AddMembers) => {
-    if (event.to === userStore.userSessionData?._uuid)
+  socket.on(_channelListener.updateMembers, (event: AddMembers) => {
+    if (event.to === sessionStore.userSessionData?._uuid) {
+      const found = channels.value.find(
+        (channel) => channel._channelID === event._channelID
+      );
+
+      if (!found) {
+        channels.value.push({
+          _id: event._id,
+          _channelID: event._channelID,
+          channelName: event.channelName,
+          channelTopic: "",
+          channelDescription: "",
+          messages: [],
+          createdBy: event.from,
+          createdAt: event.createdAt,
+          members: [
+            {
+              _uuid: event.to,
+              displayName: event.toName,
+              email: event.email,
+            },
+          ],
+        });
+      }
+
       newAlert.value = {
         type: "success",
-        text: $lang?.getLine("success.newChannelMember", [
-          capitalize(event.from),
-          capitalize(event.channelName),
+        text: $lang?.getLine("channel.success.newChannelMember", [
+          capitalize(event.fromName),
         ]),
       };
+    }
   });
 
+  // Removed Members
+  socket.on(
+    _channelListener.removedMembers,
+    (event: { _uuid: string; _channelID: string }) => {
+      remove(channels.value, ["_channelID", event._channelID]);
+    }
+  );
   // channel Typing
   const channelTyping = (input: string) => {
     socket.timeout(500).emit(_channelEmits.typing, {
       _channelID: selectedChannel.value?._channelID,
-      displayName: userStore.userSessionData?.displayName,
+      displayName: sessionStore.userSessionData?.displayName,
       input: input,
     });
   };
 
-  socket.on(_channelListener.typing, (event: Typing) => {
+  socket.on(_channelListener.typing, (event: ChannelTyping) => {
     if (event.input.length > 0) {
       typing.value.channel = {
         from: event.from,
-        name: event.displayName,
-        isTyping: true,
+        input: '',
+        displayName: event.displayName,
       };
     } else {
       typing.value.channel = null;
@@ -758,17 +822,17 @@ export const useChannelStore = defineStore("channelStore", () => {
   const channelTheadTyping = (input: string) => {
     socket.timeout(500).emit(_channelEmits.threadTyping, {
       _channelID: selectedChannel.value?._channelID,
-      displayName: userStore.userSessionData?.displayName,
-      input: input.length,
+      displayName: sessionStore.userSessionData?.displayName,
+      input: input,
     });
   };
 
-  socket.on(_channelListener.threadTyping, (event: Typing) => {
+  socket.on(_channelListener.threadTyping, (event: ChannelTyping) => {
     if (event.input.length > 0) {
       typing.value.thread = {
         from: event.from,
-        name: event.displayName,
-        isTyping: true,
+        displayName: event.displayName,
+        input: '',
       };
     } else {
       typing.value.thread = null;
@@ -797,14 +861,14 @@ export const useChannelStore = defineStore("channelStore", () => {
     filteredChannels,
     filterSearchInput,
     isMessageDelete,
+    getChannels,
     channelTheadTyping,
     updateChannelSettings,
-    removeChannelMembers,
     getChannelMessages,
     updateChannel,
     sendMessage,
     createChannel,
-    addChannelMembers,
+    updateChannelMembers,
     archiveChannel,
     channelTyping,
     onSelectChannel,

@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { computed, ref, watch, inject } from "vue";
 import { SettingComponent, ProfileComponent } from "@/components/User";
-
+import { SearchComponent } from "@/components/Common"
 // types
-import { UserSessionData } from "@/types/User";
-import { UserAppSettings } from "@/types";
+import { UserSessionData, UserAppSettings } from "@/types/User";
 import type { UserProfile } from "@/types/User"
 import { langKey } from "@/types/Symbols";
 
 const drawer = inject<boolean>("drawer")
 const isOffline = ref(false);
-const searchTerm = ref("");
 const lang = inject(langKey)
 const user = inject<UserSessionData>('user')
 const settingsDialog = ref(false)
 const profileDialog = ref(false)
+
+
 
 defineProps<{
   userSettings: UserAppSettings | null
@@ -46,6 +46,7 @@ const status = computed(() => {
   }
 });
 
+
 </script>
 <template>
   <v-container>
@@ -55,8 +56,7 @@ const status = computed(() => {
       </template>
       <v-row>
         <v-col cols="9" class="mx-auto">
-          <v-text-field label="Search..." prepend-inner-icon="mdi-magnify" :model-value="searchTerm"
-            @update:model-value="$emit('update:search', $event)" variant="underlined" class="mt-5"></v-text-field>
+          <search-component></search-component>
         </v-col>
       </v-row>
       <v-btn icon density="compact" class="me-2" color="primary">
@@ -77,7 +77,7 @@ const status = computed(() => {
         <template v-slot:activator="{ props }">
           <v-list-item v-bind:="props" value="avatar">
             <v-avatar v-if="user?.image !== ''" :image="user?.image"></v-avatar>
-            <v-avatar icon="mdi-account-circle" size="69" v-else> </v-avatar>
+            <v-avatar icon="mdi-account-circle" :color="user.connected ? 'success' : ''" v-else> </v-avatar>
             <v-icon icon="mdi-menu-down"></v-icon>
           </v-list-item>
         </template>
@@ -85,7 +85,7 @@ const status = computed(() => {
           <v-list-item class="text-center" key="user" value="user">
             <v-avatar>
               <v-img v-if="user?.image !== ''" :src="user?.image" :alt="user?.userName"></v-img>
-              <v-icon icon="mdi-account-circle" v-else> </v-icon>
+              <v-icon icon="mdi-account-circle" :color="user.connected ? 'success' : ''" v-else> </v-icon>
             </v-avatar>
             <v-badge dot inline :color="user?.connected ? 'success' : 'dark'">
               <p class="mr-1">{{ user?.displayName }}</p>

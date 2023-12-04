@@ -102,10 +102,11 @@ interface Pagination {
   offset: number;
 }
 
-interface Typing {
+interface ChannelTyping {
+  _channelID?: string;
   from: string;
-  name: string;
-  isTyping: boolean;
+  input: string;
+  displayName: string;
 }
 
 export type {
@@ -118,5 +119,5 @@ export type {
   MessageThread,
   SendThreadPayload,
   Pagination,
-  Typing,
+  ChannelTyping,
 };

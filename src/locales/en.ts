@@ -1,5 +1,5 @@
 export default {
-  directMessages: "Direct Messages",
+ 
   text: {
     userPreferences: "User Preferences",
     userProfile: "User Profile",
@@ -9,11 +9,11 @@ export default {
     confirm: "Are you sure you want to {0}? This can't be undone.",
     sendMessage: "Send A Message...",
     editMessage: "Edit Message",
-    messageThread: "Thread {0}",
+    messageThread: "Thread: {0}",
     lastThreadMessage: "Last Message sent {0}",
     userConnNotification: "Mute Connection Notifications",
     toggleDark: "Toggle Dark",
-    leftOff: "Save last state",
+    leftOff: "Continue where you left off",
     typing: "{0} is typing...",
     
   },
@@ -36,7 +36,7 @@ export default {
     error: "Error: ",
   },
   channel: {
-    channels: "Channels",
+    title: "Channels",
     createChannel: "Create Channel",
     addMembers: "Add Members",
     muteChannel: "Mute Notificationn for all Messages",
@@ -52,15 +52,17 @@ export default {
     join: "{0} has joined room {1}",
     success: {
       updated: "Success: You have modified channel!",
-      created: "Success: {0} has been created."
+      created: "Success: {0} has been created.",
+      archived: "Success: {0} channel has been archived.",
+      newChannelMember: "You have joined {0} Channel",
     },
     error: {
       send: "Error: Sending Message Failed.",
       memberExists: "Warning: Channel Member Exist!"
     },
   },
-  directMessage: {
-    
+  directMessages: {
+    title: "Direct Messages",
   },
   input: {
     channelName: "Channel Name",
@@ -81,7 +83,6 @@ export default {
     
   },
   success: {
-    newChannelMember: "{0} has invited you to {1} Channel",
     
   },
   rules: {

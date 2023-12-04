@@ -1,12 +1,13 @@
 import { defineStore } from "pinia";
-import { ref, computed, shallowRef, watchEffect, inject } from "vue";
-import { useUserStore, useStorageStore } from "@/stores";
+import { ref, computed, shallowRef} from "vue";
+import { inject, reactive} from "vue";
+import { useSessionStore, useStorageStore } from "@/stores";
 import { instance, directMessageApi } from "@/axios";
 import { capitalize, createDateTime, esc } from "@/helpers";
 
 // types
 import { Snackbar, UploadedFiles } from "@/types";
-import type { User, TypingEvent } from "@/types/User";
+import type { User, UserTyping } from "@/types/User";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
 
@@ -16,20 +17,26 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   const selectedUser = shallowRef<User | null>(null);
   const filterSearchInput = ref("");
   const newAlert = ref<Snackbar | null>(null);
-  const typing = ref<TypingEvent | null>(null);
+
+  const typing = ref<Record<"messages" | "thread", UserTyping | null>>({
+    messages: null,
+    thread: null,
+  });
+  
   const uploadedFiles = ref<UploadedFiles[]>([]);
 
-  const messagesPerUser = new Map();
-
-  const isLoading = shallowRef<{ users: boolean; messages: boolean }>({
-    users: false,
+  const isLoading = reactive({
+    thread: false,
     messages: false,
+    users: false,
   });
 
-  const UnreadMessagesTotal = shallowRef(1);
+  const messagesPerUser = ref(new Map());
+  const otherUsers = ref<string[]>([]);
+
 
   // Stores
-  const userStore = useUserStore();
+  const sessionStore = useSessionStore();
   const storageStore = useStorageStore();
 
   // Filter Users
@@ -52,26 +59,26 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     content: string;
     files?: File[] | null;
   }) => {
-    isLoading.value.messages = true;
+    isLoading.messages = true;
     // save Files
     if (message.files?.length) {
       await uploadFiles(message.files);
     }
     // save sent Message
     await instance
-      .post(directMessageApi.__addMessage, {
-        _channelID: selectedUser.value?._channelID,
+      .post(directMessageApi.__sendMessage, {
         content: esc(message.content),
         editContent: "",
-        createdAt: createDateTime(),
-        from: userStore.userSessionData?._uuid,
-        fromName: userStore.userSessionData?.displayName,
+        from: sessionStore.userSessionData?._uuid,
+        fromName: sessionStore.userSessionData?.displayName,
         to: selectedUser.value?._uuid,
         toName: selectedUser.value?.displayName,
         files: uploadedFiles.value,
+        createdAt: createDateTime(),
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
+          if(selectedUser.value?.messages)
           selectedUser.value?.messages.push({
             ...response.data,
             thread: [],
@@ -84,7 +91,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       })
       .catch((error) => {
         newAlert.value = {
-          title: $lang?.getLine("error.sendMessage"),
+          title: $lang?.getLine("channel.error.send"),
           text: error.code + " " + error.message,
           type: "error",
           timeout: -1,
@@ -92,17 +99,30 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         };
       })
       .finally(() => {
-        isLoading.value.messages = false;
+        isLoading.messages = false;
       });
   };
 
   const getMessages = async (_uuid: string) => {
-    //isLoading.value.messages = true;
-    return instance.get(directMessageApi.__getMessages, {
-      params: {
-        _uuid: _uuid,
-      },
-    });
+    isLoading.users = true;
+    try {
+      return instance.get(directMessageApi.__getUserDirectMessages, {
+        params: {
+          _uuid,
+        },
+      });
+    } catch (error: any) {
+      newAlert.value = {
+        title: $lang?.getLine("channel.error.send"),
+        text: error.code + " " + error.message,
+        type: "error",
+        timeout: -1,
+        location: "",
+      };
+    }finally {
+      isLoading.users = false;
+    }
+    
   };
   // .then((response) => {
   //   if (response.data) {
@@ -117,7 +137,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   // response?.data.forEach((message: DBUserMessages) => {
   //   // message.content.forEach((content: UserMessages) => {
   //   //   const otherUser =
-  //   //     userStore.userSessionData?._uuid === content.from
+  //   //     sessionStore.userSessionData?._uuid === content.from
   //   //       ? content.to
   //   //       : content.from;
   //   //   if (messagesPerUser.has(otherUser)) {
@@ -144,11 +164,10 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
   const uploadFiles = async (files: File[]) => {
     uploadedFiles.value = [];
-    isLoading.value.messages = true;
+    isLoading.messages = true;
     let formData = new FormData();
     files.forEach((file) => formData.append("files[]", file));
-    //formData.append("_roomID", selectedUser.value?._roomID as string);
-    formData.append("_uuid", userStore.userSessionData?._uuid as string);
+    formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
     await instance
       .post(directMessageApi.__upload, formData)
       .then((response) => {
@@ -164,43 +183,56 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         };
       })
       .finally(() => {
-        isLoading.value.messages = false;
+        isLoading.messages = false;
       });
   };
 
   // User Selected
   const onSelectUser = async (user: User) => {
-    // const _roomID = await instance.get("/getUserMessagesRoom", { params: { _uuid: user._uuid}})
-
-    //console.log(_roomID);
-
     selectedUser.value = {
       ...user,
       selected: true,
       newMessages: null,
-      //messages: [...user.messages] || [],
+      messages: messagesPerUser.value.get(user._uuid) || []
     };
   };
 
-  // watchEffect(async () => {
-  //   if (selectedUser.value?.messagesDistributed === false && userStore.userSessionData) {
-  //     await getMessages(userStore.userSessionData?._uuid, selectedUser.value._uuid);
-  //   }
-  // });
+  //swatch(
+    // () => selectedUser.value?.messagesDistributed,
+    // async (messagesDistributed) => {
+    //   if (selectedChannel.value && !messagesDistributed) {
+    //     await getTotalChannelMessages(selectedChannel.value._channelID);
+
+    //     if (messagesTotal.value) {
+    //       const offset = Math.ceil(messagesTotal.value - paginationLimit.value);
+    //       await getChannelMessages(
+    //         selectedChannel.value?._channelID,
+    //         paginationLimit.value,
+    //         offset,
+    //         false
+    //       );
+    //     }
+    //   }
+    // }
+  //);
+
+
   // Sockets
-  const onTyping = (input: string) => {
+  const userTyping = (input: string) => {
     socket.timeout(500).emit("user_typing", {
-      input: input.length,
+      input: input,
       to: selectedUser.value?._uuid,
+      displayName: selectedUser.value?.displayName
     });
   };
 
-  socket.on(_directMessageListener.typing, ({ input, from, username }) => {
-    if (input > 1) {
-      typing.value = {
-        from: from,
-        name: username,
-        isTyping: true,
+  socket.on(_directMessageListener.typing, (event: UserTyping) => {
+    if (event.input.length > 0) {
+      typing.value.messages = {
+        from: event.from,
+        displayName: event.displayName,
+        input: '',
+        isTyping: true
       };
     }
   });
@@ -208,11 +240,11 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   // new Message
   socket.on(_directMessageListener.newMessage, (newMessage) => {
     //reset typing
-    typing.value = null;
+    typing.value.messages = null;
     const fromSelf = (socket as any)._uuid === newMessage.from;
     users.value.forEach((user) => {
       if (user._uuid === (fromSelf ? newMessage.to : newMessage.from)) {
-        user.messages.push({
+        user.messages?.push({
           _id: newMessage._id,
           from: newMessage.from,
           to: newMessage.to,
@@ -225,7 +257,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
         if (user._uuid === newMessage.from) {
           user.newMessages = {
-            total: UnreadMessagesTotal.value++,
+            //total: UnreadMessagesTotal.value++,
             lastMessage: newMessage.content,
           };
           newAlert.value = {
@@ -240,37 +272,36 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   });
 
   socket.on("user_connected", (user) => {
-    // users.value.forEach((u) => {
-    //   if (u._uuid === user._uuid) {
-    //     u.connected = true;
-    if (selectedUser.value?.settings?.muteNotification) {
-      newAlert.value = {
-        title: user.displayName,
-        text: "is online.",
-        type: "success",
-      };
-    }
-    //     return;
-    //   }
-    // });
+    users.value.forEach((u) => {
+      if (u._uuid === user._uuid) {
+        u.connected = true;
+    // if (selectedUser.value?.settings?.muteNotification) {
+    //   newAlert.value = {
+    //     title: user.displayName,
+    //     text: "is online.",
+    //     type: "success",
+    //   };
+    // }
+        return;
+      }
+    });
 
     const newUser = users.value.find((u) => u._uuid === user._uuid);
-
-    if (!newUser) {
+    console.log(newUser);
+    
+    if (newUser !== undefined) {
       users.value.push({
         _id: user._id,
         _uuid: user._uuid,
-        _channelID: user._channelID,
-        sessionID: user.sessionID,
         userName: user.userName,
         firstName: capitalize(user.firstName),
         lastName: capitalize(user.lastName),
         displayName: capitalize(user.firstName + " " + user.lastName),
         image: user.image,
         email: user.email,
-        self: user.socketId === userStore.userSessionData?._uuid,
+        self: user.socketId === sessionStore.userSessionData?._uuid,
         connected: true,
-        messages: messagesPerUser.get(user._uuid) || [],
+        messages: messagesPerUser.value.get(user._uuid) || [],
         settings: null,
         createdAt: user.createdAt,
       });
@@ -311,47 +342,8 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     });
   });
 
-  // Start
-  const channelMembers = ref<string[]>([]);
-
-  const getUserChannelMembers = async (_channelID: string) => {
-    await instance
-      .get("/getUserChannelMembers", {
-        params: { _channelID },
-      })
-      .then((response) => {
-        if (response.data) {
-          channelMembers.value = response.data;
-        }
-      })
-      .catch((error) => {
-        console.log(error);
-      })
-      .finally(() => {
-        //loading false
-      });
-  };
-
-  const getUserMember = (_uuid: string) => {
-    instance.get("/getUser", {
-      params: {
-        _uuid
-      }
-    }).then((response) => {
-
-    }).catch((error) => {
-      console.log(error)
-    }).finally(() => {
-      //loading
-    })
-  }
 
   return {
-    // Start
-    channelMembers,
-    getUserChannelMembers,
-    getUserMember,
-    // 
     users,
     selectedUser,
     filterSearchInput,
@@ -359,8 +351,10 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     typing,
     isLoading,
     filteredUsers,
+    messagesPerUser,
+    otherUsers,
     sendMessage,
-    onTyping,
+    userTyping,
     getMessages,
     onSelectUser,
   };

@@ -2,20 +2,23 @@ import axios from "axios";
 
 // sessions
 export const sessionApi = {
-  __getSessions: "/getallsessions",
-  __getChannels: "/getChannels",
-  __getDirectMessagesChannels: "getDirectMessagesChannels",
-  __getSession: "/getsession",
-  __addSession: "/addsession",
-  __updateSession: "/updatesession",
-  __restoreSession: "/restoresession",
-  // 
-  __AllUsers: "/all",
-  __createUser: "/create",
+  // checked 
+  __getSession: "/getSession",
+  __updateSession: "/updateSession",
+  __restoreSession: "/restoreSession",
+  __addSession: "/addSession",
 };
 
+// User 
+export const userApi = {
+  __getAllUsers: "/getAllUsers",
+  __getAllChannels: "/getAllChannels",
+  __createUser: "/createUser",
+  __getUser: "/getUser"
+}
 // Channels
 export const channelApi = {
+  __getChannels: "/getChannels",
   __getChannelMessages: "/getChannelMessages",
   __getTotalChannelMessages: "/getTotalChannelMessages",
   __addChannel: "/addChannel",
@@ -24,8 +27,7 @@ export const channelApi = {
   __updateChannelMessage: "/updateChannelMessage",
   __deleteChannelMessage: "/deleteChannelMessage",
   __archiveChannel: "/archiveChannel",
-  __addChannelMembers: "/addChannelMembers",
-  __removeChannelMembers: "/removeChannelMembers",
+  __updateChannelMembers: "/updateChannelMembers",
   __getChannelMembers: "/getChannelMembers",
   __updateChannel: "/updateChannel",
   __addChannelSettings: "/addChannelSettings",
@@ -35,15 +37,14 @@ export const channelApi = {
 
 // User Messages
 export const directMessageApi = {
-  __addMessage: "/addDirectMessage",
-  __getMessages: "/getDirectMessages",
+  __sendMessage: "/addDirectMessage",
+  __getUserDirectMessages: "/getUserDirectMessages",
   __upload: "/upload",
 };
 
 
 export const instance = axios.create({
   baseURL: import.meta.env.VITE_API_URL + "/api/chat",
-  //timeout: 500,
   headers: {
     "Content-Type": "application/x-www-form-urlencoded",
   },
@@ -71,16 +72,3 @@ instance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-
-// artificial delay
-// const timeout = (): Promise<void> => {
-//   return new Promise((resolve, reject) => {
-//     setTimeout(() => {
-//       if (Math.random() > 0.3) {
-//         resolve();
-//       } else {
-//         reject(new Error("Random Error"));
-//       }
-//     }, 500);
-//   });
-// };

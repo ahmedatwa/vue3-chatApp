@@ -1,112 +1,92 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, inject, watch } from "vue";
+import { ref, watch } from "vue";
+import { ChannelMessages, SendThreadPayload, Typing } from "@/types/Channel";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
-import type { ChannelMessages, SendThreadPayload } from "@/types/Channel";
-import type { UserSessionData } from "@/types/User";
-import type { TypingEvent } from "@/types";
 
-const user = inject<UserSessionData>("user");
-
-const messageContent = ref("");
-const uploadedFiles = ref<File[]>([]);
-const scrollElement = ref<HTMLDivElement | null>(null)
-
-// Props
 const props = defineProps<{
-    currentMessage: ChannelMessages;
-    threadTyping: TypingEvent | null;
-    modelValue: boolean;
-    threadDrawer?: boolean;
-    isLoading?: boolean;
+  message: ChannelMessages | null;
+  channelName: string | undefined;
+  typing: Typing | null;
+  uuid: string | undefined;
+  threadCard: boolean;
 }>();
 
-// emits
 const emit = defineEmits<{
-    "update:modelValue": [value: boolean];
-    "update:threadDrawer": [value: boolean]
-    "on:sendMessageThread": [payload: SendThreadPayload];
-    "on:threadTyping": [value: string];
+  "on:sendThreadMessage": [payload: SendThreadPayload];
+  "on:threadTyping": [value: string];
+  "update:threadCard": [value: boolean];
 }>();
 
+// Thread
+const threadMessageInput = ref("");
+const threadMessageFiles = ref<File[]>([]);
 
-const updateEmoji = (emoji: string) => {
-    messageContent.value += emoji;
+const updatethreadMessageEmoji = (emoji: string) => {
+  threadMessageInput.value += emoji;
 };
 
-
-const send = () => {
-    if (messageContent.value || uploadedFiles.value) {
-        emit("on:sendMessageThread", {
-            _messageID: props.currentMessage._id,
-            _channelID: props.currentMessage._channelID,
-            to: props.currentMessage.from,
-            toName: props.currentMessage.fromName,
-            content: messageContent.value,
-            files: uploadedFiles.value,
-        });
-        messageContent.value = "";
-        uploadedFiles.value = [];
-        nextTick(() => {
-            autoScroll()
-        })
+const sendThreadMessage = () => {
+  if (props.message) {
+    if (threadMessageInput.value || threadMessageFiles.value) {
+      emit("on:sendThreadMessage", {
+        _messageID: props.message?._id,
+        _channelID: props.message?._channelID,
+        to: props.message?.from,
+        toName: props.message?.fromName,
+        content: threadMessageInput.value,
+        files: threadMessageFiles.value,
+      });
+      threadMessageInput.value = "";
+      threadMessageFiles.value = [];
     }
-
+  }
 };
 
-const autoScroll = () => {
-    scrollElement.value?.scrollIntoView({
-        block: "center",
-        behavior: "smooth"
-    })
-}
-onMounted(() => {
-    autoScroll()
-})
-
-watch(
-  () => messageContent.value,
-  (newValue) => {
-    if (newValue.length > 0) {
-      emit("on:threadTyping", newValue)
-    }
-  })
-
-
+watch(threadMessageInput, (threadM) => {
+  emit("on:threadTyping", threadM);
+});
 </script>
 
 <template>
-    <div>
-    <v-dialog :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)" scrollable width="auto"
-        height="400" transition="dialog-bottom-transition" :id="`message-thread${currentMessage._id}`">
-        <v-card class="mx-auto" :id="currentMessage?._id" width="400" height="400" elevation="6"
-            :loading="isLoading">
-            <v-card-title>
-                <v-icon icon="mdi-spider-thread"></v-icon> {{ $lang('text.messageThread', [currentMessage.fromName]) }}
-                <v-icon class="float-right" icon="mdi-close-circle-outline" @click="$emit('update:modelValue', false)"
-                    color="error"></v-icon>
-            </v-card-title>
-            <v-divider :thickness="3" color="warning"></v-divider>
-            <v-card-text class="card-text">
-                <div class="d-flex flex-wrap overflow" :id="`thread-container-${currentMessage?._id}`">
-                    <div class="flex-1-1-100 mx-2 py-2" v-for="thread in currentMessage.thread" :key="thread._id">
-                        <span class="font-weight-bold text-teal" v-if="thread?.from === user?._uuid">
-                            {{ thread?.fromName }}: </span>
-                        <span class="font-weight-bold text-blue" v-else>
-                            {{ thread.fromName }}: </span>
-                        <span>{{ thread.content }}</span>
-                    </div>
-                </div>
-                <div ref="scrollElement"></div>
-            </v-card-text>
-            <v-card-actions class="w-100 d-inline-block">
-                <chat-form-component :key="`message-${currentMessage?._id}`" v-model:model-value="messageContent"
-                    v-model:files="uploadedFiles" @update:emoji="updateEmoji" :text-area-row-height="5" :text-area-rows="1"
-                    no-resize @submit="send" :typing="threadTyping">
-                </chat-form-component>
-                <!-- Typing -->
-                <chat-typing-component v-if="threadTyping" :typing="threadTyping"></chat-typing-component>
-            </v-card-actions>
-        </v-card>
-    </v-dialog>
-</div>
+  <v-slide-x-reverse-transition mode="in-out">
+    <v-card class="mx-auto overflow-y-auto" :key="message?._id" elevation="3" :model-value="threadCard" v-if="threadCard">
+      <v-card-title>
+        <v-icon icon="mdi-spider-thread"></v-icon>
+        {{ $lang("text.messageThread", [channelName]) }}
+        <v-icon class="float-right" icon="mdi-close-circle-outline" @click="$emit('update:threadCard', false)"
+          color="error"></v-icon>
+      </v-card-title>
+      <v-divider :thickness="3" color="warning"></v-divider>
+      <v-card-text class="text">
+        <div class="d-flex flex-wrap overflow-y-auto" :id="`thread-container-${message?._id}`">
+          <div class="flex-1-1-100 mx-2 py-2" v-for="thread in message?.thread" :key="thread._id">
+            <span class="font-weight-bold text-teal" v-if="thread?.from === uuid">
+              {{ thread?.fromName }}:
+            </span>
+            <span class="font-weight-bold text-blue" v-else>
+              {{ thread.fromName }}:
+            </span>
+            <span>{{ thread.content }}</span>
+          </div>
+        </div>
+      </v-card-text>
+      <v-card-actions class="w-100 d-inline-block">
+        <chat-form-component :key="`thread-${message?._channelID}`" v-model:model-value="threadMessageInput"
+          v-model:files="threadMessageFiles" :text-area-row-height="5" :text-area-rows="2"
+          :text-area-label="$lang('text.sendMessage')" :auto-grow="true" @update:emoji="updatethreadMessageEmoji"
+          @submit="sendThreadMessage">
+        </chat-form-component>
+        <chat-typing-component v-show="typing" :typing="typing"></chat-typing-component>
+      </v-card-actions>
+    </v-card>
+  </v-slide-x-reverse-transition>
 </template>
+<style scoped>
+.text {
+  overflow-y: scroll;
+  min-height: 455px;
+  max-height: 430px;
+  scroll-snap-type: y mandatory;
+  overflow-x: hidden;
+}
+</style>

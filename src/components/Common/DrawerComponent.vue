@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { CreateChannelComponent } from "@/components/Channel";
-import type {  User } from "@/types/User";
+import type { User } from "@/types/User";
 import type { Channels, ChannelForm } from "@/types/Channel";
 import { ref, watch, inject } from "vue";
 
 const drawer = inject<boolean>("drawer")
 const activeElement = ref<number | string | null>(null);
-const isNewChannel = ref(false);
 const panel = ref(["users", "channels"])
 
 // Props
@@ -21,8 +20,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   "update:selected": [id: number | string, key: string, value: User | Channels];
-  "user:created:channel": [value: ChannelForm];
-  "update:drawer": [value: boolean];
+  "createChannel": [value: ChannelForm];
   "update:channel:users": [value: string[]];
 }>();
 
@@ -38,11 +36,7 @@ watch(
       activeElement.value = el
     }
   })
-
-const newUserchannel = ($event: ChannelForm) => {
-  isNewChannel.value = true
-  emit('user:created:channel', $event)
-}
+  
 
 </script>
 <template>
@@ -52,16 +46,15 @@ const newUserchannel = ($event: ChannelForm) => {
         <!-- Users -->
         <v-expansion-panel value="users" elevation="3" color="orange" selected-class="pink-lighten-3">
           <v-expansion-panel-title class="text-center text-disabled text-body-2">
-            {{ $lang('directMessages') }}
+            {{ $lang('directMessages.title') }}
           </v-expansion-panel-title>
           <v-expansion-panel-text class="mt-2">
             <!-- skeleton-loader -->
             <v-skeleton-loader v-if="isLoadingUsers" type="list-item-avatar" v-for="n in users?.length" :key="n"
               :loading="isLoadingUsers"></v-skeleton-loader>
             <!-- skeleton-loader -->
-            <v-list-item v-for="user in users" :key="user._uuid" v-if="!isLoadingUsers" color="teal-darken-1"
-              :active="activeElement === user._uuid" :elevation="1" @click="onSelect(user._uuid, 'user', user)"
-              class="my-2">
+            <v-list-item v-for="user in users" :key="user._uuid" color="teal-darken-1"
+              :active="activeElement === user._uuid" :elevation="1" @click="onSelect(user._uuid, 'user', user)">
               <template v-slot:append v-if="user.newMessages">
                 <v-badge :color="user.connected ? 'success' : 'dark'" :content="user.newMessages?.total" inline></v-badge>
               </template>
@@ -76,13 +69,13 @@ const newUserchannel = ($event: ChannelForm) => {
             </v-list-item>
           </v-expansion-panel-text>
         </v-expansion-panel>
-        <!-- Rooms -->
+        <!-- channels -->
         <v-expansion-panel value="channels" elevation="3">
           <v-expansion-panel-title class="text-center text-disabled text-body-2">
-            {{ $lang('channel.channels') }}
+            {{ $lang('channel.title') }}
             <v-btn prepend-icon="mdi-chat-plus" variant="plain" color="teal">
-              <create-channel-component @on:create-channel="newUserchannel" :title="$lang('channel.createChannel')" create
-                :key="_uuid" :users="users">
+              <create-channel-component @create-channel="emit('createChannel', $event)"
+                :title="$lang('channel.createChannel')" create :key="_uuid" :users="users">
               </create-channel-component>
             </v-btn>
           </v-expansion-panel-title>
@@ -92,7 +85,7 @@ const newUserchannel = ($event: ChannelForm) => {
               :loading="isLoadingChannels">
             </v-skeleton-loader>
             <!-- skeleton-loader -->
-            <v-list-item v-for="channel in channels" :key="channel._id" v-if="!isLoadingChannels" :elevation="1"
+            <v-list-item v-for="channel in channels" :key="channel._id" :elevation="1"
               color="teal-darken-1" @click="onSelect(channel._channelID, 'channel', channel)"
               :active="activeElement === channel._channelID" :value="channel._channelID">
               <template v-slot:append v-if="channel.newMessages">
