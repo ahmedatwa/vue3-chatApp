@@ -74,15 +74,8 @@ io.on("connection", (socket) => {
   // notify existing users
   socket.broadcast.emit("user_connected", sessionData);
   // forward the private message to the right recipient (and to other tabs of the sender)
-  socket.on("new_direct_message", ({ content, file, to, createdAt, count }) => {
-    socket.to(to).to(socket._uuid).emit("client_new_direct_message", {
-      content,
-      file,
-      from: socket._uuid,
-      to,
-      createdAt,
-      count,
-    });
+  socket.on("new_direct_message", (message) => {
+    socket.to(message.to).to(socket._uuid).emit("client_new_direct_message", {...message});
   });
 
   // notify user typing event

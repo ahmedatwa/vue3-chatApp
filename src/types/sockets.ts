@@ -19,14 +19,12 @@ interface NewThreadMessage {
   createdAt: string;
 }
 
-
-
 type AddMembers = {
   _id: number;
   _channelID: string;
   channelName: string;
   from: string;
-  email: string,
+  email: string;
   fromName: string;
   to: string;
   toName: string;
@@ -53,6 +51,10 @@ interface JoinChannel {
   channelName: string;
   createdBy: string | number;
 }
+
+ 
+
+
 export type {
   ChannelMessage,
   NewThreadMessage,

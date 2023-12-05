@@ -145,6 +145,6 @@ const removeMember = (index: number, member: ChannelMembers) => {
     :loading="isLoading"
     prepend-icon="mdi-content-save-check"
     block
-    >{{ $lang("button.save") }}</v-btn
+    >{{ $lang("chat.button.save") }}</v-btn
   >
 </template>

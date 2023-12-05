@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { ref, provide, watch } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
-import { MessageContentComponent } from "@/components/DirectMessage";
+import { MessageContentComponent, MessageThreadComponent } from "@/components/DirectMessage";
 // types
-import type { User, UserTyping, UserMessages } from "@/types/User";
+import type { User, UserTyping, UserMessages, SendThreadPayload } from "@/types/User";
 
 
 const messageInput = ref("")
@@ -19,13 +19,16 @@ defineProps<{
     thread: boolean;
     users: boolean;
   };
+  uuid: string | undefined;
 }>();
 
 // emits 
 const emit = defineEmits<{
-  sendMessage: [value: {content: string, files: File[]}]
+  sendMessage: [value: { content: string, files: File[] }]
   userTyping: [value: string];
   threadTyping: [value: string];
+  sendThreadMessage: [payload: SendThreadPayload];
+
 }>()
 
 
@@ -59,7 +62,9 @@ const startThread = ($event: { message: UserMessages }) => {
 
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`direct-message-${selectedUser?._uuid}`">
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`direct-message-${selectedUser?._uuid}`" fluid>
+    <v-row>
+      <v-col>
     <v-card class="mx-auto" id="container" :loading="isLoading.messages">
       <v-card-title>
         <v-avatar>
@@ -71,17 +76,27 @@ const startThread = ($event: { message: UserMessages }) => {
         </v-badge>
       </v-card-title>
       <v-divider :thickness="3" color="success"></v-divider>
-      <message-content-component :selected-user="selectedUser" :is-loading="isLoading" @start:thread="startThread"> </message-content-component>
-      
-        <v-card-actions class="w-100 d-inline-block">
-          <chat-form-component :key="`user-${selectedUser?._uuid}`" v-model:model-value="messageInput"
-              v-model:files="uploadedFiles" :text-area-row-height="10" :text-area-rows="2"
-              :text-area-label="$lang('text.sendMessage')" :auto-grow="true" @update:emoji="updateEmoji"
-              @submit="sendMessage">
-            </chat-form-component>
-            <!-- Typing -->
-            <chat-typing-component :typing="typing.messages"></chat-typing-component>
-        </v-card-actions>
+      <message-content-component :selected-user="selectedUser" :is-loading="isLoading" @start:thread="startThread">
+      </message-content-component>
+
+      <v-card-actions class="w-100 d-inline-block">
+        <chat-form-component :id="selectedUser?._uuid" :key="`user-${selectedUser?._uuid}`"
+          v-model:model-value="messageInput" v-model:files="uploadedFiles" :text-area-row-height="10" :text-area-rows="2"
+          :text-area-label="$lang('chat.input.send')" :auto-grow="true" @update:emoji="updateEmoji"
+          @submit="sendMessage">
+        </chat-form-component>
+        <!-- Typing -->
+        <chat-typing-component :typing="typing.messages"></chat-typing-component>
+      </v-card-actions>
     </v-card>
+  </v-col>
+    <!-- Thread -->
+    <v-col cols="3" v-if="isThreadOpen">
+        <message-thread-component v-model:thread-card="isThreadOpen" :message="threadMessage"
+          :typing="typing.thread" :selectedUser="selectedUser"
+          @update:thread-card="isThreadOpen = $event" @on:send-thread-message="$emit('sendThreadMessage', $event)"
+          @on:thread-typing="$emit('threadTyping', $event)"></message-thread-component>
+      </v-col>
+      </v-row>
   </v-container>
 </template>

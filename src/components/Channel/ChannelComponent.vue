@@ -122,11 +122,11 @@ const loadMoreMessages = (
 
 // thread
 const isThreadOpen = shallowRef(false);
-provide("isStartThread", isThreadOpen)
+provide("isStartThread", isThreadOpen);
 const threadMessage = ref<ChannelMessages | null>(null);
 
 const startThread = ($event: { message: ChannelMessages }) => {
-  threadMessage.value = null
+  threadMessage.value = null;
   threadMessage.value = $event.message;
 };
 </script>
@@ -137,11 +137,12 @@ const startThread = ($event: { message: ChannelMessages }) => {
         <v-card class="mx-auto" id="channel-container" :loading="isLoading.messages"
           :key="`channel${currentChannel?._channelID}`" elevation="3">
           <v-card-title>
-            <v-btn append-icon="mdi-menu-down" variant="outlined">
+            <v-btn append-icon="mdi-menu-down" variant="text">
               {{ currentChannel?.channelName }}
               <create-channel-component :key="`channel-manage${currentChannel?._id}`" :channel="currentChannel"
-                :is-loading="isLoading.channels" @update:channel-settings="$emit('updateChannelSettings', $event)"
-                @archive-channel="$emit('archiveChannel', $event)" @create-channel="$emit('updateChannel', $event)"
+                :is-loading="isLoading.channels" @update:channel-settings="
+                  $emit('updateChannelSettings', $event)
+                  " @archive-channel="$emit('archiveChannel', $event)" @create-channel="$emit('updateChannel', $event)"
                 @leave-channel="$emit('leaveChannel', $event)"
                 @update:channel-members="$emit('update:channelMembers', $event)"
                 @update-channel="$emit('updateChannel', $event)">
@@ -164,10 +165,10 @@ const startThread = ($event: { message: ChannelMessages }) => {
             @update:scroll="isScroll = $event" @start:thread="startThread">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">
-            <chat-form-component :key="`channel-${currentChannel?._channelID}`" v-model:model-value="messageInput"
-              v-model:files="uploadedFiles" :text-area-row-height="10" :text-area-rows="2"
-              :text-area-label="$lang('text.sendMessage')" :auto-grow="true" @update:emoji="updateEmoji"
-              @submit="sendMessage">
+            <chat-form-component :id="currentChannel?._channelID" :key="`channel-${currentChannel?._channelID}`"
+              v-model:model-value="messageInput" v-model:files="uploadedFiles" :text-area-row-height="10"
+              :text-area-rows="2" :text-area-label="$lang('channel.input.send', [currentChannel?.channelName])
+                " :auto-grow="true" @update:emoji="updateEmoji" @submit="sendMessage">
             </chat-form-component>
             <!-- Typing -->
             <chat-typing-component :typing="typing.channel"></chat-typing-component>

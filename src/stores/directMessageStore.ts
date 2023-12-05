@@ -1,18 +1,20 @@
 import { defineStore } from "pinia";
-import { ref, computed, shallowRef} from "vue";
-import { inject, reactive} from "vue";
+import { ref, computed, shallowRef } from "vue";
+import { inject, reactive } from "vue";
 import { useSessionStore, useStorageStore } from "@/stores";
+import { useUserStore } from "@/stores";
 import { instance, directMessageApi } from "@/axios";
 import { capitalize, createDateTime, esc } from "@/helpers";
 
 // types
-import { Snackbar, UploadedFiles } from "@/types";
-import type { User, UserTyping } from "@/types/User";
+import type { Snackbar, UploadedFiles } from "@/types";
+import type { User, UserTyping, UserMessages } from "@/types/User";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
 
 export const useDirectMessageStore = defineStore("directMessageStore", () => {
   const users = ref<User[]>([]);
+
   const $lang = inject(langKey);
   const selectedUser = shallowRef<User | null>(null);
   const filterSearchInput = ref("");
@@ -22,7 +24,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     messages: null,
     thread: null,
   });
-  
+
   const uploadedFiles = ref<UploadedFiles[]>([]);
 
   const isLoading = reactive({
@@ -34,13 +36,17 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   const messagesPerUser = ref(new Map());
   const otherUsers = ref<string[]>([]);
 
-
   // Stores
   const sessionStore = useSessionStore();
   const storageStore = useStorageStore();
+  const userStore = useUserStore();
 
   // Filter Users
   const filteredUsers = computed(() => {
+    isLoading.users = true;
+    setTimeout(() => {
+      isLoading.users = false;
+    }, 300);
     return users.value
       .filter((user: User) => {
         return user.userName
@@ -78,11 +84,11 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
-          if(selectedUser.value?.messages)
-          selectedUser.value?.messages.push({
-            ...response.data,
-            thread: [],
-          });
+          if (selectedUser.value?.messages)
+            selectedUser.value?.messages.push({
+              ...response.data,
+              thread: [],
+            });
           // update server
           socket.emit(_directMessageEmits.newMessage, {
             ...response.data,
@@ -119,10 +125,9 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         timeout: -1,
         location: "",
       };
-    }finally {
+    } finally {
       isLoading.users = false;
     }
-    
   };
   // .then((response) => {
   //   if (response.data) {
@@ -193,126 +198,169 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       ...user,
       selected: true,
       newMessages: null,
-      messages: messagesPerUser.value.get(user._uuid) || []
+      messages: user.messages
+        ? user.messages
+        : messagesPerUser.value.get(user._uuid),
     };
   };
 
+  const removeUser = (_uuid: string) => {
+    console.log(_uuid);
+
+    const index = users.value.findIndex((u) => u._uuid === _uuid);
+    console.log(index);
+
+    if (index) {
+      users.value.splice(index, 1);
+      selectedUser.value = null;
+    }
+  };
   //swatch(
-    // () => selectedUser.value?.messagesDistributed,
-    // async (messagesDistributed) => {
-    //   if (selectedChannel.value && !messagesDistributed) {
-    //     await getTotalChannelMessages(selectedChannel.value._channelID);
+  // () => selectedUser.value?.messagesDistributed,
+  // async (messagesDistributed) => {
+  //   if (selectedChannel.value && !messagesDistributed) {
+  //     await getTotalChannelMessages(selectedChannel.value._channelID);
 
-    //     if (messagesTotal.value) {
-    //       const offset = Math.ceil(messagesTotal.value - paginationLimit.value);
-    //       await getChannelMessages(
-    //         selectedChannel.value?._channelID,
-    //         paginationLimit.value,
-    //         offset,
-    //         false
-    //       );
-    //     }
-    //   }
-    // }
+  //     if (messagesTotal.value) {
+  //       const offset = Math.ceil(messagesTotal.value - paginationLimit.value);
+  //       await getChannelMessages(
+  //         selectedChannel.value?._channelID,
+  //         paginationLimit.value,
+  //         offset,
+  //         false
+  //       );
+  //     }
+  //   }
+  // }
   //);
-
 
   // Sockets
   const userTyping = (input: string) => {
     socket.timeout(500).emit("user_typing", {
       input: input,
       to: selectedUser.value?._uuid,
-      displayName: selectedUser.value?.displayName
+      displayName: selectedUser.value?.displayName,
     });
   };
 
   socket.on(_directMessageListener.typing, (event: UserTyping) => {
-    if (event.input.length > 0) {
+    if (event.input.length > 0 && event.from === selectedUser.value?._uuid) {
       typing.value.messages = {
         from: event.from,
         displayName: event.displayName,
-        input: '',
-        isTyping: true
+        input: "",
+        isTyping: true,
       };
     }
   });
 
   // new Message
-  socket.on(_directMessageListener.newMessage, (newMessage) => {
-    //reset typing
-    typing.value.messages = null;
-    const fromSelf = (socket as any)._uuid === newMessage.from;
-    users.value.forEach((user) => {
-      if (user._uuid === (fromSelf ? newMessage.to : newMessage.from)) {
-        user.messages?.push({
-          _id: newMessage._id,
-          from: newMessage.from,
-          to: newMessage.to,
-          content: newMessage.content,
-          file: newMessage.file,
-          seen: false,
-          fromSelf,
-          createdAt: newMessage.createdAt,
-        });
-
-        if (user._uuid === newMessage.from) {
-          user.newMessages = {
-            //total: UnreadMessagesTotal.value++,
-            lastMessage: newMessage.content,
-          };
-          newAlert.value = {
-            title: user.displayName,
-            text: newMessage.content,
-            type: "info",
-          };
+  const UnreadMessagesTotal = ref(1);
+  socket.on(
+    _directMessageListener.newMessage,
+    async (newMessage: UserMessages) => {
+      //reset typing
+      typing.value.messages = null;
+      const fromSelf = (socket as any)._uuid === newMessage.from;
+      // Push new User
+      const newUser = users.value.find((u) => u._uuid === newMessage.from);
+      if (newUser === undefined) {
+        const response = await userStore.getUser(newMessage.from);
+        if (response?.data) {
+          response.data.forEach((user: User) => {
+            users.value.push({
+              _id: user._id,
+              _uuid: user._uuid,
+              userName: user.userName,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              displayName: capitalize(user.firstName + " " + user.lastName),
+              email: user.email,
+              image: user.image,
+              messagesDistributed: false,
+              connected: user.connected === "1" ? true : false,
+              self: false,
+              messages: [{ ...newMessage, fromSelf }],
+              newMessages:{
+                  total: UnreadMessagesTotal.value++,
+                  lastMessage: newMessage.content,
+                },
+              createdAt: user.createdAt,
+            });
+          });
         }
-        return;
+      } else {
+        users.value.forEach((user) => {
+          if (user._uuid === (fromSelf ? newMessage.to : newMessage.from)) {
+            user.messages?.push({
+              _id: newMessage._id,
+              from: newMessage.from,
+              to: newMessage.to,
+              content: newMessage.content,
+              file: newMessage.file,
+              seen: false,
+              fromSelf,
+              createdAt: newMessage.createdAt,
+            });
+
+            if (user._uuid === newMessage.from) {
+              user.newMessages = {
+                total: UnreadMessagesTotal.value++,
+                lastMessage: newMessage.content,
+              };
+              newAlert.value = {
+                title: user.displayName,
+                text: newMessage.content,
+                type: "info",
+              };
+            }
+            return;
+          }
+        });
       }
-    });
-  });
+    }
+  );
 
   socket.on("user_connected", (user) => {
     users.value.forEach((u) => {
       if (u._uuid === user._uuid) {
         u.connected = true;
-    // if (selectedUser.value?.settings?.muteNotification) {
-    //   newAlert.value = {
-    //     title: user.displayName,
-    //     text: "is online.",
-    //     type: "success",
-    //   };
-    // }
+        // if (selectedUser.value?.settings?.muteNotification) {
+        //   newAlert.value = {
+        //     title: user.displayName,
+        //     text: "is online.",
+        //     type: "success",
+        //   };
+        // }
         return;
       }
     });
 
-    const newUser = users.value.find((u) => u._uuid === user._uuid);
-    console.log(newUser);
-    
-    if (newUser !== undefined) {
-      users.value.push({
-        _id: user._id,
-        _uuid: user._uuid,
-        userName: user.userName,
-        firstName: capitalize(user.firstName),
-        lastName: capitalize(user.lastName),
-        displayName: capitalize(user.firstName + " " + user.lastName),
-        image: user.image,
-        email: user.email,
-        self: user.socketId === sessionStore.userSessionData?._uuid,
-        connected: true,
-        messages: messagesPerUser.value.get(user._uuid) || [],
-        settings: null,
-        createdAt: user.createdAt,
-      });
+    //const newUser = users.value.find((u) => u._uuid === user._uuid);
+    // if (newUser === undefined) {
+    //   users.value.push({
+    //     _id: user._id,
+    //     _uuid: user._uuid,
+    //     userName: user.userName,
+    //     firstName: capitalize(user.firstName),
+    //     lastName: capitalize(user.lastName),
+    //     displayName: capitalize(user.firstName + " " + user.lastName),
+    //     image: user.image,
+    //     email: user.email,
+    //     self: user.socketId === sessionStore.userSessionData?._uuid,
+    //     connected: true,
+    //     messages: messagesPerUser.value.get(user._uuid) || [],
+    //     settings: null,
+    //     createdAt: user.createdAt,
+    //   });
 
-      if (selectedUser.value?.settings?.muteNotification === false) {
-        newAlert.value = {
-          title: user.displayName,
-          text: "is online.",
-          type: "success",
-        };
-      }
+    if (selectedUser.value?.settings?.muteNotification === false) {
+      newAlert.value = {
+        title: user.displayName,
+        text: "is online.",
+        type: "success",
+      };
+      // }
     }
   });
 
@@ -342,7 +390,6 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     });
   });
 
-
   return {
     users,
     selectedUser,
@@ -353,6 +400,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     filteredUsers,
     messagesPerUser,
     otherUsers,
+    removeUser,
     sendMessage,
     userTyping,
     getMessages,

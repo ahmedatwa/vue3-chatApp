@@ -9,6 +9,7 @@ const error = ref("");
 const isEmoji = ref(false);
 
 interface Props {
+  id: string | number | undefined;
   modelValue: string;
   textAreaRows: number | string;
   textAreaRowHeight: number | string;
@@ -23,7 +24,7 @@ interface Props {
 const props = withDefaults(defineProps<Props>(), {
   textAreaRows: 3,
   textAreaRowHeight: 15,
-  textAreaLabel: "Send Message",
+  textAreaLabel: "",
   autoGrow: false,
   noResize: false,
   uploadbutton: false,
@@ -62,35 +63,16 @@ const isDisabled = computed((): boolean => {
 </script>
 
 <template>
-  <v-form>
+  <v-form :id="`chat-input${id}`" :key="`chat-input${id}`">
     <v-card elevation="4" id="message-form-wrapper">
-      <v-textarea
-        name="input-message"
-        :label="textAreaLabel"
-        :rows="textAreaRows"
-        :row-height="textAreaRowHeight"
-        :auto-grow="autoGrow"
-        :no-resize="noResize"
-        :model-value="modelValue"
-        hide-details="auto"
-        clearable
-        autofocus
-        :hint="$lang('help.messageInputHint')"
-        @update:model-value="$emit('update:modelValue', $event)"
-        :error-messages="error"
-        @click:clear="clearMessage"
-        @keyup.enter.exact="$emit('submit', true)"
-        persistent-hint
-      >
+      <v-textarea name="input-message" :label="textAreaLabel" :rows="textAreaRows" :row-height="textAreaRowHeight"
+        :auto-grow="autoGrow" :no-resize="noResize" :model-value="modelValue" hide-details="auto" clearable autofocus
+        :hint="$lang('chat.help.newLine')" @update:model-value="$emit('update:modelValue', $event)"
+        :error-messages="error" @click:clear="clearMessage" @keyup.enter.exact="$emit('submit', true)" persistent-hint>
         <template v-slot:prepend-inner>
           <div class="d-flex flex-wrap" v-if="uploadedFiles">
-            <v-chip
-              v-for="(file, index) in uploadedFiles"
-              :key="file.name"
-              closable
-              class="ma-2"
-              @click:close="removeFile(index)"
-            >
+            <v-chip v-for="(file, index) in uploadedFiles" :key="file.name" closable class="ma-2"
+              @click:close="removeFile(index)">
               {{ file.name }}
             </v-chip>
           </div>
@@ -98,42 +80,17 @@ const isDisabled = computed((): boolean => {
       </v-textarea>
       <v-sheet>
         <div class="float-left ml-2">
-          <chat-upload-component
-            v-if="uploadbutton"
-            v-model:files="uploadedFiles"
-            @update:files="newUpload"
-            @error:upload="error = $event"
-          ></chat-upload-component>
-          <v-btn
-            v-if="emojiButton"
-            icon="mdi-emoticon-happy-outline"
-            density="default"
-            id="emoji-activator"
-            @click="isEmoji = !isEmoji"
-            color="orange-darken-2"
-          >
+          <chat-upload-component v-if="uploadbutton" v-model:files="uploadedFiles" @update:files="newUpload"
+            @error:upload="error = $event"></chat-upload-component>
+          <v-btn v-if="emojiButton" icon="mdi-emoticon-happy-outline" density="default" id="emoji-activator"
+            @click="isEmoji = !isEmoji" color="orange-darken-2">
           </v-btn>
-          <v-menu
-            :close-on-content-click="false"
-            v-model="isEmoji"
-            target="parent"
-            location="start"
-          >
-            <emoji-picker
-              :native="true"
-              :hide-search="false"
-              @select="onSelectEmoji"
-            ></emoji-picker>
+          <v-menu :close-on-content-click="false" v-model="isEmoji" target="parent" location="start">
+            <emoji-picker :native="true" :hide-search="false" @select="onSelectEmoji"></emoji-picker>
           </v-menu>
         </div>
         <div class="float-right" v-if="submitButton">
-          <v-btn
-            icon
-            color="teal"
-            :disabled="isDisabled"
-            @click="$emit('submit', true)"
-            variant="plain"
-          >
+          <v-btn icon color="teal" :disabled="isDisabled" @click="$emit('submit', true)" variant="plain">
             <v-icon icon="mdi-send" size="large"></v-icon>
           </v-btn>
         </div>

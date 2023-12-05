@@ -8,7 +8,7 @@ interface User {
   email: string;
   image: string;
   self?: boolean;
-  connected: boolean;
+  connected: boolean | string;
   selected?: boolean;
   typing?: boolean;
   settings?: UserSettings | null;
@@ -36,30 +36,31 @@ type DBUserMessages = {
 };
 type UserMessages = {
   _id: string | number;
-  _roomID?: string | null;
   from: string;
   to: string;
-  room?: string;
-  fromSelf?: boolean;
   content: string;
-  file?: string | null;
+  fromSelf?: boolean;
+  file?: File[] | null;
   seen?: boolean;
   last?: boolean;
+  thread?: MessageThread[];
   createdAt: string;
+};
+
+type MessageThread = {
+  _id: number;
+  _messageID: number;
+  from: string;
+  to: string;
+  content: string;
+  files?: File[];
+  createdAt?: string;
 };
 
 interface CreateUserForm {
   userName: string;
   firstName: string;
   lastName: string;
-}
-
-interface UserProfile {
-  displayName: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  image?: string;
 }
 
 interface UserSessionData {
@@ -96,14 +97,22 @@ interface UserAppSettings {
   date?: string;
 }
 
+interface SendThreadPayload {
+  _messageID: number;
+  from: string;
+  to: string;
+  content: string;
+  files?: File[];
+}
+
 export type {
   User,
   UserMessages,
   DBUserMessages,
   CreateUserForm,
-  UserProfile,
   UserTyping,
   UserSessionData,
   Pagination,
   UserAppSettings,
+  SendThreadPayload
 };

@@ -4,7 +4,7 @@ import { inject, onMounted } from "vue";
 import { formatTimeShort, formatDateLong } from "@/helpers";
 import { ChatActionMenu } from "@/components/Chat";
 import type { ChannelMessages, Channels } from "@/types/Channel";
-import type { Pagination, Typing } from "@/types/Channel";
+import type { Pagination, ChannelTyping } from "@/types/Channel";
 import { User } from "@/types/User";
 
 const currentUser = inject<User>("user");
@@ -24,13 +24,12 @@ const props = defineProps<{
     thread: boolean;
     channels: boolean;
   };
-  threadTyping: Typing | null;
+  threadTyping: ChannelTyping | null;
 }>();
 
 // emits
 const emit = defineEmits<{
   "on:deleteMessage": [value: number];
-  // "on:sendMessageThread": [payload: SendThreadPayload];
   "on:editMessage": [
     value: {
       _messageId: string | number;
@@ -46,7 +45,6 @@ const emit = defineEmits<{
     unshift: boolean
   ];
   "update:scroll": [value: boolean];
-  // "on:threadTyping": [value: string];
   "start:thread": [value: { message: ChannelMessages }]
 }>();
 
@@ -141,7 +139,7 @@ onMounted(() => {
     <v-sheet :align="'center'" justify="center" class="my-2">
       <v-btn :loading="isLoading.messages" :disabled="isLoadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
         :color="isLoadMoreDisabled ? 'error' : 'success'" @click="loadMoreMessages">
-        {{ $lang("button.loadMore") }}
+        {{ $lang("chat.button.loadMore") }}
       </v-btn>
     </v-sheet>
     <v-row no-gutters v-for="(channelMessage, index) in channelMessages" :key="index">
@@ -161,7 +159,7 @@ onMounted(() => {
             {{ message.fromName }}:
           </span>
           <span v-if="message.editContent" class="text-caption me-1">
-            {{ $lang("text.edited") }}</span>
+            {{ $lang("chat.text.edited") }}</span>
           <span class="text-left" v-else>{{ message.content }}</span>
         </v-col>
       </v-slide-x-transition>

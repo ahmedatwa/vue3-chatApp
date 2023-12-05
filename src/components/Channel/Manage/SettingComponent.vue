@@ -88,28 +88,28 @@ onMounted(() => {
 
 <template>
   <v-sheet class="pa-2">
-    <v-switch v-model="channelSettings.muteNotifications" color="success" :label="$lang('channel.muteChannel')"
+    <v-switch v-model="channelSettings.muteNotifications" color="success" :label="$lang('channel.mute')"
       @update:model-value="saveSettings" true-value="all" false-value="none"></v-switch>
   </v-sheet>
   <v-divider class="my-2" color="blue" thickness="2"></v-divider>
   <v-btn block :prepend-icon="isCopiedNames ? 'mdi-check-all' : 'mdi-content-copy'" color="blue-grey-darken-1"
-    @click="copyChannelNames" variant="tonal">{{ $lang("channel.copyMemberNames") }}</v-btn>
+    @click="copyChannelNames" variant="tonal">{{ $lang("channel.copyNames") }}</v-btn>
   <v-divider class="my-2" color="orange"></v-divider>
   <v-btn block :prepend-icon="isCopiedEmails ? 'mdi-check-all' : 'mdi-content-copy'" color="blue-grey-darken-1"
     @click="copyChannelEmails" variant="tonal">
-    {{ $lang("channel.copyMemberAddresses") }}</v-btn>
+    {{ $lang("channel.copyAddresses") }}</v-btn>
   <v-divider class="my-2" color="orange"></v-divider>
   <!-- Archive Channel -->
   <v-btn v-if="currentUser?._uuid === channel?.createdBy" prepend-icon="mdi-archive" color="blue-lighten-1"
     @click="isArchiveChannelDialog = !isArchiveChannelDialog" block>
-    {{ $lang("channel.archiveChannel") }}
+    {{ $lang("channel.archive") }}
     <v-dialog v-model="isArchiveChannelDialog" key="archive-channel">
-      <v-card prepend-icon="mdi-archive" :title="$lang('channel.archiveChannel')"
-        :text="$lang('text.confirm', ['archive channel'])" width="400" class="mx-auto">
+      <v-card prepend-icon="mdi-archive" :title="$lang('channel.archive')"
+        :text="$lang('chat.text.confirm', ['archive channel'])" width="400" class="mx-auto">
         <v-card-actions>
           <v-btn color="red" prepend-icon="mdi-close" variant="plain" class="me-auto"
             @click.prevent="isArchiveChannelDialog = false">
-            {{ $lang("button.cancel") }}</v-btn>
+            {{ $lang("chat.button.cancel") }}</v-btn>
           <v-btn @click="archiveChannel" prepend-icon="mdi-check-circle-outline" color="success" variant="plain"
             :loading="isLoading">{{ $lang("button.confirm") }}</v-btn>
         </v-card-actions>
@@ -119,23 +119,23 @@ onMounted(() => {
   <v-divider class="my-2" color="orange"></v-divider>
   <!-- Leave Channel -->
   <v-btn color="red-darken-1" prepend-icon="mdi-exit-run" @click="isLeaveChannelDialog = !isLeaveChannelDialog" block>
-    {{ $lang("channel.leaveChannel") }}
+    {{ $lang("channel.leave") }}
     <v-dialog v-model:model-value="isLeaveChannelDialog" key="leave-channel">
-      <v-card prepend-icon="mdi-exit-run" :title="$lang('channel.leaveChannel')"
+      <v-card prepend-icon="mdi-exit-run" :title="$lang('channel.leave')"
         :text="$lang('text.confirm', ['leave channel'])" width="400" class="mx-auto">
         <v-card-actions>
           <v-btn color="red" variant="plain" prepend-icon="mdi-close" class="me-auto"
             @click.prevent="isLeaveChannelDialog = false">
-            {{ $lang("button.cancel") }}</v-btn>
+            {{ $lang("chat.button.cancel") }}</v-btn>
           <v-btn @click="leaveChannel" prepend-icon="mdi-check-circle-outline" color="success" variant="plain">{{
-            $lang("button.confirm") }}</v-btn>
+            $lang("channel.button.leave") }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
   </v-btn>
   <v-divider class="my-2" color="orange"></v-divider>
   <v-sheet>
-    {{ $lang("channel.ChannelID") }}: {{ channel?._channelID }}
+    {{ $lang("channel.id") }}: {{ channel?._channelID }}
     <v-btn density="compact" elevation="0" :icon="isCopiedId ? 'mdi-check-all' : 'mdi-content-copy'"
       @click="copyChannelId" class="ms-3" size="small">
     </v-btn>

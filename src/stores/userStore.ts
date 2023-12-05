@@ -11,20 +11,29 @@ export const useUserStore = defineStore("userStore", () => {
     isLoading.value = true;
     try {
       return await instance.get(userApi.__getAllUsers);
-    } catch (error) {
-      console.log(error);
-    }
-  };
-
-  const getAllChannels = async () => {
-    try {
-      return await instance.get(userApi.__getAllChannels)
     } catch (error: any) {
       newAlert.value = {
         code: error.code,
         text: error.message,
         type: "error",
       };
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const getAllChannels = async () => {
+    isLoading.value = true;
+    try {
+      return await instance.get(userApi.__getAllChannels);
+    } catch (error: any) {
+      newAlert.value = {
+        code: error.code,
+        text: error.message,
+        type: "error",
+      };
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -42,8 +51,7 @@ export const useUserStore = defineStore("userStore", () => {
       })
       .then((response) => {
         // Not nice but just for demo purpose
-        if(response)
-        getAllUsers()
+        if (response) getAllUsers();
       })
       .then((error: any) => {
         newAlert.value = {
@@ -57,12 +65,23 @@ export const useUserStore = defineStore("userStore", () => {
       });
   };
 
-  const getUser = (_uuid: string | string[]) => {
-    return instance.get(userApi.__getUser, {
-      params: {
-        _uuid,
-      },
-    });
+  const getUser = async(_uuid: string | string[]) => {
+    isLoading.value = true;
+    try {
+      return await instance.get(userApi.__getUser, {
+        params: {
+          _uuid,
+        },
+      });
+    } catch (error: any) {
+      newAlert.value = {
+        code: error.code,
+        text: "User Not Found",
+        type: "error",
+      };
+    } finally {
+      isLoading.value = false;
+    }
   };
 
   return {

@@ -42,7 +42,7 @@ const onEditEmoji = (emoji: any) => {
         :id="`edit-message${message._id}`" transition="dialog-bottom-transition">
         <v-card class="mx-auto" width="440" height="auto">
             <v-card-title>
-                <v-icon icon="mdi-circle-edit-outline"></v-icon> {{ $lang('text.editMessage') }}
+                <v-icon icon="mdi-circle-edit-outline"></v-icon> {{ $lang('chat.text.editMessage') }}
                 <v-icon class="float-right" icon="mdi-close-circle-outline" @click="$emit('update:modelValue', false)"
                     color="error"></v-icon>
             </v-card-title>
@@ -58,9 +58,9 @@ const onEditEmoji = (emoji: any) => {
                 </v-sheet>
             </v-card-text>
             <v-card-actions class="w-100 d-inline-block">
-                <chat-form-component :key="`message-${message._id}`" text-area-row-height="3" text-area-rows="1"
+                <chat-form-component :id="message._id" :key="`message-${message._id}`" text-area-row-height="3" text-area-rows="1"
                     v-model:model-value="editMessageContent" @update:emoji="onEditEmoji"
-                    :text-area-label="$lang('text.editMessage')" no-resize>
+                    :text-area-label="$lang('chat.input.edit')" no-resize>
                     <template #send>
                         <v-btn icon="mdi-send" color="teal-lighten-1" :disabled="editMessageContent.length < 1"
                             @click="editMessage(message)"></v-btn>

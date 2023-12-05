@@ -91,12 +91,19 @@ watch(
   }
 );
 
+//new userStore Notification
+watch(
+  () => userStore.newAlert,
+  (NewA) => {
+    isAlert.value = true;
+    newSnackbar.value = NewA;
+  }
+);
+
 onMounted(() => {
   const userSettings = storageStore.userStorageSettings;
   if (userSettings !== null && userSettings.leftOff) {
     const $_ = storageStore.getLastSelectedElement;
-    console.log($_);
-
     if ($_) {
       lastSelectedElement.value = $_._id;
       activeComponent.value = $_.comp;
@@ -169,12 +176,16 @@ socket.on("connect", async () => {
       _channelID: string;
       connected: boolean;
     }) => {
+      
+      
       // Direct
-      if(sessionStore.userSessionData) {
-        directMessageStore.users.push({...sessionStore.userSessionData})
+      if (sessionStore.userSessionData) {
+        directMessageStore.users.push({
+          ...sessionStore.userSessionData,
+          self: (socket.auth as any)._uuid === session._uuid,
+        });
       }
-      
-      
+
       const [messages, channels] = await Promise.all([
         directMessageStore.getMessages(session._uuid),
         channelStore.getChannels(session._uuid),
@@ -199,7 +210,7 @@ socket.on("connect", async () => {
         if (directMessageStore.otherUsers.length) {
           const users = await userStore.getUser(directMessageStore.otherUsers);
 
-          if (users.data) {
+          if (users?.data) {
             users.data.forEach((user: User) => {
               const found = directMessageStore.users.find(
                 (u) => u._uuid === user._uuid
@@ -218,7 +229,7 @@ socket.on("connect", async () => {
                   messagesDistributed: false,
                   self: user._uuid === session._uuid,
                   selected: false,
-                  connected: user.connected,
+                  connected: user.connected === "1" ? true : false,
                   messages:
                     directMessageStore.messagesPerUser.get(user._uuid) || [],
                   createdAt: user.createdAt,
@@ -290,6 +301,7 @@ const loadMoreMessages = (
       :last-active-element="lastSelectedElement"
       @update:selected="onSelect"
       @create-channel="channelStore.createChannel($event)"
+      @remove-user="directMessageStore.removeUser"
     ></drawer-component>
 
     <header-component
@@ -330,6 +342,7 @@ const loadMoreMessages = (
           id="direct-message"
           :key="directMessageStore.selectedUser?._uuid"
           :selected-user="directMessageStore.selectedUser"
+          :uuid="sessionStore.userSessionData?._uuid"
           :typing="directMessageStore.typing"
           :is-loading="directMessageStore.isLoading"
           @send-message="directMessageStore.sendMessage"

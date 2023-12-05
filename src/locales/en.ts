@@ -1,91 +1,114 @@
 export default {
- 
-  text: {
-    userPreferences: "User Preferences",
-    userProfile: "User Profile",
-    userDownloads: "Downloads",
-    threadLabel: "{0} replies",
-    edited: "(edited)",
-    confirm: "Are you sure you want to {0}? This can't be undone.",
-    sendMessage: "Send A Message...",
-    editMessage: "Edit Message",
-    messageThread: "Thread: {0}",
-    lastThreadMessage: "Last Message sent {0}",
-    userConnNotification: "Mute Connection Notifications",
-    toggleDark: "Toggle Dark",
-    leftOff: "Continue where you left off",
-    typing: "{0} is typing...",
-    
-  },
-  button: {
-    submit: "Submit",
-    cancel: "Cancel",
-    close: "Close",
-    save: "Save Changes",
-    confirm: "Confirm",
-    exit: "Exit",
-    restore: "Restore Session",
-    signOut: "Sign out",
-    edit: "Edit",
-    delete: "Delete",
-    loadMore: "Load More",
-    add: "Add",
-  },
-  alert: {
-    success: "Success: Changes have been saved!",
-    error: "Error: ",
-  },
   channel: {
     title: "Channels",
-    createChannel: "Create Channel",
+    create: "Create Channel",
     addMembers: "Add Members",
-    muteChannel: "Mute Notificationn for all Messages",
-    allNotifications: "Get Notificationn for all Messages",
-    archiveChannel: "Archive Channel",
-    channelNotifications: "Channel Notifications",
-    copyMemberNames: "Copy Member Names",
-    copyMemberAddresses: "Copy Member Email Addresses",
-    ChannelID: "Channel ID",
-    leaveChannel: "Leave channel",
-    managedBy: "Channel Managed By",
-    createdBy: "Channel Created By",
+    mute: "Mute Notificationn for all Messages",
+    archive: "Archive Channel",
+    copyNames: "Copy Member Names",
+    copyAddresses: "Copy Member Email Addresses",
+    id: "Channel ID",
+    leave: "Leave channel",
+    managed: "Channel Managed By",
+    created: "Channel Created By",
     join: "{0} has joined room {1}",
+    input: {
+      send: "Message {0}",
+      name: "Channel Name",
+      description: "Channel Description",
+      topic: "Channel Topic",
+    },
+    tab: {
+      about: "About",
+      members: "Members",
+      settings: "Settings",
+    },
+    help: {
+      name: "only '_|#|&' allowed min 3 characters",
+    },
     success: {
       updated: "Success: You have modified channel!",
       created: "Success: {0} has been created.",
       archived: "Success: {0} channel has been archived.",
-      newChannelMember: "You have joined {0} Channel",
+      joined: "You have joined {0} Channel",
     },
     error: {
       send: "Error: Sending Message Failed.",
-      memberExists: "Warning: Channel Member Exist!"
+      memberExists: "Warning: Channel Member Exist!",
     },
   },
+
   directMessages: {
     title: "Direct Messages",
   },
-  input: {
-    channelName: "Channel Name",
-    channelDescription: "Channel Description",
-    channelTopic: "Channel Topic",
+
+  //
+  chat: {
+    input: {
+      send: "Jot something down",
+      reply: "Reply...",
+      edit: "Edit...",
+    },
+    text: {
+      lastMessage: "Last Message sent {0}",
+      typing: "{0} is typing...",
+      edited: "(edited)",
+      threadTitle: "Thread: {0}",
+      editMessage: "Edit Message",
+      deleteMessage: "Delete Message",
+      confirm: "Are you sure you want to {0}? This can't be undone.",
+    },
+    help: {
+      newLine: "Shift + Return to add new line",
+    },
+    button: {
+      loadMore: "Load More",
+      thread: "{0} replies",
+      edit: "Edit Message",
+      delete: "Delete Message",
+      close: "Close",
+      save: "Save",
+      cancel: "Cancel",
+      leave: "Leave",
+    },
+    error: {
+      upload: "Warning: Max Upload File Size Exceeds 100kb. filename {0}",
+    },
+    rules: {
+      required: "Field is required min 3 characters",
+    },
   },
-  tab: {
-    about: "About",
-    members: "Members",
-    settings: "Settings",
+
+  header: {
+    profile: "User Profile",
+    preferences: "User Preferences",
+    downloads: "Downloads",
+    offline: "Set yourself as {0}",
+    signOut: "Sign out",
+    searchLabel: "Search...",
   },
-  help: {
-    channelName: "only '_|#|&' allowed min 3 characters",
-    messageInputHint: "Shift + Return to add new line",
+
+  settings: {
+    title: "User Settings",
+    input: {
+      userConnNotification: "Mute Connection Notifications",
+      toggleDark: "Toggle Dark",
+      leftOff: "Continue where you left off",
+    },
+    button: {
+      save: "Save Settings",
+    },
   },
-  error: {
-    upload: "Warning: Max Upload File Size Exceeds 100kb. filename {0}",
-    
-  },
-  success: {
-    
-  },
-  rules: {
-    required: "Field is required min 3 characters",
+
+  profile: {
+    input: {
+      firstName: "First Name",
+      lastName: "Last Name",
+      displayName: "Display Name",
+      email: "Email",
+    },
+    button: {
+      save: "Save Profile",
+    },
   },
 };

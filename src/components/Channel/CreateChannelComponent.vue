@@ -89,22 +89,22 @@ const updateChannel = (key: string) => {
       </v-card-title>
       <v-divider :thickness="3" color="error" class="mb-3"></v-divider>
       <v-tabs v-model="channelTab" color="deep-purple-accent-4" align-tabs="center">
-        <v-tab key="about" value="about">{{ $lang("tab.about") }}</v-tab>
+        <v-tab key="about" value="about">{{ $lang("channel.tab.about") }}</v-tab>
 
         <v-tab key="members" value="members" v-if="channel?.createdBy === currentUser?._uuid">
-          {{ $lang("tab.members") }}</v-tab>
+          {{ $lang("channel.tab.members") }}</v-tab>
 
         <v-tab key="settings" value="settings" v-if="!create">
-          {{ $lang("tab.settings") }}</v-tab>
+          {{ $lang("channel.tab.settings") }}</v-tab>
       </v-tabs>
       <v-window v-model="channelTab" class="ma-4">
         <!-- About -->
         <v-window-item value="about" key="about">
           <v-form class="ma-2" name="create-room">
-            <v-text-field :label="$lang('input.channelName')" v-model="channelForm.channelName"
-              :hint="$lang('help.channelName')" clearable prepend-inner-icon="mdi-forum" :disabled="!create">
+            <v-text-field :label="$lang('channel.input.name')" v-model="channelForm.channelName"
+              :hint="$lang('help.name')" clearable prepend-inner-icon="mdi-forum" :disabled="!create">
             </v-text-field>
-            <v-text-field :label="$lang('input.channelTopic')" v-model="channelForm.channelTopic" clearable
+            <v-text-field :label="$lang('channel.input.topic')" v-model="channelForm.channelTopic" clearable
               prepend-inner-icon="mdi-information-outline">
               <template v-slot:append v-if="!create">
                 <v-slide-x-reverse-transition mode="out-in">
@@ -116,7 +116,7 @@ const updateChannel = (key: string) => {
                 </v-slide-x-reverse-transition>
               </template>
             </v-text-field>
-            <v-textarea :label="$lang('input.channelDescription')" v-model="channelForm.channelDescription" clearable
+            <v-textarea :label="$lang('channel.input.description')" v-model="channelForm.channelDescription" clearable
               prepend-inner-icon="mdi-information-outline" auto-grow>
               <template v-slot:append v-if="!create">
                 <v-slide-x-reverse-transition mode="out-in">
@@ -132,14 +132,14 @@ const updateChannel = (key: string) => {
               <v-divider></v-divider>
               <v-btn block prepend-icon="mdi-database-plus" color="indigo" @click.prevent="createChannel"
                 :disabled="channelForm.channelName.length < 3" :loading="isLoading">
-                {{ $lang("channel.createChannel") }}</v-btn>
+                {{ $lang("channel.channel.create") }}</v-btn>
             </div>
           </v-form>
           <v-sheet v-if="!create">
-            <v-text-field :label="$lang('channel.managedBy')" disabled prepend-inner-icon="mdi-account-switch"
+            <v-text-field :label="$lang('channel.managed')" disabled prepend-inner-icon="mdi-account-switch"
               :model-value="currentUser?.displayName">
             </v-text-field>
-            <v-text-field :label="$lang('channel.createdBy')" prepend-inner-icon="mdi-account-key" disabled
+            <v-text-field :label="$lang('channel.created')" prepend-inner-icon="mdi-account-key" disabled
               :model-value="currentUser?.displayName"></v-text-field>
           </v-sheet>
         </v-window-item>

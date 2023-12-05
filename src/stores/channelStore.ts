@@ -6,17 +6,12 @@ import { nanoid } from "nanoid";
 import { esc, remove, createDateTime, capitalize } from "@/helpers";
 // types
 import type { Snackbar, UploadedFiles } from "@/types";
-import type { Channels, ChannelForm, SendThreadPayload } from "@/types/Channel";
-import type {
-  ChannelMembers,
-  ChannelSettings,
-  ChannelMessages,
-  ChannelTyping,
-} from "@/types/Channel";
+import type { Channels, ChannelForm, SendThreadPayload, ChannelTyping } from "@/types/Channel";
+import type { ChannelMembers, ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
-import type { NewThreadMessage, AddMembers } from "@/types/sockets";
-import type { NewChannel, JoinChannel } from "@/types/sockets";
+import type { NewThreadMessage, AddMembers } from "@/types/Sockets.ts";
+import type { NewChannel, JoinChannel } from "@/types/Sockets.ts";
 import { langKey } from "@/types/Symbols";
 
 export const useChannelStore = defineStore("channelStore", () => {
@@ -45,6 +40,10 @@ export const useChannelStore = defineStore("channelStore", () => {
 
   // Filter Channels
   const filteredChannels = computed(() => {
+    isLoading.channels = true
+    setTimeout(() => {
+      isLoading.channels = false
+    }, 300);
     return channels.value
       .filter((channel) => {
         return channel.channelName

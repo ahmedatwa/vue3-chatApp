@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch, inject } from "vue";
+import { ref, watch, inject } from "vue";
 import { SettingComponent, ProfileComponent } from "@/components/User";
 import { SearchComponent } from "@/components/Common"
 // types
 import { UserSessionData, UserAppSettings } from "@/types/User";
-import type { UserProfile } from "@/types/User"
 import { langKey } from "@/types/Symbols";
 
 const drawer = inject<boolean>("drawer")
@@ -13,8 +12,6 @@ const lang = inject(langKey)
 const user = inject<UserSessionData>('user')
 const settingsDialog = ref(false)
 const profileDialog = ref(false)
-
-
 
 defineProps<{
   userSettings: UserAppSettings | null
@@ -26,7 +23,7 @@ const emit = defineEmits<{
   "update:setting": [value: UserAppSettings];
   "update:search": [value: string];
   "update:locale": [value: string];
-  "update:profile": [value: UserProfile]
+  "update:profile": [value: {displayName: string, image: string}]
 }>();
 
 const logout = () => {
@@ -37,15 +34,6 @@ const logout = () => {
 watch(isOffline, (newStatus) => {
   emit("update:status", newStatus);
 });
-
-const status = computed(() => {
-  if (isOffline.value) {
-    return "Set yourself as active";
-  } else {
-    return "Set yourself as away";
-  }
-});
-
 
 </script>
 <template>
@@ -95,29 +83,29 @@ const status = computed(() => {
           <v-list-item @click="isOffline = !isOffline" key="status">
             <v-list-item-title>
               <v-icon icon="mdi-account-badge" :color="isOffline === false ? 'success' : ''"></v-icon>
-              {{ status }}
+              {{  $lang('header.offline', [isOffline ? 'active' : 'away']) }}
             </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item key="profile" value="profile" @click="profileDialog = !profileDialog">
             <v-list-item-title>
               <v-icon icon="mdi-account-edit"></v-icon>
-              {{ $lang('text.userProfile') }}</v-list-item-title>
+              {{ $lang('header.profile') }}</v-list-item-title>
           </v-list-item>
           <v-list-item key="setting" value="setting" @click="settingsDialog = !profileDialog">
             <v-list-item-title><v-icon icon="mdi-cog"></v-icon>
-              {{ $lang('text.userPreferences') }}
+              {{ $lang('header.preferences') }}
             </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item key="downloads" value="downloads" class="pointer">
             <v-list-item-title>
               <v-icon icon="mdi-download-box"></v-icon>
-              {{ $lang('text.userDownloads') }}</v-list-item-title>
+              {{ $lang('header.downloads') }}</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item @click.stop="logout" key="logout">
-            <v-list-item-title><v-icon icon="mdi-logout"></v-icon> {{ $lang('button.signOut') }}
+            <v-list-item-title><v-icon icon="mdi-logout"></v-icon> {{ $lang('header.signOut') }}
             </v-list-item-title>
           </v-list-item>
         </v-list>

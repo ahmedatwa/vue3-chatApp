@@ -66,7 +66,7 @@ const isLoadMoreDisabled = computed(() => {
     <v-sheet :align="'center'" justify="center" class="my-2">
       <v-btn :loading="isLoading.messages" :disabled="isLoadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
         :color="isLoadMoreDisabled ? 'error' : 'success'" @click="loadMoreMessages">
-        {{ $lang("button.loadMore") }}
+        {{ $lang("chat.button.loadMore") }}
       </v-btn>
     </v-sheet>
     <v-row no-gutters v-for="(userMessage, index) in userMessages" :key="index">
@@ -80,13 +80,13 @@ const isLoadMoreDisabled = computed(() => {
           </chat-action-menu>
           {{ formatTimeShort(message.createdAt) }}
           <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
-            {{ message.fromName }}:
+            {{ currentUser?.displayName }}:  
           </span>
-          <span class="font-weight-bold text-blue" v-else-if="message.to">
-            {{ message.toName }}:
+          <span class="font-weight-bold text-blue" v-else>
+            {{ selectedUser?.displayName }}:  
           </span>
           <span v-if="message.editContent" class="text-caption me-1">
-            {{ $lang("text.edited") }}</span>
+            {{ $lang("chat.text.edited") }}</span>
           <span class="text-left" v-else>{{ message.content }}</span>
         </v-col>
       </v-slide-x-transition>
