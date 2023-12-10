@@ -1,34 +1,29 @@
 <script setup lang="ts">
 import { ref, watch, inject } from "vue";
-import { SettingComponent, ProfileComponent } from "@/components/User";
+import PreferenceComponent from "@/components/User/PreferenceComponent.vue"
 import { SearchComponent } from "@/components/Common"
 // types
-import { UserSessionData, UserAppSettings } from "@/types/User";
+import { UserSessionData, UserSettings } from "@/types/User";
 import { langKey } from "@/types/Symbols";
 
 const drawer = inject<boolean>("drawer")
+const user = inject<UserSessionData>("user")
 const isOffline = ref(false);
 const lang = inject(langKey)
-const user = inject<UserSessionData>('user')
-const settingsDialog = ref(false)
-const profileDialog = ref(false)
-
-defineProps<{
-  userSettings: UserAppSettings | null
-}>()
+const isPrefDialog = ref(false)
 
 const emit = defineEmits<{
   "logout": [value: { _uuid: string, sessionID: string, connected: boolean }];
   "update:status": [value: boolean];
-  "update:setting": [value: UserAppSettings];
+  "update:setting": [value: UserSettings];
   "update:search": [value: string];
   "update:locale": [value: string];
-  "update:profile": [value: {displayName: string, image: string}]
+  "update:profile": [value: { displayName: string, image: string }]
 }>();
 
 const logout = () => {
   if (user)
-    emit("logout", { _uuid: user?._uuid, sessionID: user?.sessionID, connected: false });
+    emit("logout", { _uuid: user?._uuid, sessionID: user.sessionID, connected: false });
 };
 
 watch(isOffline, (newStatus) => {
@@ -72,7 +67,7 @@ watch(isOffline, (newStatus) => {
         <v-list>
           <v-list-item class="text-center" key="user" value="user">
             <v-avatar>
-              <v-img v-if="user?.image !== ''" :src="user?.image" :alt="user?.userName"></v-img>
+              <v-img v-if="user?.image !== ''" :src="user?.image" :alt="user?.displayName"></v-img>
               <v-icon icon="mdi-account-circle" :color="user.connected ? 'success' : ''" v-else> </v-icon>
             </v-avatar>
             <v-badge dot inline :color="user?.connected ? 'success' : 'dark'">
@@ -83,25 +78,14 @@ watch(isOffline, (newStatus) => {
           <v-list-item @click="isOffline = !isOffline" key="status">
             <v-list-item-title>
               <v-icon icon="mdi-account-badge" :color="isOffline === false ? 'success' : ''"></v-icon>
-              {{  $lang('header.offline', [isOffline ? 'active' : 'away']) }}
+              {{ $lang('header.offline', [isOffline ? 'active' : 'away']) }}
             </v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
-          <v-list-item key="profile" value="profile" @click="profileDialog = !profileDialog">
-            <v-list-item-title>
-              <v-icon icon="mdi-account-edit"></v-icon>
-              {{ $lang('header.profile') }}</v-list-item-title>
-          </v-list-item>
-          <v-list-item key="setting" value="setting" @click="settingsDialog = !profileDialog">
+          <v-list-item key="preference" value="preference" @click="isPrefDialog = !isPrefDialog">
             <v-list-item-title><v-icon icon="mdi-cog"></v-icon>
               {{ $lang('header.preferences') }}
             </v-list-item-title>
-          </v-list-item>
-          <v-divider></v-divider>
-          <v-list-item key="downloads" value="downloads" class="pointer">
-            <v-list-item-title>
-              <v-icon icon="mdi-download-box"></v-icon>
-              {{ $lang('header.downloads') }}</v-list-item-title>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item @click.stop="logout" key="logout">
@@ -111,11 +95,9 @@ watch(isOffline, (newStatus) => {
         </v-list>
       </v-menu>
     </v-app-bar>
-    <!-- settings -->
-    <setting-component v-model:model-value="settingsDialog" :user-settings="userSettings"
-      @on:update:settings="$emit('update:setting', $event)"></setting-component>
-    <!-- profile -->
-    <profile-component :user="user" v-model:model-value="profileDialog"
-      @on:update:profile="$emit('update:profile', $event)"></profile-component>
+    <preference-component v-model:model-value="isPrefDialog" :user="user"
+      @update:profile="$emit('update:profile', $event)"
+      @update:settings="$emit('update:setting', $event)"></preference-component>
+
   </v-container>
 </template>

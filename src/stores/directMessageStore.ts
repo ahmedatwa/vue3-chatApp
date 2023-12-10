@@ -1,16 +1,17 @@
 import { defineStore } from "pinia";
-import { ref, computed, shallowRef } from "vue";
+import { ref, computed, shallowRef, watchEffect } from "vue";
 import { inject, reactive } from "vue";
 import { useSessionStore, useStorageStore } from "@/stores";
 import { useUserStore } from "@/stores";
 import { instance, directMessageApi } from "@/axios";
-import { capitalize, createDateTime, esc } from "@/helpers";
+import { createDateTime, esc } from "@/helpers";
 
 // types
 import type { Snackbar, UploadedFiles } from "@/types";
 import type { User, UserTyping, UserMessages } from "@/types/User";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
+import { nanoid } from "nanoid";
 
 export const useDirectMessageStore = defineStore("directMessageStore", () => {
   const users = ref<User[]>([]);
@@ -19,6 +20,9 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   const selectedUser = shallowRef<User | null>(null);
   const filterSearchInput = ref("");
   const newAlert = ref<Snackbar | null>(null);
+  const getRandom = (len: number = 36) => {
+    return nanoid(len);
+  };
 
   const typing = ref<Record<"messages" | "thread", UserTyping | null>>({
     messages: null,
@@ -43,21 +47,17 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
   // Filter Users
   const filteredUsers = computed(() => {
-    isLoading.users = true;
-    setTimeout(() => {
-      isLoading.users = false;
-    }, 300);
     return users.value
       .filter((user: User) => {
-        return user.userName
+        return user.displayName
           .toLowerCase()
           .includes(filterSearchInput.value.toLowerCase());
       })
       .sort((a, b) => {
         if (a.self) return -1;
         if (b.self) return 1;
-        if (a.userName < b.userName) return -1;
-        return a.userName > b.userName ? 1 : 0;
+        if (a.displayName < b.displayName) return -1;
+        return a.displayName > b.displayName ? 1 : 0;
       });
   });
 
@@ -65,20 +65,21 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     content: string;
     files?: File[] | null;
   }) => {
-    isLoading.messages = true;
-    // save Files
+    if (selectedUser.value?._channelID === null) {
+      await addChannelsMember(getRandom(30));
+    }
+
     if (message.files?.length) {
       await uploadFiles(message.files);
     }
-    // save sent Message
+
     await instance
       .post(directMessageApi.__sendMessage, {
         content: esc(message.content),
         editContent: "",
         from: sessionStore.userSessionData?._uuid,
-        fromName: sessionStore.userSessionData?.displayName,
         to: selectedUser.value?._uuid,
-        toName: selectedUser.value?.displayName,
+        _channelID: selectedUser.value?._channelID,
         files: uploadedFiles.value,
         createdAt: createDateTime(),
       })
@@ -103,20 +104,43 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
           timeout: -1,
           location: "",
         };
-      })
-      .finally(() => {
-        isLoading.messages = false;
       });
   };
 
-  const getMessages = async (_uuid: string) => {
-    isLoading.users = true;
-    try {
-      return instance.get(directMessageApi.__getUserDirectMessages, {
-        params: {
-          _uuid,
-        },
+  const addChannelsMember = async (_channelID: string) => {
+    await instance
+      .post(directMessageApi.__addDirectMessagesMembers, {
+        _channelID,
+        from: sessionStore.userSessionData?._uuid,
+        to: selectedUser.value?._uuid,
+      })
+      .then((response) => {
+        if (response.data) {
+          const user = users.value.find(
+            (u) => u._uuid === selectedUser.value?._uuid
+          );
+          if (user) {
+            user._channelID = _channelID;
+          }
+          if (selectedUser.value) {
+            selectedUser.value._channelID = _channelID;
+          }
+        }
       });
+  };
+
+  const getUserDirectMessageChannels = async (_uuid: string) => {
+    try {
+      isLoading.users = true;
+      const response = await instance.get(
+        directMessageApi.__getUserDirectMessageChannels,
+        {
+          params: {
+            _uuid,
+          },
+        }
+      );
+      return response.data;
     } catch (error: any) {
       newAlert.value = {
         title: $lang?.getLine("channel.error.send"),
@@ -129,43 +153,39 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       isLoading.users = false;
     }
   };
-  // .then((response) => {
-  //   if (response.data) {
-  //     console.log(response.data);
 
-  // selectedUser.value?.messages.push(...response.data)
-  // const user = users.value.find((u) => u._uuid === from);
-  // if(user) {
-  //   user.messagesDistributed = true
-  // }
-
-  // response?.data.forEach((message: DBUserMessages) => {
-  //   // message.content.forEach((content: UserMessages) => {
-  //   //   const otherUser =
-  //   //     sessionStore.userSessionData?._uuid === content.from
-  //   //       ? content.to
-  //   //       : content.from;
-  //   //   if (messagesPerUser.has(otherUser)) {
-  //   //     messagesPerUser.get(otherUser).push(content);
-  //   //   } else {
-  //   //     messagesPerUser.set(otherUser, [content]);
-  //   //   }
-  //   // });
-  // });
-
-  //}
-  // })
-  // .catch((error) => {
-  //   newAlert.value = {
-  //     title: error.code,
-  //     text: error.message,
-  //     type: "error",
-  //   };
-  // })
-  // .finally(() => {
-  //   isLoading.value.messages = false;
-  // });
-  //};
+  const getMessages = async (_channelID: string) => {
+    isLoading.messages = true;
+    return instance
+      .get(directMessageApi.__getUserDirectMessages, {
+        params: {
+          _channelID,
+        },
+      })
+      .then((response) => {
+        if (response.data) {
+          const found = users.value.find(u => u._channelID === _channelID)
+          if (found) {
+            found.messages?.push(...response.data)
+            found.messagesDistributed = true
+          }
+          if(selectedUser.value) {
+            selectedUser.value?.messages?.push(...response.data);
+            selectedUser.value?.messagesDistributed == true  
+          }
+        }
+      })
+      .catch((error) => {
+        newAlert.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.messages = false;
+      });
+  };
 
   const uploadFiles = async (files: File[]) => {
     uploadedFiles.value = [];
@@ -198,42 +218,36 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       ...user,
       selected: true,
       newMessages: null,
-      messages: user.messages
-        ? user.messages
-        : messagesPerUser.value.get(user._uuid),
+      messages: user.messages || [],
+      //     ? user.messages
+      //     : messagesPerUser.value.get(user._uuid),
+      // };
     };
   };
 
   const removeUser = (_uuid: string) => {
-    console.log(_uuid);
-
     const index = users.value.findIndex((u) => u._uuid === _uuid);
-    console.log(index);
-
     if (index) {
       users.value.splice(index, 1);
       selectedUser.value = null;
     }
   };
-  //swatch(
-  // () => selectedUser.value?.messagesDistributed,
-  // async (messagesDistributed) => {
-  //   if (selectedChannel.value && !messagesDistributed) {
-  //     await getTotalChannelMessages(selectedChannel.value._channelID);
 
-  //     if (messagesTotal.value) {
-  //       const offset = Math.ceil(messagesTotal.value - paginationLimit.value);
-  //       await getChannelMessages(
-  //         selectedChannel.value?._channelID,
-  //         paginationLimit.value,
-  //         offset,
-  //         false
-  //       );
-  //     }
-  //   }
-  // }
-  //);
-
+  watchEffect(async () => {
+    if (selectedUser.value?.selected) {
+      const user = users.value.find(
+        (u) => u._uuid === selectedUser.value?._uuid
+      );
+      if (user) {
+        if (
+          !user.messagesDistributed &&
+          selectedUser.value?._channelID !== null
+        ) {
+          await getMessages(selectedUser.value?._channelID);
+        }
+      }
+    }
+  });
   // Sockets
   const userTyping = (input: string) => {
     socket.timeout(500).emit("user_typing", {
@@ -271,20 +285,21 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
             users.value.push({
               _id: user._id,
               _uuid: user._uuid,
-              userName: user.userName,
               firstName: user.firstName,
               lastName: user.lastName,
-              displayName: capitalize(user.firstName + " " + user.lastName),
+              displayName: user.displayName,
+              _channelID: user._channelID,
               email: user.email,
               image: user.image,
               messagesDistributed: false,
               connected: user.connected === "1" ? true : false,
               self: false,
+              visible: false,
               messages: [{ ...newMessage, fromSelf }],
-              newMessages:{
-                  total: UnreadMessagesTotal.value++,
-                  lastMessage: newMessage.content,
-                },
+              newMessages: {
+                total: UnreadMessagesTotal.value++,
+                lastMessage: newMessage.content,
+              },
               createdAt: user.createdAt,
             });
           });
@@ -354,7 +369,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     //     createdAt: user.createdAt,
     //   });
 
-    if (selectedUser.value?.settings?.muteNotification === false) {
+    if (selectedUser.value?.settings?.muteConnectionNotif === false) {
       newAlert.value = {
         title: user.displayName,
         text: "is online.",
@@ -400,6 +415,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     filteredUsers,
     messagesPerUser,
     otherUsers,
+    getUserDirectMessageChannels,
     removeUser,
     sendMessage,
     userTyping,

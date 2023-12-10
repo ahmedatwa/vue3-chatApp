@@ -65,7 +65,7 @@ const errorValue = computed({
       variant="tonal"
       @click="$emit('exit:app', true)"
     >
-      {{ $lang("chat.button.exit") }}</v-btn
+      {{ $lang("button.exit") }}</v-btn
     >
     <v-btn
       color="blue-darken-3"
@@ -73,7 +73,7 @@ const errorValue = computed({
       variant="tonal"
       @click="$emit('restore:session', true)"
     >
-      {{ $lang("chat.button.restore") }}</v-btn
+      {{ $lang("button.restore") }}</v-btn
     >
   </v-overlay>
 </template>

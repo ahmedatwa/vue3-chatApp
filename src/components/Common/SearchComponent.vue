@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, watchEffect } from "vue";
 import { useUserStore, useDirectMessageStore } from "@/stores";
 import { capitalize } from "@/helpers";
 import type { User } from "@/types/User";
@@ -7,13 +7,12 @@ import type { User } from "@/types/User";
 const searchTerm = ref("");
 const userStore = useUserStore();
 const directMessageStore = useDirectMessageStore();
-
 const searchItemes = ref<any[]>([]);
 
-onMounted(async () => {
-  const [users] = await Promise.all([userStore.getAllUsers()]);
-  if (users?.data) {
-    const map2 = users?.data.map(
+watchEffect(async () => {
+  const users = userStore.allUsers
+  if (users) {
+    const map2 = users.map(
       (res: { _uuid: string; firstName: string; lastName: string }) => {
         return {
           _id: res._uuid,
@@ -39,10 +38,11 @@ const onSelect = async () => {
             directMessageStore.users.push({
               _id: user._id,
               _uuid: user._uuid,
-              userName: user.userName,
+              _channelID: null,
               firstName: user.firstName,
               lastName: user.lastName,
-              displayName: capitalize(user.firstName + " " + user.lastName),
+              displayName: user.displayName,
+              visible: true,
               email: user.email,
               image: user.image,
               messagesDistributed: false,

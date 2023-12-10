@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
-import { inject, onMounted } from "vue";
-import { formatTimeShort, formatDateLong } from "@/helpers";
-import { ChatActionMenu } from "@/components/Chat";
+import { inject, onMounted, watchEffect } from "vue";
+import { MessageActionMenu } from "@/components/Channel";
+// types
 import type { ChannelMessages, Channels } from "@/types/Channel";
 import type { Pagination, ChannelTyping } from "@/types/Channel";
-import { User } from "@/types/User";
+import type { User } from "@/types/User";
+import { formatTimeShort, formatDateLong } from "@/helpers";
 
 const currentUser = inject<User>("user");
+const isLoadMore = ref(true)
 const pagination = ref<Pagination>({
-  total: 0,
   offset: 0,
   limit: 0,
 });
@@ -29,8 +30,8 @@ const props = defineProps<{
 
 // emits
 const emit = defineEmits<{
-  "on:deleteMessage": [value: number];
-  "on:editMessage": [
+  "deleteMessage": [value: number];
+  "editMessage": [
     value: {
       _messageId: string | number;
       editContent: string;
@@ -38,14 +39,13 @@ const emit = defineEmits<{
       updatedAt: string;
     }
   ];
-  "on:loadMoreMessages": [
+  "loadMoreMessages": [
     _channelID: string | number,
-    limit: number,
     offset: number,
     unshift: boolean
   ];
   "update:scroll": [value: boolean];
-  "start:thread": [value: { message: ChannelMessages }]
+  "start:thread": [value: ChannelMessages]
 }>();
 
 // group messages by date
@@ -54,8 +54,9 @@ const channelMessages = computed(() => {
     return props.channel.messages.reduce((result: any, value) => {
       const date = value.createdAt.split(" ")[0];
       (result[date] || (result[date] = [])).push(value);
+
       return result;
-    }, {});
+    }, {})
   }
 });
 
@@ -66,9 +67,8 @@ const loadMoreMessages = () => {
   }
   if (props.channel?._channelID) {
     emit(
-      "on:loadMoreMessages",
+      "loadMoreMessages",
       props.channel?._channelID,
-      pagination.value.limit,
       pagination.value.offset,
       true
     );
@@ -76,14 +76,14 @@ const loadMoreMessages = () => {
 };
 
 // Watchers
-watch(
-  () => props.channel?.pagination,
-  (value) => {
-    if (value) {
-      pagination.value = value;
+watchEffect(() => {
+  if (props.channel?.pagination) {
+    pagination.value = props.channel?.pagination;
+    if (props.channel.pagination.offset < 0) {
+      isLoadMore.value = false
     }
   }
-);
+});
 
 const lastRow = ref<HTMLDivElement | null>(null);
 
@@ -96,10 +96,6 @@ watch(
     }
   }
 );
-
-const isLoadMoreDisabled = computed(() => {
-  return pagination.value.offset < 0;
-});
 
 const autoScroll = () => {
   if (lastRow.value) {
@@ -137,32 +133,37 @@ onMounted(() => {
 <template>
   <v-container class="container">
     <v-sheet :align="'center'" justify="center" class="my-2">
-      <v-btn :loading="isLoading.messages" :disabled="isLoadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
-        :color="isLoadMoreDisabled ? 'error' : 'success'" @click="loadMoreMessages">
-        {{ $lang("chat.button.loadMore") }}
-      </v-btn>
+      <v-slide-y-transition>
+        <v-btn :loading="isLoading.messages" v-if="isLoadMore" variant="plain" prepend-icon="mdi-refresh" color="success"
+          @click="loadMoreMessages">
+          {{ $lang("chat.button.loadMore") }}
+        </v-btn>
+      </v-slide-y-transition>
     </v-sheet>
-    <v-row no-gutters v-for="(channelMessage, index) in channelMessages" :key="index">
+    <v-skeleton-loader v-if="isLoading.messages" type="list-item" v-for="n in channel?.totalMessages"
+      :key="n"></v-skeleton-loader>
+    <v-row no-gutters v-for="(channelMessage, index) in channelMessages" :key="index" v-if="!isLoading.messages">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
       </v-col>
-      <v-slide-x-transition group mode="in-out" tag="v-col">
-        <v-col v-for="message in channelMessage" :key="message._id" id="tes" cols="12" class="mb-2">
-          <chat-action-menu :message="message" @on:edit-message="$emit('on:editMessage', $event)"
-            @on:delete-message="$emit('on:deleteMessage', $event)" @start:thread="$emit('start:thread', $event)">
-          </chat-action-menu>
-          {{ formatTimeShort(message.createdAt) }}
-          <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
-            {{ message.fromName }}:
-          </span>
-          <span class="font-weight-bold text-blue" v-else>
-            {{ message.fromName }}:
-          </span>
-          <span v-if="message.editContent" class="text-caption me-1">
-            {{ $lang("chat.text.edited") }}</span>
-          <span class="text-left" v-else>{{ message.content }}</span>
-        </v-col>
-      </v-slide-x-transition>
+      <!-- <v-slide-x-transition group mode="out" tag="v-col"> -->
+      <v-col v-for="message in channelMessage" :key="message._id" id="tes" cols="12" class="my-4">
+        <message-action-menu id="channel" :message="message" @edit-message="$emit('editMessage', $event)"
+          @delete-message="$emit('deleteMessage', $event)"
+          @start:thread="$emit('start:thread', $event as ChannelMessages)">
+        </message-action-menu>
+        {{ formatTimeShort(message.createdAt) }}
+        <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
+          {{ message.fromName }}:
+        </span>
+        <span class="font-weight-bold text-blue" v-else>
+          {{ message.fromName }}:
+        </span>
+        <span v-if="message.editContent" class="text-caption me-1">
+          {{ $lang("chat.text.edited") }} {{ message.content }}</span>
+        <span class="text-left" v-else>{{ message.content }}</span>
+      </v-col>
+      <!-- </v-slide-x-transition> -->
     </v-row>
     <span ref="lastRow" class="last-ref">last</span>
   </v-container>

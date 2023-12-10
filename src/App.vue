@@ -21,7 +21,7 @@ onBeforeMount(async () => {
     await sessionStore.getSession(storageStore.sessionID);
   }
 
-  if (!storageStore.userStorageSettings) {
+  if (!sessionStore.userSessionData?.settings) {
     storageStore.setStorage("APPUSSTIG", {
       theme: "light",
       muteConnectionNotif: false,

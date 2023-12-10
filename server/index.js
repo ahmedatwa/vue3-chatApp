@@ -41,9 +41,9 @@ io.use((socket, next) => {
     if (sessionID) {
       socket._id = socketAuth._id;
       socket.sessionID = sessionID;
-      socket.email = socketAuth.email;
-      socket._channelID = socketAuth._channelID;
       socket._uuid = socketAuth._uuid;
+      socket.email = socketAuth.email;
+      socket.displayName = socketAuth.displayName;
       return next();
     }
     // socket.sessionId = socketAuth.sessionId;
@@ -59,14 +59,8 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   // emit session details and save
-  const sessionData = {
-    _id: socket._id,
-    _uuid: socket._uuid,
-    _channelID: socket._channelID,
-    sessionID: socket.sessionID,
-    userName: socket.userName,
-    connected: socket.connected,
-  };
+  const sessionData = {...socket.handshake.auth}
+
   socket.emit("session", sessionData);
   // join the "uuid" room
   socket.join(socket._uuid);

@@ -85,7 +85,7 @@ const isDisabled = computed((): boolean => {
           <v-btn v-if="emojiButton" icon="mdi-emoticon-happy-outline" density="default" id="emoji-activator"
             @click="isEmoji = !isEmoji" color="orange-darken-2">
           </v-btn>
-          <v-menu :close-on-content-click="false" v-model="isEmoji" target="parent" location="start">
+          <v-menu :close-on-content-click="true" v-model="isEmoji" target="parent" location="start">
             <emoji-picker :native="true" :hide-search="false" @select="onSelectEmoji"></emoji-picker>
           </v-menu>
         </div>

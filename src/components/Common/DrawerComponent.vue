@@ -6,7 +6,7 @@ import { ref, watch, inject } from "vue";
 
 const drawer = inject<boolean>("drawer")
 const activeElement = ref<number | string | null>(null);
-const listGroups = ref(["Users", "Channels"])
+const listGroups = ref(["users", "channels"])
 
 // Props
 const props = defineProps<{
@@ -43,10 +43,9 @@ watch(
 <template>
   <v-navigation-drawer v-model="drawer">
     <v-list lines="two" v-model:opened="listGroups">
-
       <!-- Users -->
-      <v-list-group value="Users">
-        <template v-slot:activator="{ props }">
+      <v-list-group value="users">
+        <template #activator="{ props }">
           <v-list-item v-bind="props" :title="$lang('directMessages.title')" elevation="1" variant="flat"></v-list-item>
         </template>
         <!-- skeleton-loader -->
@@ -54,16 +53,14 @@ watch(
           :loading="isLoadingUsers"></v-skeleton-loader>
         <!-- skeleton-loader -->
         <v-list-item v-for="user in users" :key="user._uuid" color="teal-darken-1" v-if="!isLoadingUsers"
-          :active="activeElement === user._uuid" @click="onSelect(user._uuid, 'user', user)">
+          :active="activeElement === user._uuid" @click="onSelect(user._uuid, 'user', user)" class="list-item">
           <template #append v-if="user.newMessages">
             <v-badge :color="user.connected ? 'success' : 'dark'" :content="user.newMessages.total  " inline></v-badge>
           </template>
-          
           <v-list-item-title>
              <!-- remove User -->
-             <v-btn v-if="user._uuid !== _uuid" icon="mdi-close" class="float-right" color="red" size="sm" variant="plain"
+             <v-btn v-if="user._uuid !== _uuid" icon="mdi-close" class="remove-user" size="sm" variant="plain"
               @click.prevent="$emit('removeUser', user._uuid)"></v-btn>
-
             <v-icon icon="mdi-account-circle" :color="user.connected ? 'success' : 'dark'">
             </v-icon>
             {{ user.displayName }} <span class="text-caption">{{ user._uuid === _uuid ? " you" : "" }}</span>
@@ -74,13 +71,13 @@ watch(
         </v-list-item>
       </v-list-group>
       <!-- channels -->
-      <v-list-group value="Channels">
-        <template v-slot:activator="{ props }">
+      <v-list-group value="channels">
+        <template #activator="{ props }">
           <v-list-item v-bind="props" :title="$lang('channel.title')" elevation="1" class="mt-3" variant="flat">
             <template #append>
               <v-btn prepend-icon="mdi-chat-plus" variant="plain" color="teal">
                 <create-channel-component @create-channel="emit('createChannel', $event)"
-                  :title="$lang('channel.createChannel')" create :key="_uuid" :users="users">
+                  :title="$lang('channel.create')" create :key="_uuid" :users="users">
                 </create-channel-component>
               </v-btn>
             </template>
@@ -110,4 +107,12 @@ watch(
   </v-navigation-drawer>
 </template>
 
-
+<style scoped>
+.remove-user {
+  display: none;
+  float: right;
+}
+.list-item:hover .remove-user {
+  display: inline-block;
+}
+</style>

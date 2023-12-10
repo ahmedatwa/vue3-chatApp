@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, inject } from "vue";
-import { MessageEditComponent, MessageDeleteComponent } from "@/components/Channel";
+import { MessageEditComponent } from "@/components/DirectMessage";
+import { MessageDeleteComponent } from "@/components/DirectMessage";
 import type { ChannelMessages } from "@/types/Channel";
 import type { UserMessages, UserSessionData } from "@/types/User";
 
@@ -12,13 +13,14 @@ const isDeleteDialog = ref(false);
 
 // Props
 const props = defineProps<{
-    message: ChannelMessages;
+    id: string;
+    message: UserMessages;
 }>();
 
 // emits
 const emit = defineEmits<{
-    "on:deleteMessage": [value: number];
-    "on:editMessage": [
+    deleteMessage: [value: number | string];
+    editMessage: [
         value: {
             _messageId: string | number;
             editContent: string;
@@ -26,7 +28,7 @@ const emit = defineEmits<{
             updatedAt: string;
         }
     ];
-    "start:thread": [value: { message: ChannelMessages | UserMessages }];
+    "start:thread": [value: ChannelMessages | UserMessages];
 }>();
 
 const getLastThreadMessage = computed((): string => {
@@ -39,9 +41,9 @@ const getLastThreadMessage = computed((): string => {
     return "";
 });
 
-const startThread = (open: boolean, message: ChannelMessages) => {
-    if (open) {
-        emit("start:thread", { message: message });
+const startThread = (start: boolean, message: UserMessages) => {    
+    if (start) {
+       emit("start:thread", message)
     }
 };
 </script>
@@ -80,10 +82,10 @@ const startThread = (open: boolean, message: ChannelMessages) => {
         </v-slide-x-transition>
         <!-- Edit -->
         <message-edit-component v-show="isEditDialog" v-model:model-value="isEditDialog" :message="message"
-            @on:edit-message="$emit('on:editMessage', $event)" :key="`message-edit${message._id}`"></message-edit-component>
+            @edit-message="$emit('editMessage', $event)" :key="`message-edit${message._id}`"></message-edit-component>
         <!-- Delete -->
         <message-delete-component v-show="isDeleteDialog" v-model:model-value="isDeleteDialog" :message="message"
-            @on:delete-message="$emit('on:deleteMessage', $event)"
+            @delete-message="$emit('deleteMessage', $event)"
             :key="`message-delete${message._id}`"></message-delete-component>
     </div>
 </template>

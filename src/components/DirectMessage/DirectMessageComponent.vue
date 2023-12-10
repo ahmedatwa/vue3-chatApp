@@ -5,21 +5,22 @@ import { MessageContentComponent, MessageThreadComponent } from "@/components/Di
 // types
 import type { User, UserTyping, UserMessages, SendThreadPayload } from "@/types/User";
 
-
 const messageInput = ref("")
 const uploadedFiles = ref<File[]>([]);
 const isScroll = ref(false)
 
 // Props
 defineProps<{
-  selectedUser: User | null;
+  user: User | null;
+  selected: boolean;
+  uuid: string | undefined;
   typing: Record<"messages" | "thread", UserTyping | null>;
   isLoading: {
     messages: boolean;
     thread: boolean;
     users: boolean;
   };
-  uuid: string | undefined;
+
 }>();
 
 // emits 
@@ -55,48 +56,49 @@ const isThreadOpen = ref(false);
 provide("isStartThread", isThreadOpen)
 const threadMessage = ref<UserMessages | null>(null);
 
-const startThread = ($event: { message: UserMessages }) => {
+const startThread = (message: UserMessages) => {
   threadMessage.value = null
-  threadMessage.value = $event.message;
+  threadMessage.value = message;
 };
 
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`direct-message-${selectedUser?._uuid}`" fluid>
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`direct-message-${user?._uuid}`" :class="selected ? '' : 'd-none'"
+    fluid>
     <v-row>
       <v-col>
-    <v-card class="mx-auto" id="container" :loading="isLoading.messages">
-      <v-card-title>
-        <v-avatar>
-          <v-img v-if="selectedUser?.image" :src="selectedUser?.image" alt="image"></v-img>
-          <v-icon icon="mdi-account-circle" :color="selectedUser?.connected ? 'success' : 'dark'" v-else> </v-icon>
-        </v-avatar>
-        <v-badge dot inline :color="selectedUser?.connected ? 'success' : 'dark'">
-          <p class="mr-1">{{ selectedUser?.displayName }}</p>
-        </v-badge>
-      </v-card-title>
-      <v-divider :thickness="3" color="success"></v-divider>
-      <message-content-component :selected-user="selectedUser" :is-loading="isLoading" @start:thread="startThread">
-      </message-content-component>
+        <v-card class="mx-auto" id="container" :loading="isLoading.messages">
+          <v-card-title>
+            <v-avatar>
+              <v-img v-if="user?.image" :src="user?.image" alt="image"></v-img>
+              <v-icon icon="mdi-account-circle" :color="user?.connected ? 'success' : 'dark'" v-else> </v-icon>
+            </v-avatar>
+            <v-badge dot inline :color="user?.connected ? 'success' : 'dark'">
+              <p class="mr-1">{{ user?.displayName }}</p>
+            </v-badge>
+          </v-card-title>
+          <v-divider :thickness="3" color="success"></v-divider>
+          <message-content-component :selected-user="user" :is-loading="isLoading" @start:thread="startThread">
+          </message-content-component>
 
-      <v-card-actions class="w-100 d-inline-block">
-        <chat-form-component :id="selectedUser?._uuid" :key="`user-${selectedUser?._uuid}`"
-          v-model:model-value="messageInput" v-model:files="uploadedFiles" :text-area-row-height="10" :text-area-rows="2"
-          :text-area-label="$lang('chat.input.send')" :auto-grow="true" @update:emoji="updateEmoji"
-          @submit="sendMessage">
-        </chat-form-component>
-        <!-- Typing -->
-        <chat-typing-component :typing="typing.messages"></chat-typing-component>
-      </v-card-actions>
-    </v-card>
-  </v-col>
-    <!-- Thread -->
-    <v-col cols="3" v-if="isThreadOpen">
-        <message-thread-component v-model:thread-card="isThreadOpen" :message="threadMessage"
-          :typing="typing.thread" :selectedUser="selectedUser"
-          @update:thread-card="isThreadOpen = $event" @on:send-thread-message="$emit('sendThreadMessage', $event)"
-          @on:thread-typing="$emit('threadTyping', $event)"></message-thread-component>
+          <v-card-actions class="w-100 d-inline-block">
+            <chat-form-component :id="user?._uuid" :key="`user-${user?._uuid}`" v-model:model-value="messageInput"
+              v-model:files="uploadedFiles" :text-area-row-height="10" :text-area-rows="2"
+              :text-area-label="$lang('chat.input.send')" :auto-grow="true" @update:emoji="updateEmoji"
+              @submit="sendMessage">
+            </chat-form-component>
+            <!-- Typing -->
+            <chat-typing-component :typing="typing.messages"></chat-typing-component>
+          </v-card-actions>
+        </v-card>
       </v-col>
-      </v-row>
+      <!-- Thread -->
+      <v-col cols="3" v-if="isThreadOpen">
+        <message-thread-component v-model:thread-card="isThreadOpen" :message="threadMessage" :typing="typing.thread"
+          :user="user" @update:thread-card="isThreadOpen = $event"
+          @send-thread-message="$emit('sendThreadMessage', $event)"
+          @update:thread-typing="$emit('threadTyping', $event)"></message-thread-component>
+      </v-col>
+    </v-row>
   </v-container>
 </template>

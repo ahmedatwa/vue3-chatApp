@@ -7,7 +7,6 @@ import { instance, sessionApi } from "@/axios";
 // types
 import type { User, UserSessionData } from "@/types/User";
 import type { Snackbar } from "@/types";
-import { capitalize } from "@/helpers";
 import socket from "@/client";
 import { nanoid } from "nanoid";
 
@@ -33,22 +32,15 @@ export const useSessionStore = defineStore("sessionStore", () => {
       .then((response) => {
         if (response.data) {
           userSessionData.value = {
-            _id: response.data._id,
-            _uuid: response.data._uuid,
-            image: response.data.image,
-            connected: response.data.connected,
-            sessionID: response.data.sessionID,
-            email: response.data.email,
-            userName: response.data.userName,
-            firstName: capitalize(response.data.firstName),
-            lastName: capitalize(response.data.lastName),
-            displayName: capitalize(
-              response.data.firstName + " " + response.data.lastName
-            ),
-            createdAt: response.data.createdAt,
+            ...response.data,
           };
           socket.auth = { ...userSessionData.value };
           socket.connect();
+          (socket as any)._id = response.data._id;
+          (socket as any)._uuid = response.data._uuid;
+          (socket as any).sessionID = response.data.sessionID;
+          (socket as any).email = response.data.email;
+          (socket as any).displayName = response.data.displayName;
           isLoggedIn.value = true;
         }
       })
@@ -133,34 +125,23 @@ export const useSessionStore = defineStore("sessionStore", () => {
       })
       .then((response) => {
         if (response?.statusText === "Created" && response.status === 201) {
-          socket.auth = {
-            _id: user._id,
-            _uuid: user._uuid,
-            sessionID: sessionID,
-            userName: user.userName,
-            email: user.email,
-          };
-          // connect socket
-          socket.connect();
           userSessionData.value = {
-            _id: user._id,
-            _uuid: user._uuid,
-            image: user.image,
+            ...user,
             connected: true,
             sessionID: sessionID,
-            userName: user.userName,
-            firstName: user.firstName,
-            lastName: user.lastName,
-            email: user.email,
-            displayName: capitalize(user.firstName + " " + user.lastName),
-            createdAt: user.createdAt,
           };
+
+          socket.auth = { ...userSessionData.value };
+          // connect socket
+          socket.connect();
 
           storageStore.setStorage("JSESSIOND", sessionID);
 
           (socket as any)._id = user._id;
           (socket as any)._uuid = user._uuid;
-          (socket as any).userName = user.userName;
+          (socket as any).sessionID = sessionID;
+          (socket as any).email = user.email;
+          (socket as any).displayName = user.displayName;
           isLoggedIn.value = true;
         }
       })

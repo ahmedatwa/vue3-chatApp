@@ -1,13 +1,15 @@
 import { defineStore } from "pinia";
-import { ref, computed, inject, reactive, shallowRef, watch } from "vue";
+import { ref, computed, inject } from "vue";
+import { reactive, shallowRef, watchEffect } from "vue";
 import { instance, channelApi } from "@/axios";
 import { useSessionStore } from "@/stores";
 import { nanoid } from "nanoid";
 import { esc, remove, createDateTime, capitalize } from "@/helpers";
 // types
 import type { Snackbar, UploadedFiles } from "@/types";
-import type { Channels, ChannelForm, SendThreadPayload, ChannelTyping } from "@/types/Channel";
-import type { ChannelMembers, ChannelSettings, ChannelMessages } from "@/types/Channel";
+import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel";
+import type { SendThreadPayload, ChannelTyping } from "@/types/Channel";
+import type { ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
 import type { NewThreadMessage, AddMembers } from "@/types/Sockets.ts";
@@ -35,14 +37,13 @@ export const useChannelStore = defineStore("channelStore", () => {
   const newAlert = ref<Snackbar | null>(null);
   const selectedChannel = ref<Channels | null>(null);
   const filterSearchInput = ref("");
-  const paginationLimit = ref(50);
-  const messagesTotal = ref(0);
+  const paginationLimit = ref(10);
 
   // Filter Channels
   const filteredChannels = computed(() => {
-    isLoading.channels = true
+    isLoading.channels = true;
     setTimeout(() => {
-      isLoading.channels = false
+      isLoading.channels = false;
     }, 300);
     return channels.value
       .filter((channel) => {
@@ -61,12 +62,9 @@ export const useChannelStore = defineStore("channelStore", () => {
     content: string;
     files?: File[] | null;
   }) => {
-    isLoading.messages = true;
-    // save Files
     if (message.files?.length) {
       await uploadFiles(message.files);
     }
-    // save sent Message
     await instance
       .post(channelApi.__addChannelMessage, {
         _channelID: selectedChannel.value?._channelID,
@@ -97,9 +95,6 @@ export const useChannelStore = defineStore("channelStore", () => {
           timeout: -1,
           location: "",
         };
-      })
-      .finally(() => {
-        isLoading.messages = false;
       });
   };
 
@@ -160,16 +155,16 @@ export const useChannelStore = defineStore("channelStore", () => {
 
   const getChannelMessages = async (
     _channelID: string | number,
-    limit?: number,
-    offset: number = 0,
-    unshift?: boolean
+    offset: number,
+    unshift: boolean,
+    limit?: number
   ) => {
     isLoading.messages = true;
     await instance
       .get(channelApi.__getChannelMessages, {
         params: {
           _channelID: _channelID,
-          limit: limit,
+          limit: limit ? limit : paginationLimit.value,
           offset: offset > 0 ? offset : 0,
         },
       })
@@ -192,11 +187,20 @@ export const useChannelStore = defineStore("channelStore", () => {
               $_offset = 0;
             }
 
+            const channel = channels.value.find(
+              (c: Channels) => c._channelID === _channelID
+            );
+            if (channel) {
+              channel.messagesDistributed = true;
+              channel.pagination = {
+                limit: $_limit,
+                offset: $_offset,
+              };
+            }
             selectedChannel.value.messagesDistributed = true;
             selectedChannel.value.pagination = {
               limit: $_limit,
               offset: $_offset,
-              total: messagesTotal.value,
             };
           }
         }
@@ -214,22 +218,17 @@ export const useChannelStore = defineStore("channelStore", () => {
   };
 
   const getTotalChannelMessages = async (_channelID: string) => {
-    return await instance
-      .get(channelApi.__getTotalChannelMessages, {
-        params: {
-          _channelID: _channelID,
-        },
-      })
-      .then((response) => {
-        if (response.data) [(messagesTotal.value = response.data as number)];
-      })
-      .catch((error) => {
-        newAlert.value = {
-          title: error.code,
-          text: error.message,
-          type: "error",
-        };
-      });
+    try {
+      const response = await instance.get(
+        channelApi.__getTotalChannelMessages,
+        {
+          params: {
+            _channelID: _channelID,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {}
   };
 
   const createChannel = async (channel: ChannelForm) => {
@@ -257,6 +256,7 @@ export const useChannelStore = defineStore("channelStore", () => {
             createdAt: response.data.createdAt,
             members: response.data.members,
             messages: [],
+            totalMessages: 0,
           });
           socket.emit(_channelEmits.create, {
             _channelID: response.data._channelID,
@@ -294,9 +294,13 @@ export const useChannelStore = defineStore("channelStore", () => {
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
-          if (selectedChannel.value) {
-            selectedChannel.value.membersDistributed = true;
-            selectedChannel.value?.members?.push(...response.data);
+          const channel = channels.value.find(
+            (c: Channels) => c._channelID === _channelID
+          );
+
+          if (channel) {
+            channel.membersDistributed = true;
+            channel?.members?.push(...response.data);
           }
         }
       })
@@ -621,52 +625,45 @@ export const useChannelStore = defineStore("channelStore", () => {
 
   // Channel Selected
   const onSelectChannel = async (channel: Channels) => {
-    // Resetting Data for performance s
     selectedChannel.value = {
       ...channel,
       selected: true,
       newMessages: null,
-      messagesDistributed: false,
-      messages: [],
-      members: [],
-      pagination: {
-        limit: paginationLimit.value,
-        total: channel.pagination?.total || 0,
-        offset: channel.pagination?.total
-          ? Math.ceil(channel.pagination?.total - paginationLimit.value)
-          : 0,
-      },
     };
   };
 
   // watchers
-  watch(
-    () => selectedChannel.value?.membersDistributed,
-    async (membersDistributed) => {
-      if (!membersDistributed && selectedChannel.value) {
-        await getChannelMembers(selectedChannel.value?._channelID);
+  watchEffect(async () => {
+    const channel = channels.value.find(
+      (c: Channels) => c._channelID === selectedChannel.value?._channelID
+    );
+
+    if (channel) {
+      if (!channel.membersDistributed) {
       }
     }
-  );
+  });
 
-  watch(
-    () => selectedChannel.value?.messagesDistributed,
-    async (messagesDistributed) => {
-      if (selectedChannel.value && !messagesDistributed) {
-        await getTotalChannelMessages(selectedChannel.value._channelID);
-
-        if (messagesTotal.value) {
-          const offset = Math.ceil(messagesTotal.value - paginationLimit.value);
-          await getChannelMessages(
-            selectedChannel.value?._channelID,
-            paginationLimit.value,
-            offset,
-            false
-          );
+  watchEffect(async () => {
+    if (selectedChannel.value?.selected) {
+      const channel = channels.value.find(
+        (c: Channels) => c._channelID === selectedChannel.value?._channelID
+      );
+      if (channel) {
+        if (!channel.messagesDistributed) {
+          if (selectedChannel.value.pagination) {
+            await getChannelMessages(
+              selectedChannel.value?._channelID,
+              selectedChannel.value.pagination?.offset,
+              false
+            );
+          }
+          // Memebers
+          await getChannelMembers(selectedChannel.value?._channelID);
         }
       }
     }
-  );
+  });
 
   // Sockets
   const UnreadMessagesTotal = reactive({ count: 0 });
@@ -708,17 +705,17 @@ export const useChannelStore = defineStore("channelStore", () => {
   socket.on(_channelListener.newThreadMessage, (event: NewThreadMessage) => {
     //reset typing
     typing.value.thread = null;
-    const _channel = channels.value.find(
-      (chann) => chann._channelID === event._channelID
-    );
+    const _channel = channels.value.find((c) => {
+      return c._channelID === event._channelID;
+    });
 
     if (_channel) {
-      _channel?.messages?.forEach((message) => {
-        if (message._id === event._messageID) {
-          message.thread.push({ ...event });
-          return;
-        }
+      const found = _channel?.messages.find((m) => {
+        return m._id === event._messageID;
       });
+      if (found) {
+        found.thread.push({ ...event });
+      }
 
       // Check for user settings
       if (_channel.settings?.muteNotifications === "none") {
@@ -768,6 +765,7 @@ export const useChannelStore = defineStore("channelStore", () => {
           channelTopic: "",
           channelDescription: "",
           messages: [],
+          totalMessages: 0,
           createdBy: event.from,
           createdAt: event.createdAt,
           members: [
@@ -809,7 +807,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     if (event.input.length > 0) {
       typing.value.channel = {
         from: event.from,
-        input: '',
+        input: "",
         displayName: event.displayName,
       };
     } else {
@@ -831,7 +829,7 @@ export const useChannelStore = defineStore("channelStore", () => {
       typing.value.thread = {
         from: event.from,
         displayName: event.displayName,
-        input: '',
+        input: "",
       };
     } else {
       typing.value.thread = null;
@@ -860,8 +858,11 @@ export const useChannelStore = defineStore("channelStore", () => {
     filteredChannels,
     filterSearchInput,
     isMessageDelete,
+    paginationLimit,
+    getChannelMembers,
     getChannels,
     channelTheadTyping,
+    getTotalChannelMessages,
     updateChannelSettings,
     getChannelMessages,
     updateChannel,

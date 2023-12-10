@@ -4,7 +4,7 @@ import { ChannelMessages, SendThreadPayload, ChannelTyping } from "@/types/Chann
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 
 const props = defineProps<{
-  message: ChannelMessages | null;
+  message: ChannelMessages | undefined;
   channelName: string | undefined;
   typing: ChannelTyping | null;
   uuid: string | undefined;

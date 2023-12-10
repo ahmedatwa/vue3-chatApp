@@ -12,7 +12,7 @@ import { ChannelComponent } from "@/components/Channel";
 import SnackbarComponent from "@/components/SnackbarComponent.vue";
 import type { Channels } from "@/types/Channel";
 import type { Snackbar } from "@/types";
-import type { User, UserAppSettings } from "@/types/User";
+import type { User, UserSettings, DirectMessageChannels } from "@/types/User";
 // vuetify
 import { useTheme } from "vuetify";
 // socket
@@ -54,23 +54,39 @@ const onSelect = (
   key: string,
   value: User | Channels
 ) => {
+  let prev = null;
+  //const $_ = storageStore.getLastSelectedElement;
+  // if ($_) {
+  //   prev = $_.current;
+  // }
+
   if (key === "user") {
     directMessageStore.onSelectUser({ ...(value as User) });
   } else {
     channelStore.onSelectChannel({ ...(value as Channels) });
   }
   activeComponent.value = key;
-  storageStore.setStorage("LSTSELECD", { _id, comp: key });
+
+  storageStore.setStorage("LSTSELECD", {
+    current: { _id, comp: key },
+    prev: prev,
+  });
 };
 
 // update veutify theme
-const updateSettings = (setting: UserAppSettings) => {
+const updateSettings = (setting: UserSettings) => {
   storageStore.setStorage("APPUSSTIG", {
     theme: setting.theme,
     muteConnectionNotif: setting.muteConnectionNotif,
   });
   _theme.global.name.value = setting.theme;
+
+  if (sessionStore.userSessionData?._uuid) {
+    userStore.updateUserSettings(setting, sessionStore.userSessionData?._uuid);
+  }
 };
+
+const updateProfile = () => {};
 
 // Watchers
 //new userStore socket Notification
@@ -101,8 +117,7 @@ watch(
 );
 
 onMounted(() => {
-  const userSettings = storageStore.userStorageSettings;
-  if (userSettings !== null && userSettings.leftOff) {
+  if (sessionStore.userSessionData?.settings?.leftOff) {
     const $_ = storageStore.getLastSelectedElement;
     if ($_) {
       lastSelectedElement.value = $_._id;
@@ -148,8 +163,8 @@ onMounted(() => {
 });
 
 watchEffect(() => {
-  if (storageStore.userStorageSettings?.theme) {
-    _theme.global.name.value = storageStore.userStorageSettings.theme;
+  if (sessionStore.userSessionData?.settings?.theme) {
+    _theme.global.name.value = sessionStore.userSessionData?.settings?.theme;
   }
 });
 
@@ -165,126 +180,110 @@ onUnmounted(() => {
 });
 
 // Sockets
-socket.on("connect", async () => {
-  socket.on(
-    "session",
-    async (session: {
-      _id: number;
-      _uuid: string;
-      sessionID: string;
-      userName: string;
-      _channelID: string;
-      connected: boolean;
-    }) => {
-      
-      
-      // Direct
-      if (sessionStore.userSessionData) {
-        directMessageStore.users.push({
-          ...sessionStore.userSessionData,
-          self: (socket.auth as any)._uuid === session._uuid,
-        });
-      }
+socket.on("connect", () => {
+  socket.on("session", async (session: User) => {
+    const [directMessagesChannels, channels] = await Promise.all([
+      directMessageStore.getUserDirectMessageChannels(session._uuid),
+      channelStore.getChannels(session._uuid),
+    ]);
 
-      const [messages, channels] = await Promise.all([
-        directMessageStore.getMessages(session._uuid),
-        channelStore.getChannels(session._uuid),
-      ]);
+    // User Channels
+    if (directMessagesChannels) {
+      directMessagesChannels.map((res: DirectMessageChannels) => {
+        const otherUser = session._uuid === res.from ? res.to : res.from;
 
-      if (messages?.data) {
-        messages?.data.forEach(async (message: any) => {
-          const { from, to } = message;
-          const otherUser: string = session._uuid === from ? to : from;
-
-          if (directMessageStore.otherUsers.indexOf(otherUser)) {
-            directMessageStore.otherUsers.push(otherUser);
-          }
-
-          if (directMessageStore.messagesPerUser.has(otherUser)) {
-            directMessageStore.messagesPerUser.get(otherUser).push(message);
-          } else {
-            directMessageStore.messagesPerUser.set(otherUser, [message]);
-          }
-        });
-
-        if (directMessageStore.otherUsers.length) {
-          const users = await userStore.getUser(directMessageStore.otherUsers);
-
-          if (users?.data) {
-            users.data.forEach((user: User) => {
-              const found = directMessageStore.users.find(
-                (u) => u._uuid === user._uuid
-              );
-
-              if (found === undefined) {
-                directMessageStore.users.push({
-                  _id: user._id,
-                  _uuid: user._uuid,
-                  userName: user.userName,
-                  firstName: user.firstName,
-                  lastName: user.lastName,
-                  displayName: capitalize(user.firstName + " " + user.lastName),
-                  email: user.email,
-                  image: user.image,
-                  messagesDistributed: false,
-                  self: user._uuid === session._uuid,
-                  selected: false,
-                  connected: user.connected === "1" ? true : false,
-                  messages:
-                    directMessageStore.messagesPerUser.get(user._uuid) || [],
-                  createdAt: user.createdAt,
-                });
-              }
-            });
-          }
-        }
-      }
-      // channels
-      if (channels?.data) {
-        channels.data.forEach((channel: Channels) => {
-          const found = channelStore.channels.find(
-            (c) => c._channelID === channel._channelID
-          );
-          if (found === undefined) {
-            channelStore?.channels.push({
-              _id: channel._id,
-              _channelID: channel._channelID,
-              channelName: capitalize(channel.channelName),
-              channelTopic: channel.channelTopic,
-              channelDescription: channel.channelDescription,
-              messagesDistributed: false,
-              membersDistributed: false,
-              pagination: null,
-              members: [],
-              messages: [],
-              settings: channel.settings,
-              createdBy: channel.createdBy,
-              createdAt: channel.createdAt,
-            });
-          }
-        });
-
-        // emit Channel Ids to Server
-        const mapChannels = channels.data.map(
-          (channel: Channels) => channel._channelID
+        const found = directMessageStore.users.find(
+          (user) => user._uuid === otherUser
         );
 
-        if (mapChannels) {
-          socket.emit("channels", mapChannels);
+        if (found) {
+          found._channelID = res._channelID;
+        } else {
+          userStore.allUsers.forEach((user) => {
+            directMessageStore.users.push({
+              _id: user._id,
+              _uuid: user._uuid,
+              _channelID: res._channelID,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              displayName: user.displayName,
+              email: user.email,
+              image: user.image,
+              messagesDistributed: false,
+              self: user._uuid === session._uuid,
+              visible: true,
+              connected: session.connected,
+              messages: [],
+              createdAt: user.createdAt,
+            });
+          });
         }
+      });
+    } else {
+      directMessageStore.users.push({
+        ...session,
+        messages: [],
+        messagesDistributed: false,
+        connected: session.connected,
+        self: (socket as any)._uuid === session._uuid,
+        _channelID: null,
+        visible: true,
+      });
+    }
+
+    // channels
+    if (channels?.data) {
+      channels.data.forEach((channel: Channels) => {
+        const found = channelStore.channels.find(
+          (c) => c._channelID === channel._channelID
+        );
+        if (found === undefined) {
+          channelStore?.channels.push({
+            _id: channel._id,
+            _channelID: channel._channelID,
+            channelName: capitalize(channel.channelName),
+            channelTopic: channel.channelTopic,
+            channelDescription: channel.channelDescription,
+            messagesDistributed: false,
+            membersDistributed: false,
+            pagination: {
+              offset:
+                channel.totalMessages > channelStore.paginationLimit
+                  ? Math.ceil(
+                      channel.totalMessages - channelStore.paginationLimit
+                    )
+                  : 0,
+              limit: channelStore.paginationLimit,
+            },
+            members: [],
+            messages: [],
+            totalMessages: channel.totalMessages,
+            settings: channel.settings,
+            createdBy: channel.createdBy,
+            createdAt: channel.createdAt,
+          });
+        }
+      });
+
+      // emit Channel Ids to Server
+      const mapChannels = channels.data.map(
+        (channel: Channels) => channel._channelID
+      );
+
+      if (mapChannels) {
+        socket.emit("channels", mapChannels);
       }
     }
-  );
+  });
 });
 
 // Channel Loading More
 const loadMoreMessages = (
   _channelID: string | number,
-  limit: number,
   offset: number,
   unshift: boolean
 ) => {
-  channelStore.getChannelMessages(_channelID, limit, offset, unshift);
+  channelStore.getChannelMessages(_channelID, offset, unshift);
 };
 </script>
 <template>
@@ -306,19 +305,23 @@ const loadMoreMessages = (
 
     <header-component
       :key="sessionStore.userSessionData?._uuid"
-      :user-settings="storageStore.userStorageSettings"
       @logout="sessionStore.updateSession"
       @update:status="goOffline"
       @update:setting="updateSettings"
+      @update:profile="updateProfile"
     ></header-component>
 
     <v-main>
       <v-container>
         <channel-component
-          v-if="activeComponent === 'channel'"
-          id="channel"
-          :key="channelStore.selectedChannel?._channelID"
-          :current-channel="channelStore?.selectedChannel"
+          v-for="channel in channelStore?.channels"
+          :id="`channel-${channel._channelID}`"
+          :key="channel._channelID"
+          :channel="channel"
+          :selected="
+            channelStore.selectedChannel?._channelID === channel._channelID
+          "
+          :class="activeComponent === 'channel' ? '' : 'd-none'"
           :is-loading="channelStore.isLoading"
           :typing="channelStore.typing"
           :is-message-delete="channelStore.isMessageDelete"
@@ -338,14 +341,17 @@ const loadMoreMessages = (
         >
         </channel-component>
         <direct-message-component
-          v-if="activeComponent === 'user'"
-          id="direct-message"
-          :key="directMessageStore.selectedUser?._uuid"
-          :selected-user="directMessageStore.selectedUser"
+          v-for="user in directMessageStore.users"
+          :key="user._uuid"
+          :id="`direct-message-${user._uuid}`"
+          :user="user"
+          :class="activeComponent === 'user' ? '' : 'd-none'"
+          :selected="directMessageStore.selectedUser?._uuid === user._uuid"
           :uuid="sessionStore.userSessionData?._uuid"
           :typing="directMessageStore.typing"
           :is-loading="directMessageStore.isLoading"
           @send-message="directMessageStore.sendMessage"
+          @sendThreadMessage="directMessageStore.sendThreadMessage"
           @user-typing="directMessageStore.userTyping"
         ></direct-message-component>
       </v-container>

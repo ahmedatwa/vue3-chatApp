@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { ChatFormComponent } from "@/components/Chat";
-import type { ChannelMessages } from "@/types/Channel";
+import type { UserMessages } from "@/types/User";
 import { createDateTime } from "@/helpers";
 
 const editMessageContent = ref("")
 
 defineProps<{
     modelValue: boolean;
-    message: ChannelMessages
+    message: UserMessages
 }>();
 
 const emit = defineEmits<{
@@ -17,7 +17,7 @@ const emit = defineEmits<{
 }>();
 
 
-const editMessage = (message: ChannelMessages) => {
+const editMessage = (message: UserMessages) => {
     emit("editMessage", {
         _messageId: message._id,
         editContent: message.content,
@@ -52,7 +52,7 @@ const onEditEmoji = (emoji: any) => {
                 <v-sheet :border="true" rounded elevation="1" class="pa-4 w-100">
                     <ul class="ma-3 list-style-none">
                         <li>
-                            <span class="font-weight-bold">{{ message.fromName }}</span> {{ message.createdAt }}
+                            <span class="font-weight-bold">{{ message.fromSelf }}</span> {{ message.createdAt }}
                         </li>
                         <li>{{ message.content }}</li>
                     </ul>

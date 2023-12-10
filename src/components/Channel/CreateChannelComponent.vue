@@ -80,7 +80,6 @@ const updateChannel = (key: string) => {
 };
 </script>
 <template>
-  <!-- Room Form -->
   <v-dialog v-model="dialog" width="auto" activator="parent" :key="channel?._id">
     <v-card width="450" class="ma-4" style="overflow: initial; z-index: initial" :loading="isLoading">
       <v-card-title>

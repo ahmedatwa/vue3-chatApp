@@ -18,6 +18,7 @@ interface Channels {
   messagesDistributed?: boolean;
   membersDistributed?: boolean;
   messages: ChannelMessages[];
+  totalMessages: number;
   pagination?: Pagination | null;
   members?: ChannelMembers[];
   newMessages?: NewChannelUnreadMessages | null;
@@ -97,7 +98,6 @@ interface SendThreadPayload {
 }
 
 interface Pagination {
-  total: number;
   limit: number;
   offset: number;
 }

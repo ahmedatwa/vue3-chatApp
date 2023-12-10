@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, inject } from "vue"
 import { formatTimeShort, formatDateLong } from "@/helpers";
-import { ChatActionMenu } from "@/components/Chat";
+import { MessageActionMenu } from "@/components/DirectMessage";
 // types
 import type { User, Pagination } from "@/types/User"
 
@@ -75,9 +75,9 @@ const isLoadMoreDisabled = computed(() => {
       </v-col>
       <v-slide-x-transition group mode="in-out" tag="v-col">
         <v-col v-for="message in userMessage" :key="message._id" id="tes" cols="12" class="mb-2">
-          <chat-action-menu :message="message" @on:edit-message="$emit('on:editMessage', $event)"
+          <message-action-menu id="message" :message="message" @on:edit-message="$emit('on:editMessage', $event)"
             @on:delete-message="$emit('on:deleteMessage', $event)" @start:thread="$emit('start:thread', $event)">
-          </chat-action-menu>
+          </message-action-menu>
           {{ formatTimeShort(message.createdAt) }}
           <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
             {{ currentUser?.displayName }}:  

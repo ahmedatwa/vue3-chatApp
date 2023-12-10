@@ -4,7 +4,7 @@ export default {
     create: "Create Channel",
     addMembers: "Add Members",
     mute: "Mute Notificationn for all Messages",
-    archive: "Archive Channel",
+    archive: "Archive for everyone",
     copyNames: "Copy Member Names",
     copyAddresses: "Copy Member Email Addresses",
     id: "Channel ID",
@@ -13,7 +13,7 @@ export default {
     created: "Channel Created By",
     join: "{0} has joined room {1}",
     input: {
-      send: "Message {0}",
+      send: "Message #{0}",
       name: "Channel Name",
       description: "Channel Description",
       topic: "Channel Topic",
@@ -70,6 +70,8 @@ export default {
       save: "Save",
       cancel: "Cancel",
       leave: "Leave",
+      exit: "Exit App",
+      restore: "Restore Session",
     },
     error: {
       upload: "Warning: Max Upload File Size Exceeds 100kb. filename {0}",
@@ -88,27 +90,24 @@ export default {
     searchLabel: "Search...",
   },
 
-  settings: {
-    title: "User Settings",
+  preference: {
+    userProfile: "Profile",
+    userSettings: "Settings",
+    userDownloads: "Downloads",
+    success: "Success: You have updated {0}",
+    error: "Warning: Error has occured.",
     input: {
       userConnNotification: "Mute Connection Notifications",
       toggleDark: "Toggle Dark",
       leftOff: "Continue where you left off",
-    },
-    button: {
-      save: "Save Settings",
-    },
-  },
-
-  profile: {
-    input: {
       firstName: "First Name",
       lastName: "Last Name",
       displayName: "Display Name",
       email: "Email",
     },
     button: {
-      save: "Save Profile",
+      saveSettings: "Save Settings",
+      saveProfile: "Save Profile",
     },
   },
 };

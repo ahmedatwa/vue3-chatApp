@@ -1,15 +1,16 @@
 interface User {
   _id: number;
   _uuid: string;
-  userName: string;
+  _channelID: string | null;
   displayName: string;
   firstName: string;
   lastName: string;
   email: string;
   image: string;
-  self?: boolean;
   connected: boolean | string;
+  self?: boolean;
   selected?: boolean;
+  visible?: boolean;
   typing?: boolean;
   settings?: UserSettings | null;
   newMessages?: NewUnreadMessages | null;
@@ -20,7 +21,9 @@ interface User {
 }
 
 type UserSettings = {
-  muteNotification: boolean;
+  muteConnectionNotif: boolean | string;
+  theme: string,
+  leftOff: boolean | string,
 };
 
 type NewUnreadMessages = {
@@ -39,11 +42,15 @@ type UserMessages = {
   from: string;
   to: string;
   content: string;
+  editContent?: string;
   fromSelf?: boolean;
   file?: File[] | null;
   seen?: boolean;
   last?: boolean;
   thread?: MessageThread[];
+  isUpdated?: boolean;
+  isEdit?: boolean;
+  updatedAt?: string;
   createdAt: string;
 };
 
@@ -57,21 +64,21 @@ type MessageThread = {
   createdAt?: string;
 };
 
-interface CreateUserForm {
-  userName: string;
+interface NewUserForm {
   firstName: string;
   lastName: string;
+  email: string;
 }
 
 interface UserSessionData {
   _id: number;
   _uuid: string;
-  userName: string;
+  sessionID: string;
   firstName: string;
   lastName: string;
   displayName: string;
+  settings?: UserSettings | null;
   email: string;
-  sessionID: string;
   image: string;
   connected: boolean;
   createdAt: string;
@@ -90,29 +97,31 @@ interface UserTyping {
   isTyping: boolean;
 }
 
-interface UserAppSettings {
-  theme: string;
-  leftOff: boolean;
-  muteConnectionNotif: boolean;
-  date?: string;
-}
-
 interface SendThreadPayload {
-  _messageID: number;
+  _messageID: number | string;
+  _channelID: string;
   from: string;
   to: string;
   content: string;
   files?: File[];
+  createdAt?: string;
 }
 
+interface DirectMessageChannels {
+  _channelID: string;
+  from: string;
+  to: string;
+  createdAt: string;
+}
 export type {
   User,
   UserMessages,
   DBUserMessages,
-  CreateUserForm,
+  NewUserForm,
   UserTyping,
   UserSessionData,
   Pagination,
-  UserAppSettings,
-  SendThreadPayload
+  SendThreadPayload,
+  DirectMessageChannels,
+  UserSettings
 };

@@ -21,6 +21,7 @@ import type {
 // types
 import type { UserSessionData } from "@/types/User";
 
+
 const user = inject<UserSessionData>("user");
 
 const messageInput = ref("");
@@ -29,7 +30,7 @@ const isScroll = ref(false);
 
 // Props
 const props = defineProps<{
-  currentChannel: Channels | null;
+  channel: Channels | null;
   typing: Record<"channel" | "thread", ChannelTyping | null>;
   isLoading: {
     messages: boolean;
@@ -37,6 +38,7 @@ const props = defineProps<{
     channels: boolean;
   };
   isMessageDelete?: boolean;
+  selected: boolean
 }>();
 
 // emits
@@ -61,7 +63,6 @@ const emit = defineEmits<{
   sendThreadMessage: [payload: SendThreadPayload];
   loadMoreMessages: [
     _channelID: string | number,
-    limit: number,
     offset: number,
     unshift: boolean
   ];
@@ -101,8 +102,8 @@ const sendMessage = () => {
 };
 
 const totalChannelMemebers = computed((): number => {
-  if (props?.currentChannel?.members) {
-    return props.currentChannel.members.length;
+  if (props?.channel?.members) {
+    return props.channel.members.length;
   }
   return 0;
 });
@@ -113,33 +114,31 @@ watch(messageInput, (newValue) => {
 
 const loadMoreMessages = (
   _channelID: string | number,
-  limit: number,
   offset: number,
   unshift: boolean
 ) => {
-  emit("loadMoreMessages", _channelID, limit, offset, unshift);
+  emit("loadMoreMessages", _channelID, offset, unshift);
 };
 
 // thread
 const isThreadOpen = shallowRef(false);
 provide("isStartThread", isThreadOpen);
-const threadMessage = ref<ChannelMessages | null>(null);
+const threadMessage = ref<ChannelMessages>();
 
-const startThread = ($event: { message: ChannelMessages }) => {
-  threadMessage.value = null;
-  threadMessage.value = $event.message;
+const startThread = (message: ChannelMessages) => {
+  threadMessage.value = message;
 };
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" fluid>
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`channel${channel?._channelID}`" :class="selected ? '' : 'd-none'"
+    fluid>
     <v-row>
       <v-col>
-        <v-card class="mx-auto" id="channel-container" :loading="isLoading.messages"
-          :key="`channel${currentChannel?._channelID}`" elevation="3">
+        <v-card class="mx-auto" id="channel-container" :key="`channel${channel?._channelID}`" elevation="3">
           <v-card-title>
             <v-btn append-icon="mdi-menu-down" variant="text">
-              {{ currentChannel?.channelName }}
-              <create-channel-component :key="`channel-manage${currentChannel?._id}`" :channel="currentChannel"
+              {{ channel?.channelName }}
+              <create-channel-component :key="`channel-manage${channel?._id}`" :channel="channel"
                 :is-loading="isLoading.channels" @update:channel-settings="
                   $emit('updateChannelSettings', $event)
                   " @archive-channel="$emit('archiveChannel', $event)" @create-channel="$emit('updateChannel', $event)"
@@ -152,22 +151,22 @@ const startThread = ($event: { message: ChannelMessages }) => {
             <v-btn class="float-right" color="pink" variant="plain">
               <v-icon start icon="mdi-account-group-outline"></v-icon>
               {{ totalChannelMemebers }}
-              <create-channel-component :channel="currentChannel" :is-loading="isLoading.channels"
-                :key="`channel-members${currentChannel?._id}`"
-                @update:channel:members="$emit('update:channelMembers', $event)" members>
+              <create-channel-component :channel="channel" :is-loading="isLoading.channels"
+                :key="`channel-members${channel?._id}`" @update:channel:members="$emit('update:channelMembers', $event)"
+                members>
               </create-channel-component>
             </v-btn>
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
-          <message-content-component :thread-typing="typing.thread" :is-loading="isLoading" :channel="currentChannel"
-            :is-delete="isMessageDelete" :is-scroll="isScroll" @on:load-more-messages="loadMoreMessages"
-            @on:delete-message="$emit('deleteMessage', $event)" @on:edit-message="editMessage"
+          <message-content-component :key="channel?._channelID" :thread-typing="typing.thread" :is-loading="isLoading"
+            :channel="channel" :is-delete="isMessageDelete" :is-scroll="isScroll" @load-more-messages="loadMoreMessages"
+            @delete-message="$emit('deleteMessage', $event)" @edit-message="editMessage"
             @update:scroll="isScroll = $event" @start:thread="startThread">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">
-            <chat-form-component :id="currentChannel?._channelID" :key="`channel-${currentChannel?._channelID}`"
+            <chat-form-component :id="channel?._channelID" :key="`channel-${channel?._channelID}`"
               v-model:model-value="messageInput" v-model:files="uploadedFiles" :text-area-row-height="10"
-              :text-area-rows="2" :text-area-label="$lang('channel.input.send', [currentChannel?.channelName])
+              :text-area-rows="2" :text-area-label="$lang('channel.input.send', [channel?.channelName])
                 " :auto-grow="true" @update:emoji="updateEmoji" @submit="sendMessage">
             </chat-form-component>
             <!-- Typing -->
@@ -178,7 +177,7 @@ const startThread = ($event: { message: ChannelMessages }) => {
       <!-- Thread -->
       <v-col cols="3" v-if="isThreadOpen">
         <message-thread-component v-model:thread-card="isThreadOpen" :message="threadMessage"
-          :channelName="currentChannel?.channelName" :typing="typing.thread" :uuid="user?._uuid"
+          :channelName="channel?.channelName" :typing="typing.thread" :uuid="user?._uuid"
           @update:thread-card="isThreadOpen = $event" @on:send-thread-message="$emit('sendThreadMessage', $event)"
           @on:thread-typing="$emit('threadTyping', $event)"></message-thread-component>
       </v-col>

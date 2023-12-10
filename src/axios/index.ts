@@ -18,33 +18,35 @@ export const userApi = {
 }
 // Channels
 export const channelApi = {
-  __getChannels: "/getChannels",
-  __getChannelMessages: "/getChannelMessages",
-  __getTotalChannelMessages: "/getTotalChannelMessages",
-  __addChannel: "/addChannel",
-  __addChannelMessage: "/addChannelMessage",
-  __addChannelMessageThread: "/addChannelMessageThread",
-  __updateChannelMessage: "/updateChannelMessage",
-  __deleteChannelMessage: "/deleteChannelMessage",
-  __archiveChannel: "/archiveChannel",
-  __updateChannelMembers: "/updateChannelMembers",
-  __getChannelMembers: "/getChannelMembers",
-  __updateChannel: "/updateChannel",
-  __addChannelSettings: "/addChannelSettings",
-  __leaveChannel: "/leaveChannel",
-  __channelUpload: "/channelUpload",
+  __getChannels: "/channels/getChannels",
+  __getChannelMessages: "/channels/getChannelMessages",
+  __getTotalChannelMessages: "/channels/getTotalChannelMessages",
+  __addChannel: "/channels/addChannel",
+  __addChannelMessage: "/channels/addChannelMessage",
+  __addChannelMessageThread: "/channels/addChannelMessageThread",
+  __updateChannelMessage: "/channels/updateChannelMessage",
+  __deleteChannelMessage: "/channels/deleteChannelMessage",
+  __archiveChannel: "/channels/archiveChannel",
+  __updateChannelMembers: "/channels/updateChannelMembers",
+  __getChannelMembers: "/channels/getChannelMembers",
+  __updateChannel: "/channels/updateChannel",
+  __addChannelSettings: "/channels/addChannelSettings",
+  __leaveChannel: "/channels/leaveChannel",
+  __channelUpload: "/channels/channelUpload",
 };
 
 // User Messages
 export const directMessageApi = {
-  __sendMessage: "/addDirectMessage",
-  __getUserDirectMessages: "/getUserDirectMessages",
-  __upload: "/upload",
+  __sendMessage: "/directmessages/addDirectMessage",
+  __getUserDirectMessages: "/directmessages/getUserDirectMessages",
+  __upload: "/directmessages/upload",
+  __addDirectMessagesMembers: "/directmessages/addDirectMessagesMembers",
+  __getUserDirectMessageChannels: "/directmessages/getUserDirectMessageChannels",
 };
 
 
 export const instance = axios.create({
-  baseURL: import.meta.env.VITE_API_URL + "/api/chat",
+  baseURL: import.meta.env.VITE_API_URL,
   headers: {
     "Content-Type": "application/x-www-form-urlencoded",
   },
