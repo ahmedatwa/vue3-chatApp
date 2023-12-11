@@ -1,42 +1,54 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { Snackbar } from "@/types";
+import type { Snackbar } from "@/types";
 
-const isVisible = ref(false);
-//const text = ref("");
+defineProps<{
+  alert: Snackbar | null;
+  modelValue: boolean;
+}>();
 
-interface Props {
-    alert: Snackbar | null;
-    color?: string;
-    timeout?: number;
-}
-const props = withDefaults(defineProps<Props>(), {
-    timeout: 2500,
-    color: "success"
-})
-
-watch(
-    () => props.alert,
-    (newAlert) => {
-        if (newAlert)
-            isVisible.value = true;
-    }
-);
-</script>   
+defineEmits<{
+  "update:modelValue": [value: boolean];
+}>();
+</script>
 <template>
-    <v-sheet class="d-flex flex-column" v-if="alert">
-        <v-snackbar closable :timeout="timeout" :color="alert?.type" v-model="isVisible" location="end top">
-            <v-sheet v-if="alert.title" color="transparent">
-                <h4 class="font-weight-bold">{{ alert.title }} </h4>
-            </v-sheet>
-            <v-sheet color="transparent">
-                {{ alert?.text }}
-            </v-sheet>
-            <template v-slot:actions>
-                <v-btn color="pink" variant="text" @click="isVisible = false">
-                    Close
-                </v-btn>
-            </template>
-        </v-snackbar>
-    </v-sheet>
+  <v-sheet class="d-flex flex-column" v-if="alert">
+    <v-snackbar
+      closable
+      :timeout="alert.timeout ? alert.timeout : 4000"
+      :color="alert?.type"
+      :model-value="modelValue"
+      @update:model-value="$emit('update:modelValue', $event)"
+      location="top end"
+      multi-line
+      variant="elevated"
+      transition="scroll-y-transition"
+    >
+      <v-sheet v-if="alert.title" color="transparent">
+        <h4 class="font-weight-bold">
+          <v-icon
+            :icon="
+              alert.type === 'error'
+                ? 'mdi-alert-octagon'
+                : 'mdi-alert-circle-check-outline'
+            "
+          ></v-icon>
+          {{ alert.title }}
+        </h4>
+      </v-sheet>
+      <v-sheet color="transparent">
+        <p>
+          <span v-if="alert.code" class="me-2">{{ alert.code }}: </span>
+          {{ alert?.text }}
+        </p>
+      </v-sheet>
+      <template v-slot:actions>
+        <v-btn
+          color="blue-grey-darken-3"
+          variant="text"
+          @click="$emit('update:modelValue', false)"
+          >{{ $lang("chat.button.close") }}
+        </v-btn>
+      </template>
+    </v-snackbar>
+  </v-sheet>
 </template>

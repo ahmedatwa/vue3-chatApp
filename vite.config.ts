@@ -1,9 +1,8 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig, loadEnv, normalizePath } from "vite";
 import { fileURLToPath } from "url";
-import path from "path";
-
+import path from "node:path";
 import vue from "@vitejs/plugin-vue";
-import vuetify, { transformAssetUrls } from 'vite-plugin-vuetify'
+import vuetify, { transformAssetUrls } from "vite-plugin-vuetify";
 
 // https://vitejs.dev/config/
 
@@ -14,22 +13,19 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [
-      vue({ 
-        template: { transformAssetUrls }
+      vue({
+        template: { transformAssetUrls },
       }),
       // https://github.com/vuetifyjs/vuetify-loader/tree/next/packages/vite-plugin
       vuetify({
         autoImport: true,
       }),
+      // bindingSqlite3()
     ],
-    define: { 'process.env': {} },
+    define: { "process.env": {}, },
     resolve: {
       alias: {
-        '@': fileURLToPath(new URL('./src', import.meta.url)),
-        "@assets": fileURLToPath(new URL('./src/assets', import.meta.url)),
-        "@components": fileURLToPath(new URL('./src/components', import.meta.url)),
-        "@stores": fileURLToPath(new URL('./src/stores', import.meta.url)),
-        "@views": fileURLToPath(new URL('./src/views', import.meta.url)),
+        "@": fileURLToPath(new URL("./src", import.meta.url)),
       },
     },
     build: {
@@ -41,23 +37,8 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      proxy: {
-        "/api": {
-          target: "http://localhost/project-root/public/api/chat",
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ""),
-        },
-      },
-      port: 5173
+      port: 5173,
     },
-    extensions: [
-      '.js',
-      '.json',
-      '.jsx',
-      '.mjs',
-      '.ts',
-      '.tsx',
-      '.vue',
-    ],
+    extensions: [".js", ".json", ".jsx", ".mjs", ".ts", ".tsx", ".vue"],
   };
 });

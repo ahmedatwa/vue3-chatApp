@@ -1,20 +1,11 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
-import "dotenv/config";
 import { instrument } from "@socket.io/admin-ui";
-import axios from "axios";
 
-const instance = axios.create({
-  baseURL: process.env.VITE_API_URL,
-  timeout: 500,
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-});
 
 const port = process.env.VITE_SERVER_PORT || 3000;
 const httpServer = createServer((req, res) => {
-  res.writeHead(200, { "Content-Type": "text/plain" });
+ res.writeHead(200, { "Content-Type": "text/plain" });
   res.write("Hello World!");
   res.end();
 });
@@ -42,16 +33,17 @@ instrument(io, {
   mode: "development",
 });
 
-io.use(async (socket, next) => {
+io.use((socket, next) => {
   const socketAuth = socket.handshake.auth;
 
   try {
-    const sessionId = socket.handshake.auth.sessionId;
-    if (sessionId) {
+    const sessionID = socket.handshake.auth.sessionID;
+    if (sessionID) {
       socket._id = socketAuth._id;
-      socket.sessionId = sessionId;
+      socket.sessionID = sessionID;
       socket._uuid = socketAuth._uuid;
-      socket.username = socketAuth.username;
+      socket.email = socketAuth.email;
+      socket.displayName = socketAuth.displayName;
       return next();
     }
     // socket.sessionId = socketAuth.sessionId;
@@ -65,36 +57,34 @@ io.use(async (socket, next) => {
   }
 });
 
-io.on("connection", async (socket) => {
+io.on("connection", (socket) => {
   // emit session details and save
-  const sessionData = {
-    _id: socket._id,
-    _uuid: socket._uuid,
-    sessionId: socket.sessionId,
-    username: socket.username,
-    connected: socket.connected,
-    messages: [],
-  };
+  const sessionData = {...socket.handshake.auth, connected: true,}
+
   socket.emit("session", sessionData);
   // join the "uuid" room
   socket.join(socket._uuid);
 
   // notify existing users
   socket.broadcast.emit("user_connected", sessionData);
-  // forward the private message to the right recipient (and to other tabs of the sender)
-  socket.on("user_new_message", ({ content, file, to, createdAt, count }) => {
-    socket.to(to).to(socket._uuid).emit("client_user_new_message", {
-      content,
-      file,
-      from: socket._uuid,
-      to,
-      createdAt,
-      count,
-    });
+
+  // Offline Status
+  socket.on("user_status", (status) => {
+    //socket.connected = status
+    socket.broadcast.emit("client_user_status", {...status, _uuid: socket._uuid});
+  });
+
+  // New Direct Message
+  socket.on("new_direct_message", (message) => {
+    socket.to(message.to).to(socket._uuid).emit("client_new_direct_message", {...message});
+  });
+
+   socket.on("new_direct_thread_message", (message) => {
+    socket.to(message.to).to(socket._uuid).emit("client_new_direct_thread_message", {...message});
   });
 
   // notify user typing event
-  socket.on("user_typing", ({ to, input }) => {
+  socket.on("user_typing", ({ to, input, displayName }) => {
     socket
       .to(to)
       .to(socket._uuid)
@@ -102,7 +92,22 @@ io.on("connection", async (socket) => {
       .emit("client_user_typing", {
         input: input,
         from: socket._uuid,
-        username: socket.username,
+        to,
+        displayName: displayName,
+      });
+  });
+
+    socket.on("thread_user_typing", ({ _channelID, to, displayName, input }) => {
+    socket
+      .to(to)
+      .to(socket._uuid)
+      .timeout(500)
+      .emit("client_thread_user_typing", {
+        input: input,
+        from: socket._uuid,
+        to,
+        _channelID,
+        displayName: displayName,
       });
   });
 
@@ -119,7 +124,37 @@ io.on("connection", async (socket) => {
   });
 
   // channels
+  // checked
+  socket.on("update_members_channel", (payload) => {
+    socket.join(payload._channelID);
+    payload.members.forEach((member) => {
+      socket.to(member._uuid).to(socket._uuid).emit("client_update_members_channel", {
+        _channelID: payload._channelID,
+        _id: payload._id,
+        channelName: payload.channelName,
+        from: payload.from,
+        fromName: payload.fromName,
+        channelName: payload.channelName,
+        to: member._uuid,
+        displayName: member.displayName,
+        email: member.email,
+        createdAt: payload.createdAt
+      })
+    })
+  });
 
+socket.on("remove_members_channel", (payload) => {
+  console.log(payload)
+    payload.removed.forEach((member) => {
+      socket.to(member._uuid).to(socket._uuid).emit("client_remove_members_channel", {
+        _uuid: member._uuid,
+        _channelID: payload._channelID
+      })
+    })
+  });
+
+
+// end
   // Auto Join Channels on connect
     socket.on("channels", ( channels ) => {
      channels.forEach((channel) => {
@@ -127,66 +162,77 @@ io.on("connection", async (socket) => {
      })
   });
 
-  socket.on("create_channel", ({ _roomId, name, createdBy }) => {
-    socket.join(_roomId);
-    socket.broadcast.to(_roomId).emit("client_create_channel", {
-      _roomId: _roomId,
+  socket.on("create_channel", ({ _channelID, name, createdBy }) => {
+    socket.join(_channelID);
+    socket.broadcast.to(_channelID).emit("client_create_channel", {
+      _channelID: _channelID,
       room: socket.room,
       name: name,
       createdBy: createdBy,
     });
   });
 
-  socket.on("join_channel", ({ _roomId, room, createdBy }) => {
-    socket.join(_roomId);
-    socket.broadcast.to(_roomId).emit("client_join_channel", {
-      username: socket.username,
-      roomName: room,
+  socket.on("join_channel", ({ _channelID, room, createdBy }) => {
+    socket.join(_channelID);
+    socket.broadcast.to(_channelID).emit("client_join_channel", {
+      userName: socket.userName,
+      channelName: room,
       createdBy: createdBy,
     });
   });
 
-  socket.on("add_users_to_channel", ({ _roomId, roomName, createdBy, users }) => {
-    socket.join(_roomId);
-    users.forEach((user) => {
-      socket.to(user).to(socket._uuid).emit("client_add_users_to_channel", {
-      username: socket.username,
-      roomName: roomName,
-      createdBy: createdBy,
-      to: user
-    });
-    })
-    
-  });
 
-  socket.on("new_channel_message", (messageContent) => {
-    console.log(messageContent)
-    socket.broadcast.in(messageContent.room).emit("client_new_channel_message", { 
-      _id: messageContent._id, 
-      from: messageContent.from, 
-      username: messageContent.username, 
-      _roomId: messageContent.room,
-      roomName: messageContent.roomName, 
-      content: messageContent.content, 
-      oldContent: messageContent.oldContent, 
-      file: messageContent.file,
-      createdAt: messageContent.createdAt
+
+  socket.on("new_channel_message", ({ _id, _channelID, from, fromName, content, createdAt}) => {
+    socket.broadcast.to(_channelID).emit("client_new_channel_message", { 
+      _id: _id, 
+      _channelID: _channelID,
+      from: from, 
+      fromName: fromName, 
+      content: content, 
+      createdAt: createdAt
     });
   });
 
-  socket.on("channel_typing", ({ _roomId, input }) => {
+    socket.on("new_channel_thread_message", ({ _id, _messageID, _channelID, from, fromName, to, toName, content, createdAt}) => {
+    socket.broadcast.to(_channelID).emit("client_channel_thread_message", { 
+      _id: _id, 
+      _messageID: _messageID,
+      _channelID: _channelID,
+      from: from, 
+      fromName: fromName, 
+      to: to, 
+      toName: toName, 
+      content: content, 
+      createdAt: createdAt
+    });
+  });
+
+
+  socket.on("channel_typing", ({ _channelID, input, displayName }) => {
     socket.broadcast
-      .to(_roomId)
+      .to(_channelID)
       .timeout(500)
       .emit("client_channel_typing", {
         input: input,
         from: socket._uuid,
-        username: socket.username,
+        displayName: displayName,
+      });
+  });
+
+  // thread
+    socket.on("channel_thread_typing", ({ _channelID, input, displayName }) => {
+    socket.broadcast
+      .to(_channelID)
+      .timeout(500)
+      .emit("client_channel_thread_typing", {
+        input: input,
+        from: socket._uuid,
+        displayName: displayName,
       });
   });
 
   socket.on("delete_channel_message", (message) => {
-    console.log(message)
     socket.broadcast
       .to(message.room).emit("client_delete_channel_message", message);
   });
@@ -200,13 +246,13 @@ io.on("connection", async (socket) => {
 
 }); // connection
 
-io.of("/").adapter.on("create-room", (room) => {
-  console.log(`room ${room} was created`);
-});
+// io.of("/").adapter.on("create-room", (room) => {
+//   console.log(`room ${room} was created`);
+// });
 
-io.of("/").adapter.on("join-room", (room, id) => {
-  console.log(`socket ${id} has joined room ${room}`);
-});
+// io.of("/").adapter.on("join-room", (room, id) => {
+//   console.log(`socket ${id} has joined room ${room}`);
+// });
 // listening port
 httpServer.listen(port, () => {
   console.log(`application is running at: http://localhost:${port}`);

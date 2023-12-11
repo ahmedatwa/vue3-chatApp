@@ -1,27 +1,32 @@
 <script setup lang="ts">
-import { onUnmounted, onBeforeMount } from "vue";
-import { LoginComponent, ChatComponent } from "@/components";
-import socket from "@/client";
+import { onUnmounted, onBeforeMount, computed } from "vue";
+import { LoginComponent } from "@/components/Common";
+import { ChatComponent } from "@/components/Chat";
+import OverlayComponent from "@/components/OverlayComponent.vue";
 import { useSessionStore, useStorageStore } from "@/stores";
-import { DBUser } from "@/types";
-import { useTheme } from "vuetify";
+import socket from "@/client";
 
 const sessionStore = useSessionStore();
 const storageStore = useStorageStore();
-const theme = useTheme();
 
-const onLogin = async (user: DBUser) => {
-  await sessionStore.addSession(user);
-};
+const current = computed(() => {
+  if (sessionStore.isLoggedIn) {
+    return ChatComponent;
+  }
+  return LoginComponent;
+});
 
 onBeforeMount(async () => {
-  const sessionId = storageStore.getSessionId();
-  if (sessionId) {
-    await sessionStore.getSession(sessionId);
+  if (storageStore.sessionID) {
+    await sessionStore.getSession(storageStore.sessionID);
   }
-  const prefTheme = storageStore.getAppSettings("theme");
-  if (prefTheme) {
-    theme.global.name.value = prefTheme as string;
+
+  if (!sessionStore.userSessionData?.settings) {
+    storageStore.setStorage("APPUSSTIG", {
+      theme: "light",
+      muteConnectionNotif: false,
+      leftOff: true,
+    });
   }
 });
 
@@ -34,25 +39,34 @@ socket.on("connect_error", (err) => {
   if (err.message === "invalid User ID") sessionStore.isLoggedIn = false;
 });
 
-socket.on("error", (err) => {
-  sessionStore.responseError = err;
+socket.on("error", (__err) => {
+  //userStore.sessionResponse. = err;
   socket.disconnect();
 });
-</script>
 
+const exitApp = () => {
+  storageStore.destroy();
+};
+
+const restore = () => {
+  if (storageStore.sessionID) {
+    sessionStore.restoreSession(storageStore.sessionID);
+  }
+};
+
+const isError = computed(() => {
+  return sessionStore.newAlert !== null ? true : false;
+});
+</script>
 <template>
   <v-app>
-    <v-overlay
-      v-model="sessionStore.isLoading"
-      class="align-center justify-center"
-    >
-      <v-progress-circular
-        color="primary"
-        indeterminate
-        size="64"
-      ></v-progress-circular>
-    </v-overlay>
-    <LoginComponent @update:selected="onLogin" v-if="!sessionStore.isLoggedIn"></LoginComponent>
-    <ChatComponent :session="sessionStore.userSessionData" v-else></ChatComponent>
+    <overlay-component
+      v-model:isLoading="sessionStore.isLoading"
+      v-model:isError="isError"
+      :error="sessionStore.newAlert"
+      @exit:app="exitApp"
+      @restore:session="restore"
+    ></overlay-component>
+    <component :is="current"></component>
   </v-app>
 </template>
