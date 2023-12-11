@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, inject } from "vue"
+import { ref, computed, inject, watchEffect, nextTick } from "vue";
 import { formatTimeShort, formatDateLong } from "@/helpers";
 import { MessageActionMenu } from "@/components/DirectMessage";
 // types
-import type { User, Pagination } from "@/types/User"
+import type { User, Pagination, UserMessages } from "@/types/User";
 
 const currentUser = inject<User>("user");
 const pagination = ref<Pagination>({
-  total: 0,
   offset: 0,
   limit: 0,
 });
@@ -21,11 +20,22 @@ const props = defineProps<{
     thread: boolean;
     users: boolean;
   };
-}>()
+}>();
 
 // emits
 const emit = defineEmits<{
-}>()
+  loadMoreMessages: [_channelID: string, limit: number, offset: number, unshift: boolean];
+  deleteMessage: [value: number | string];
+  editMessage: [
+    value: {
+      _messageID: string | number;
+      editContent: string;
+      content: string;
+      updatedAt: string;
+    }
+  ];
+  "start:thread": [value: UserMessages];
+}>();
 
 // group messages by date
 const userMessages = computed(() => {
@@ -38,31 +48,38 @@ const userMessages = computed(() => {
   }
 });
 
-
 // Load More
 const loadMoreMessages = () => {
-  // if (pagination.value.offset < 0) {
-  //   return;
-  // }
-  // if (props.channel?._channelID) {
-  //   emit(
-  //     "on:loadMoreMessages",
-  //     props.channel?._channelID,
-  //     pagination.value.limit,
-  //     pagination.value.offset,
-  //     true
-  //   );
-  // }
+  if (pagination.value.offset < 0) {
+    return;
+  }
+  if (props.selectedUser?._channelID) {
+    emit(
+      "loadMoreMessages",
+      props.selectedUser?._channelID,
+      pagination.value.limit,
+      pagination.value.offset,
+      true
+    );
+  }
 };
 
 const isLoadMoreDisabled = computed(() => {
   return pagination.value.offset < 0;
 });
 
+const lastRow = ref<HTMLDivElement | null>(null);
 
+watchEffect(() => {
+  if (props.selectedUser?.messages?.length) {
+    nextTick(() => {
+      lastRow.value?.scrollIntoView(true);
+    });
+  }
+});
 </script>
 <template>
- <v-container class="container">
+  <v-container class="container">
     <v-sheet :align="'center'" justify="center" class="my-2">
       <v-btn :loading="isLoading.messages" :disabled="isLoadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
         :color="isLoadMoreDisabled ? 'error' : 'success'" @click="loadMoreMessages">
@@ -74,24 +91,26 @@ const isLoadMoreDisabled = computed(() => {
         {{ formatDateLong(index) }}
       </v-col>
       <v-slide-x-transition group mode="in-out" tag="v-col">
-        <v-col v-for="message in userMessage" :key="message._id" id="tes" cols="12" class="mb-2">
-          <message-action-menu id="message" :message="message" @on:edit-message="$emit('on:editMessage', $event)"
-            @on:delete-message="$emit('on:deleteMessage', $event)" @start:thread="$emit('start:thread', $event)">
+        <v-col v-for="message in userMessage" :key="message._id" cols="12" class="mb-2">
+          <message-action-menu :key="message._id" :selected-user="selectedUser" 
+            :message="message" @edit-message="$emit('editMessage', $event)"
+            @delete-message="$emit('deleteMessage', $event)" @start:thread="$emit('start:thread', $event)">
           </message-action-menu>
           {{ formatTimeShort(message.createdAt) }}
           <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
-            {{ currentUser?.displayName }}:  
+            {{ currentUser?.displayName }}:
           </span>
           <span class="font-weight-bold text-blue" v-else>
-            {{ selectedUser?.displayName }}:  
+            {{ selectedUser?.displayName }}:
           </span>
-          <span v-if="message.editContent" class="text-caption me-1">
-            {{ $lang("chat.text.edited") }}</span>
+          <div v-if="message.editContent" class="d-inline">
+          <span class="text-caption me-1">
+            {{ $lang("chat.text.edited") }}</span> {{ message.content }}</div>
           <span class="text-left" v-else>{{ message.content }}</span>
         </v-col>
       </v-slide-x-transition>
     </v-row>
-    <span ref="lastRow" class="last-ref">last</span>
+    <span ref="lastRow"></span>
   </v-container>
 </template>
 <style scoped>

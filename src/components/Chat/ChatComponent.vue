@@ -17,6 +17,7 @@ import type { User, UserSettings, DirectMessageChannels } from "@/types/User";
 import { useTheme } from "vuetify";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
+import { _directMessageEmits, _directMessageListener } from "@/client";
 import { capitalize } from "@/helpers";
 
 // Stores
@@ -29,20 +30,21 @@ const channelStore = useChannelStore();
 const newSnackbar = ref<Snackbar | null>(null);
 const drawer = ref(true);
 provide("drawer", drawer);
+provide("user", sessionStore.userSessionData);
 const activeComponent = shallowRef("");
 const lastSelectedElement = ref<string | number | null>(null);
 const isAlert = ref(false);
 const _theme = useTheme();
 
-provide("user", sessionStore.userSessionData);
-
-const goOffline = ($status: boolean) => {
+// Offline
+const goOffline = (value: boolean) => {
+  const $status = value === true ? false : true;
+  socket.emit(_directMessageEmits.status, { status: $status });
   directMessageStore.users.forEach((user) => {
     if (user._uuid === sessionStore.userSessionData?._uuid) {
-      user.connected = $status === true ? false : true;
+      user.connected = $status;
       if (sessionStore.userSessionData) {
-        sessionStore.userSessionData.connected =
-          $status === true ? false : true;
+        sessionStore.userSessionData.connected = $status;
       }
       return;
     }
@@ -179,7 +181,9 @@ onUnmounted(() => {
   }
 });
 
+
 // Sockets
+
 socket.on("connect", () => {
   socket.on("session", async (session: User) => {
     const [directMessagesChannels, channels] = await Promise.all([
@@ -188,7 +192,8 @@ socket.on("connect", () => {
     ]);
 
     // User Channels
-    if (directMessagesChannels) {
+
+    if (directMessagesChannels.length) {
       directMessagesChannels.map((res: DirectMessageChannels) => {
         const otherUser = session._uuid === res.from ? res.to : res.from;
 
@@ -277,8 +282,18 @@ socket.on("connect", () => {
   });
 });
 
+socket.on(
+  _directMessageListener.status,
+  (event: { _uuid: string; status: boolean }) => {
+    const user = directMessageStore.users.find((u) => u._uuid === event._uuid);
+    if (user) {
+      user.connected = event.status;
+    }
+  }
+);
+
 // Channel Loading More
-const loadMoreMessages = (
+const loadMoreChannelMessages = (
   _channelID: string | number,
   offset: number,
   unshift: boolean
@@ -325,7 +340,7 @@ const loadMoreMessages = (
           :is-loading="channelStore.isLoading"
           :typing="channelStore.typing"
           :is-message-delete="channelStore.isMessageDelete"
-          @load-more-messages="loadMoreMessages"
+          @load-more-messages="loadMoreChannelMessages"
           @send-thread-message="channelStore.sendMessageThread"
           @update-channel-settings="channelStore.updateChannelSettings"
           @update:channel-members="channelStore.updateChannelMembers"
@@ -352,7 +367,10 @@ const loadMoreMessages = (
           :is-loading="directMessageStore.isLoading"
           @send-message="directMessageStore.sendMessage"
           @sendThreadMessage="directMessageStore.sendThreadMessage"
+          @edit-message="directMessageStore.editMessage"
+          @delete-message="directMessageStore.deleteMessage"
           @user-typing="directMessageStore.userTyping"
+          @thread-typing="directMessageStore.userTheadTyping"
         ></direct-message-component>
       </v-container>
     </v-main>

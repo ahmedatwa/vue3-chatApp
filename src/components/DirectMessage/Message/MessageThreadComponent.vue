@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, inject } from "vue";
+import { ref, watch, inject, watchEffect, nextTick } from "vue";
 import { UserMessages, UserTyping, SendThreadPayload, User } from "@/types/User";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 
@@ -47,10 +47,20 @@ const sendThreadMessage = () => {
 watch(threadMessageInput, (threadM) => {
   emit("update:threadTyping", threadM);
 });
+
+const lastRef = ref<HTMLDivElement | null>(null)
+
+watchEffect(() => {
+  if(props.message?.thread?.length) {    
+    nextTick(() => {
+      lastRef.value?.scrollIntoView(true)
+    })
+  }
+})
 </script>
 
 <template>
-  <v-slide-x-reverse-transition mode="in-out">
+  <!-- <v-slide-x-reverse-transition mode="in-out"> -->
     <v-card class="mx-auto overflow-y-auto" :key="message?._id" elevation="3" :model-value="threadCard" v-if="threadCard">
       <v-card-title>
         <span class="text-subtitle-1">{{ $lang("chat.text.threadTitle", [user?.displayName]) }}</span>
@@ -69,6 +79,7 @@ watch(threadMessageInput, (threadM) => {
             </span>
             <span>{{ thread.content }}</span>
           </div>
+          <span ref="lastRef"></span>
         </div>
       </v-card-text>
       <v-card-actions class="w-100 d-inline-block">
@@ -80,13 +91,12 @@ watch(threadMessageInput, (threadM) => {
         <chat-typing-component v-show="typing" :typing="typing"></chat-typing-component>
       </v-card-actions>
     </v-card>
-  </v-slide-x-reverse-transition>
+  <!-- </v-slide-x-reverse-transition> -->
 </template>
 <style scoped>
 .text {
   overflow-y: scroll;
-  min-height: 455px;
-  max-height: 430px;
+  height: 439px;
   scroll-snap-type: y mandatory;
   overflow-x: hidden;
 }

@@ -150,7 +150,7 @@ onMounted(() => {
       <v-col v-for="message in channelMessage" :key="message._id" id="tes" cols="12" class="my-4">
         <message-action-menu id="channel" :message="message" @edit-message="$emit('editMessage', $event)"
           @delete-message="$emit('deleteMessage', $event)"
-          @start:thread="$emit('start:thread', $event as ChannelMessages)">
+          @start:thread="$emit('start:thread', $event)">
         </message-action-menu>
         {{ formatTimeShort(message.createdAt) }}
         <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">

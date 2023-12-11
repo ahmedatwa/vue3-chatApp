@@ -1,9 +1,13 @@
 <script setup lang="ts">
-import type { UserMessages } from "@/types/User";
+import { inject } from "vue";
+import type { UserMessages, User, UserSessionData } from "@/types/User";
+
+const user = inject<UserSessionData>("user");
 
 defineProps<{
     modelValue: boolean;
     message: UserMessages
+    selectedUser: User | null;
 }>();
 
 const emit = defineEmits<{
@@ -32,7 +36,9 @@ const deleteMessage = (messageID: number | string) => {
                     <v-sheet :border="true" :elevation="3" class="ma-2 p-2" rounded="rounded" color="grey-lighten-">
                         <ul class="ma-3 list-style-none">
                             <li>
-                                <span class="font-weight-bold">{{ message.fromSelf }}</span> {{ message.createdAt }}
+                                <span class="font-weight-bold">{{ message.from === user?._uuid ? user.displayName :
+                                    selectedUser?.displayName }}: </span>
+                                {{ message.createdAt }}
                             </li>
                             <li>{{ message.content }}</li>
                         </ul>

@@ -59,7 +59,7 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   // emit session details and save
-  const sessionData = {...socket.handshake.auth}
+  const sessionData = {...socket.handshake.auth, connected: true,}
 
   socket.emit("session", sessionData);
   // join the "uuid" room
@@ -67,9 +67,20 @@ io.on("connection", (socket) => {
 
   // notify existing users
   socket.broadcast.emit("user_connected", sessionData);
-  // forward the private message to the right recipient (and to other tabs of the sender)
+
+  // Offline Status
+  socket.on("user_status", (status) => {
+    //socket.connected = status
+    socket.broadcast.emit("client_user_status", {...status, _uuid: socket._uuid});
+  });
+
+  // New Direct Message
   socket.on("new_direct_message", (message) => {
     socket.to(message.to).to(socket._uuid).emit("client_new_direct_message", {...message});
+  });
+
+   socket.on("new_direct_thread_message", (message) => {
+    socket.to(message.to).to(socket._uuid).emit("client_new_direct_thread_message", {...message});
   });
 
   // notify user typing event
@@ -82,6 +93,20 @@ io.on("connection", (socket) => {
         input: input,
         from: socket._uuid,
         to,
+        displayName: displayName,
+      });
+  });
+
+    socket.on("thread_user_typing", ({ _channelID, to, displayName, input }) => {
+    socket
+      .to(to)
+      .to(socket._uuid)
+      .timeout(500)
+      .emit("client_thread_user_typing", {
+        input: input,
+        from: socket._uuid,
+        to,
+        _channelID,
         displayName: displayName,
       });
   });

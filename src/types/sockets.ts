@@ -52,8 +52,34 @@ interface JoinChannel {
   createdBy: string | number;
 }
 
- 
+// Direct
+interface NewDirectMessage {
+  _channelID: string;
+  _id: string | number;
+  from: string;
+  to: string;
+  content: string;
+  editContent?: string;
+  fromSelf?: boolean;
+  file?: File[] | null;
+  seen?: boolean;
+  last?: boolean;
+  thread?: [];
+  isUpdated?: boolean;
+  isEdit?: boolean;
+  updatedAt?: string;
+  createdAt: string;
+}
 
+interface NewDirectThreadMessage {
+  _id: number;
+  _messageID: number;
+  _channelID: string;
+  from: string;
+  to: string;
+  content: string;
+  createdAt: string;
+}
 
 export type {
   ChannelMessage,
@@ -61,4 +87,6 @@ export type {
   AddMembers,
   NewChannel,
   JoinChannel,
+  NewDirectMessage,
+  NewDirectThreadMessage,
 };

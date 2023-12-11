@@ -2,8 +2,7 @@
 import { ref, computed, inject } from "vue";
 import { MessageEditComponent } from "@/components/DirectMessage";
 import { MessageDeleteComponent } from "@/components/DirectMessage";
-import type { ChannelMessages } from "@/types/Channel";
-import type { UserMessages, UserSessionData } from "@/types/User";
+import type { UserMessages, UserSessionData, User } from "@/types/User";
 
 const user = inject<UserSessionData>("user");
 const isStartThread = inject<boolean>("isStartThread");
@@ -13,7 +12,7 @@ const isDeleteDialog = ref(false);
 
 // Props
 const props = defineProps<{
-    id: string;
+    selectedUser: User | null;
     message: UserMessages;
 }>();
 
@@ -22,13 +21,13 @@ const emit = defineEmits<{
     deleteMessage: [value: number | string];
     editMessage: [
         value: {
-            _messageId: string | number;
+            _messageID: string | number;
             editContent: string;
             content: string;
             updatedAt: string;
         }
     ];
-    "start:thread": [value: ChannelMessages | UserMessages];
+    "start:thread": [value: UserMessages];
 }>();
 
 const getLastThreadMessage = computed((): string => {
@@ -41,9 +40,9 @@ const getLastThreadMessage = computed((): string => {
     return "";
 });
 
-const startThread = (start: boolean, message: UserMessages) => {    
+const startThread = (start: boolean, message: UserMessages) => {
     if (start) {
-       emit("start:thread", message)
+        emit("start:thread", message);
     }
 };
 </script>
@@ -54,7 +53,9 @@ const startThread = (start: boolean, message: UserMessages) => {
         <v-tooltip :text="$lang('chat.text.lastMessage', [getLastThreadMessage])">
             <template v-slot:activator="{ props }">
                 <v-chip v-if="message.thread?.length && !toggleMenu" class="ma-2" color="red" label size="x-small"
-                    variant="outlined" @click.prevent="startThread((isStartThread = true), message)" v-bind="props">
+                    variant="outlined" @click.prevent="
+                        startThread((isStartThread = !isStartThread), message)
+                        " v-bind="props">
                     <v-icon start icon="mdi-label"></v-icon>
                     {{ $lang("chat.button.thread", [message.thread?.length || 0]) }}
                 </v-chip>
@@ -64,7 +65,9 @@ const startThread = (start: boolean, message: UserMessages) => {
             <v-sheet class="d-inline" v-if="toggleMenu" :key="`sheet-${message._id}`">
                 <!-- v-if="message.from !== uuid" -->
                 <v-btn prepend-icon="mdi-reply" color="blue-darken-1" class="ma-2" elevation="1" variant="tonal"
-                    size="small" @click.prevent="startThread((isStartThread = true), message)">
+                    size="small" @click.prevent="
+                        startThread((isStartThread = !isStartThread), message)
+                        ">
                     <v-badge color="error" :content="message.thread?.length" floating>
                         {{ $lang("chat.button.thread", [message.thread?.length || 0]) }}
                     </v-badge>
@@ -81,11 +84,13 @@ const startThread = (start: boolean, message: UserMessages) => {
             </v-sheet>
         </v-slide-x-transition>
         <!-- Edit -->
-        <message-edit-component v-show="isEditDialog" v-model:model-value="isEditDialog" :message="message"
+        <message-edit-component v-show="isEditDialog" v-model:model-value="isEditDialog" 
+            :message="message" :selected-user="selectedUser"
             @edit-message="$emit('editMessage', $event)" :key="`message-edit${message._id}`"></message-edit-component>
         <!-- Delete -->
-        <message-delete-component v-show="isDeleteDialog" v-model:model-value="isDeleteDialog" :message="message"
-            @delete-message="$emit('deleteMessage', $event)"
-            :key="`message-delete${message._id}`"></message-delete-component>
+        <message-delete-component v-show="isDeleteDialog" v-model:model-value="isDeleteDialog" 
+        :message="message" :selected-user="selectedUser" :key="`message-delete${message._id}`"
+        @delete-message="$emit('deleteMessage', $event)"
+        ></message-delete-component>
     </div>
 </template>

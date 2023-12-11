@@ -53,7 +53,7 @@ const startThread = (start: boolean, message: ChannelMessages) => {
         <v-tooltip :text="$lang('chat.text.lastMessage', [getLastThreadMessage])">
             <template v-slot:activator="{ props }">
                 <v-chip v-if="message.thread?.length && !toggleMenu" class="ma-2" color="red" label size="x-small"
-                    variant="outlined" @click.prevent="startThread((isStartThread = true), message)" v-bind="props">
+                    variant="outlined" @click.prevent="startThread((isStartThread = !isStartThread), message)" v-bind="props">
                     <v-icon start icon="mdi-label"></v-icon>
                     {{ $lang("chat.button.thread", [message.thread?.length || 0]) }}
                 </v-chip>
@@ -63,7 +63,7 @@ const startThread = (start: boolean, message: ChannelMessages) => {
             <v-sheet class="d-inline" v-if="toggleMenu" :key="`sheet-${message._id}`">
                 <!-- v-if="message.from !== uuid" -->
                 <v-btn prepend-icon="mdi-reply" color="blue-darken-1" class="ma-2" elevation="1" variant="tonal"
-                    size="small" @click.prevent="startThread((isStartThread = true), message)">
+                    size="small" @click.prevent="startThread((isStartThread = !isStartThread), message)">
                     <v-badge color="error" :content="message.thread?.length" floating>
                         {{ $lang("chat.button.thread", [message.thread?.length || 0]) }}
                     </v-badge>

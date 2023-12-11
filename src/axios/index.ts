@@ -2,20 +2,20 @@ import axios from "axios";
 
 // sessions
 export const sessionApi = {
-  // checked 
+  // checked
   __getSession: "/getSession",
   __updateSession: "/updateSession",
   __restoreSession: "/restoreSession",
   __addSession: "/addSession",
 };
 
-// User 
+// User
 export const userApi = {
   __getAllUsers: "/getAllUsers",
   __getAllChannels: "/getAllChannels",
   __createUser: "/createUser",
-  __getUser: "/getUser"
-}
+  __getUser: "/getUser",
+};
 // Channels
 export const channelApi = {
   __getChannels: "/channels/getChannels",
@@ -36,14 +36,16 @@ export const channelApi = {
 };
 
 // User Messages
-export const directMessageApi = {
-  __sendMessage: "/directmessages/addDirectMessage",
-  __getUserDirectMessages: "/directmessages/getUserDirectMessages",
-  __upload: "/directmessages/upload",
-  __addDirectMessagesMembers: "/directmessages/addDirectMessagesMembers",
-  __getUserDirectMessageChannels: "/directmessages/getUserDirectMessageChannels",
+export const __directMessageApi = {
+  sendMessage: "/directmessages/addDirectMessage",
+  getUserDirectMessages: "/directmessages/getUserDirectMessages",
+  upload: "/directmessages/upload",
+  addDirectMessagesMembers: "/directmessages/addDirectMessagesMembers",
+  getUserDirectMessageChannels: "/directmessages/getUserDirectMessageChannels",
+  sendThreadMessage: "/directmessages/sendThreadMessage",
+  updateMessage: "/directmessages/updateMessage",
+  deleteMessage: "/directmessages/deleteMessage",
 };
-
 
 export const instance = axios.create({
   baseURL: import.meta.env.VITE_API_URL,

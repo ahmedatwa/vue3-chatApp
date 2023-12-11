@@ -1,5 +1,5 @@
 import { ref, shallowRef, toValue } from "vue";
-
+import { nanoid } from "nanoid";
 // regex expression to match all
 // non-alphanumeric characters in string
 const NoneAlphaNumeric = shallowRef(/[^A-Za-z0-9]/g);
@@ -341,6 +341,10 @@ const formatDateLong = (text: string | number) => {
   }).format(date);
 };
 
+const getRandom = (len: number = 36) => {
+  return nanoid(len);
+};
+
 export {
   capitalize,
   snakeCase,
@@ -361,4 +365,5 @@ export {
   createDateTime,
   toNumber,
   formatDateLong,
+  getRandom,
 };

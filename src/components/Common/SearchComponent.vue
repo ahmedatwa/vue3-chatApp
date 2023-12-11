@@ -45,7 +45,7 @@ const onSelect = async () => {
               visible: true,
               email: user.email,
               image: user.image,
-              messagesDistributed: false,
+              messagesDistributed: true,
               connected: user.connected === "1" ? true : false,
               self: false,
               messages:

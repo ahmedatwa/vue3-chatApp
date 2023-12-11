@@ -85,7 +85,6 @@ interface UserSessionData {
 }
 
 interface Pagination {
-  total: number;
   limit: number;
   offset: number;
 }

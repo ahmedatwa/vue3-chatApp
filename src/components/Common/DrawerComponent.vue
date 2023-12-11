@@ -54,7 +54,7 @@ watch(
         <!-- skeleton-loader -->
         <v-list-item v-for="user in users" :key="user._uuid" color="teal-darken-1" v-if="!isLoadingUsers"
           :active="activeElement === user._uuid" @click="onSelect(user._uuid, 'user', user)" class="list-item">
-          <template #append v-if="user.newMessages">
+          <template #append v-if="user.newMessages && activeElement !== user._uuid">
             <v-badge :color="user.connected ? 'success' : 'dark'" :content="user.newMessages.total  " inline></v-badge>
           </template>
           <v-list-item-title>
@@ -64,7 +64,7 @@ watch(
             <v-icon icon="mdi-account-circle" :color="user.connected ? 'success' : 'dark'">
             </v-icon>
             {{ user.displayName }} <span class="text-caption">{{ user._uuid === _uuid ? " you" : "" }}</span>
-            <v-list-item-subtitle v-if="user.newMessages" class="ms-1 mt-1">
+            <v-list-item-subtitle v-if="user.newMessages && activeElement !== user._uuid" class="ms-1 mt-1">
               {{ user.newMessages.lastMessage }}
             </v-list-item-subtitle>
           </v-list-item-title>
