@@ -4,7 +4,7 @@ import { instance, _userApi } from "@/axios";
 import type { Snackbar } from "@/types";
 import type { UserSettings, User } from "@/types/User";
 import { nanoid } from "nanoid";
-import { capitalize } from "@/helpers";
+import { capitalize, createDateTime } from "@/helpers";
 
 export const useUserStore = defineStore("userStore", () => {
   const isLoading = ref(false);
@@ -57,21 +57,18 @@ export const useUserStore = defineStore("userStore", () => {
       .post(_userApi.createUser, {
         ...form,
         _uuid: nanoid(20),
-        _channelID: nanoid(15),
         displayName: capitalize(form.firstName + " " + form.lastName),
         status: 1,
         settings: {
           theme: "light",
-          leftOff: false,
-          muteConnectionNotif: false,
-          visible: 1,
-          connected: 1,
+          leftOff: 1,
+          muteConnectionNotif: 0,
         },
       })
       .then((response) => {
-        allUsers.value.push({ ...response.data });
+        allUsers.value.push({ ...response.data, createdAt: createDateTime() });
       })
-      .then((error: any) => {
+      .catch((error) => {
         newAlert.value = {
           code: error.code,
           text: error.message,
