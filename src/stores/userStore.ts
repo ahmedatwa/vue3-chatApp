@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
-import { instance, userApi } from "@/axios";
+import { instance, _userApi } from "@/axios";
 import type { Snackbar } from "@/types";
 import type { UserSettings, User } from "@/types/User";
 import { nanoid } from "nanoid";
@@ -9,30 +9,33 @@ import { capitalize } from "@/helpers";
 export const useUserStore = defineStore("userStore", () => {
   const isLoading = ref(false);
   const newAlert = ref<Snackbar | null>(null);
-  const allUsers = ref<User[]>([])
+  const allUsers = ref<User[]>([]);
 
   const getAllUsers = async () => {
     isLoading.value = true;
-    
-     await instance.get(userApi.__getAllUsers).then((response) => {
-      if(response.data) {
-        allUsers.value.push(...response.data)
-      }
-     }).catch ((error) => {
-      newAlert.value = {
-        code: error.code,
-        text: error.message,
-        type: "error",
-      };
-     }).finally (() => {
-      isLoading.value = false;
-     })
-    }
+    await instance
+      .get(_userApi.getAllUsers)
+      .then((response) => {
+        if (response.data) {
+          allUsers.value.push(...response.data);
+        }
+      })
+      .catch((error) => {
+        newAlert.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
 
   const getAllChannels = async () => {
     isLoading.value = true;
     try {
-      return await instance.get(userApi.__getAllChannels);
+      return await instance.get(_userApi.getAllChannels);
     } catch (error: any) {
       newAlert.value = {
         code: error.code,
@@ -51,18 +54,22 @@ export const useUserStore = defineStore("userStore", () => {
   }) => {
     isLoading.value = true;
     await instance
-      .post(userApi.__createUser, {
+      .post(_userApi.createUser, {
         ...form,
         _uuid: nanoid(20),
         _channelID: nanoid(15),
         displayName: capitalize(form.firstName + " " + form.lastName),
         status: 1,
+        settings: {
+          theme: "light",
+          leftOff: false,
+          muteConnectionNotif: false,
+          visible: 1,
+          connected: 1,
+        },
       })
       .then((response) => {
-        console.log(response.data);
-        
-        // Not nice but just for demo purpose
-        //if (response) getAllUsers();
+        allUsers.value.push({ ...response.data });
       })
       .then((error: any) => {
         newAlert.value = {
@@ -79,7 +86,7 @@ export const useUserStore = defineStore("userStore", () => {
   const getUser = async (_uuid: string | string[]) => {
     isLoading.value = true;
     try {
-      return await instance.get(userApi.__getUser, {
+      return await instance.get(_userApi.getUser, {
         params: {
           _uuid,
         },
@@ -95,11 +102,20 @@ export const useUserStore = defineStore("userStore", () => {
     }
   };
 
-  const updateUserSettings = async (settings: UserSettings, _channelID: string | number) => {
+  const updateUserSettings = async (
+    _uuid: string | number,
+    settings: UserSettings | null,
+    visible: boolean,
+    displayName?: string,
+    image?: string
+  ) => {
     await instance
-      .post("/updateUserSeetings", {
-        settings: settings,
-        _channelID
+      .post(_userApi.updateUserSeetings, {
+        _uuid,
+        settings,
+        visible,
+        displayName,
+        image,
       })
       .then((response) => {
         console.log(response.data);

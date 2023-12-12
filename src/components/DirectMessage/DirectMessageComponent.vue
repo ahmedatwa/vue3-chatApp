@@ -45,6 +45,7 @@ const emit = defineEmits<{
       updatedAt: string;
     }
   ];
+  loadMoreMessages: [value: { _channelID: string; limit: number, offset: number; unshift: boolean }];
 }>();
 
 const sendMessage = () => {
@@ -92,7 +93,8 @@ const startThread = (message: UserMessages) => {
             </v-badge>
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
-          <message-content-component :selected-user="user" :is-loading="isLoading" @start:thread="startThread"
+          <message-content-component :key="`direct-${user?._uuid}`" :selected-user="user" :is-loading="isLoading" 
+            @start:thread="startThread" @load-more-messages="$emit('loadMoreMessages', $event)"
             @delete-message="$emit('deleteMessage', $event)" @edit-message="$emit('editMessage', $event)">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">

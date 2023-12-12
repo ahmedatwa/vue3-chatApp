@@ -1,8 +1,8 @@
 import { defineStore } from "pinia";
-import { ref, computed, shallowRef,  } from "vue";
+import { ref, computed, shallowRef } from "vue";
 import { inject, reactive, watchEffect } from "vue";
 import { useSessionStore, useUserStore } from "@/stores";
-import { instance, __directMessageApi } from "@/axios";
+import { instance, _directMessageApi } from "@/axios";
 import { createDateTime, esc, getRandom } from "@/helpers";
 // types
 import type { Snackbar, UploadedFiles } from "@/types";
@@ -32,8 +32,9 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     users: false,
   });
 
-  const messagesPerUser = ref(new Map());
-  const otherUsers = ref<string[]>([]);
+  const paginationLimit = ref(10);
+  // const messagesPerUser = ref(new Map());
+  // const otherUsers = ref<string[]>([]);
 
   // Stores
   const sessionStore = useSessionStore();
@@ -42,6 +43,9 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   // Filter Users
   const filteredUsers = computed(() => {
     return users.value
+      .filter((u) => {
+        return u.visible !== false;
+      })
       .filter((user: User) => {
         return user.displayName
           .toLowerCase()
@@ -68,7 +72,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     }
 
     await instance
-      .post(__directMessageApi.sendMessage, {
+      .post(_directMessageApi.sendMessage, {
         content: esc(message.content),
         editContent: "",
         from: sessionStore.userSessionData?._uuid,
@@ -107,7 +111,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     }
 
     await instance
-      .post(__directMessageApi.sendThreadMessage, {
+      .post(_directMessageApi.sendThreadMessage, {
         _messageID: message._messageID,
         content: esc(message.content),
         from: sessionStore.userSessionData?._uuid,
@@ -127,7 +131,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
             // update socket
             socket.emit(_directMessageEmits.newThreadMessage, {
               ...response.data,
-              _channelID: message._channelID
+              _channelID: message._channelID,
             });
           }
         }
@@ -145,7 +149,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
   const addChannelsMember = async (_channelID: string) => {
     await instance
-      .post(__directMessageApi.addDirectMessagesMembers, {
+      .post(_directMessageApi.addDirectMessagesMembers, {
         _channelID,
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
@@ -169,7 +173,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     try {
       isLoading.users = true;
       const response = await instance.get(
-        __directMessageApi.getUserDirectMessageChannels,
+        _directMessageApi.getUserDirectMessageChannels,
         {
           params: {
             _uuid,
@@ -190,22 +194,32 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     }
   };
 
-  const getMessages = async (_channelID: string) => {
+  const getMessages = async (
+    _channelID: string | number,
+    limit: number,
+    offset: number,
+    unshift: boolean
+  ) => {
     isLoading.messages = true;
     return instance
-      .get(__directMessageApi.getUserDirectMessages, {
+      .get(_directMessageApi.getUserDirectMessages, {
         params: {
           _channelID,
+          limit: limit ? limit : paginationLimit.value,
+          offset: offset > 0 ? offset : 0,
         },
       })
       .then((response) => {
-        if (response.data) {
-          const found = users.value.find((u) => u._channelID === _channelID);
-          if (found) {
-            found.messagesDistributed = true;
-          }
+        if (response.statusText === "OK" && response.status === 200) {
           if (selectedUser.value) {
-            selectedUser.value?.messages?.push(...response.data);
+            unshift
+              ? selectedUser.value.messages?.unshift(...response.data)
+              : selectedUser.value?.messages?.push(...response.data);
+
+            const user = users.value.find((u) => u._channelID === _channelID);
+            if (user) {
+              user.messagesDistributed = true;
+            }
             selectedUser.value?.messagesDistributed == true;
           }
         }
@@ -222,6 +236,25 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       });
   };
 
+  const getTotalMessages = async (_channelID: string) => {
+    try {
+      const response = await instance.get(
+        _directMessageApi.getUserTotalMessages,
+        {
+          params: {
+            _channelID,
+          },
+        }
+      );
+      return response.data;
+    } catch (error: any) {
+      newAlert.value = {
+        title: error.code,
+        text: error.message,
+        type: "error",
+      };
+    }
+  };
   const editMessage = async (message: {
     _messageID: string | number;
     editContent: string;
@@ -229,9 +262,9 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     updatedAt: string;
   }) => {
     if (selectedUser.value?.messages) {
-      //isMessageEdit.value = true;
+      isLoading.messages = true;
       await instance
-        .post(__directMessageApi.updateMessage, {
+        .post(_directMessageApi.updateMessage, {
           ...message,
         })
         .catch((error) => {
@@ -242,30 +275,26 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
           };
         })
         .finally(() => {
-         // isMessageEdit.value = false;
+          isLoading.messages = false;
         });
-      // socket event
-      // socket.emit(_directMessageEmits.editMessage, {
-      //   channel: selectedChannel.value,
-      // });
     }
   };
 
   const deleteMessage = async (_messageID: string | number) => {
     if (selectedUser.value?.messages) {
-      //isMessageDelete.value = true;
+      isLoading.messages = true;
       await instance
-        .post(__directMessageApi.deleteMessage, { _messageID })
+        .post(_directMessageApi.deleteMessage, { _messageID })
         .then((response) => {
           if (response.statusText === "OK" && response.status === 200) {
-            // if (selectedChannel.value?.messages) {
-            //   selectedChannel?.value?.messages.forEach((message, index) => {
-            //     if (message._id === _messageID) {
-            //       selectedChannel.value?.messages?.splice(index, 1);
-            //       return;
-            //     }
-            //   });
-            // }
+            if (selectedUser.value?.messages) {
+              selectedUser?.value?.messages.forEach((message, index) => {
+                if (message._id === _messageID) {
+                  selectedUser.value?.messages?.splice(index, 1);
+                  return;
+                }
+              });
+            }
           }
         })
         .catch((error) => {
@@ -276,7 +305,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
           };
         })
         .finally(() => {
-         // isMessageDelete.value = false;
+          isLoading.messages = false;
         });
     }
   };
@@ -288,7 +317,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     files.forEach((file) => formData.append("files[]", file));
     formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
     await instance
-      .post(__directMessageApi.upload, formData)
+      .post(_directMessageApi.upload, formData)
       .then((response) => {
         if (response.status === 200 && response.statusText === "OK") {
           uploadedFiles.value?.push(...response.data);
@@ -313,18 +342,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       selected: true,
       newMessages: null,
       messages: user.messages || [],
-      //     ? user.messages
-      //     : messagesPerUser.value.get(user._uuid),
-      // };
     };
-  };
-
-  const removeUser = (_uuid: string) => {
-    const index = users.value.findIndex((u) => u._uuid === _uuid);
-    if (index) {
-      users.value.splice(index, 1);
-      selectedUser.value = null;
-    }
   };
 
   watchEffect(async () => {
@@ -337,7 +355,26 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
           !user.messagesDistributed &&
           selectedUser.value?._channelID !== null
         ) {
-          await getMessages(selectedUser.value?._channelID);
+          const totalMessages = await getTotalMessages(
+            selectedUser.value._channelID
+          );
+          if (totalMessages) {
+            const offset =
+              totalMessages > paginationLimit.value
+                ? Math.ceil(totalMessages - paginationLimit.value)
+                : 0;
+            user.pagination = {
+              total: totalMessages,
+              limit: paginationLimit.value,
+              offset,
+            };
+            await getMessages(
+              selectedUser.value?._channelID,
+              paginationLimit.value,
+              offset,
+              false
+            );
+          }
         }
       }
     }
@@ -381,7 +418,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         from: event.from,
         displayName: event.displayName,
         input: "",
-        isTyping: true
+        isTyping: true,
       };
     } else {
       typing.value.thread = null;
@@ -409,10 +446,12 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
               _channelID: newMessage._channelID,
               email: user.email,
               image: user.image,
+              settings: user.settings,
               messagesDistributed: true,
               connected: user.connected === "1" ? true : false,
               self: false,
-              visible: false,
+              visible: user.visible,
+              pagination: null,
               messages: [{ ...newMessage, fromSelf }],
               newMessages: {
                 total: UnreadMessagesTotal.count++,
@@ -550,10 +589,8 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     typing,
     isLoading,
     filteredUsers,
-    messagesPerUser,
-    otherUsers,
+    paginationLimit,
     getUserDirectMessageChannels,
-    removeUser,
     sendMessage,
     sendThreadMessage,
     editMessage,

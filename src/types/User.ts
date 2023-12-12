@@ -9,21 +9,22 @@ interface User {
   image: string;
   connected: boolean | string;
   self?: boolean;
+  visible: boolean;
   selected?: boolean;
-  visible?: boolean;
   typing?: boolean;
-  settings?: UserSettings | null;
+  settings: UserSettings;
   newMessages?: NewUnreadMessages | null;
   messages?: UserMessages[];
+  pagination: Pagination | null;
   messagesDistributed?: boolean;
   createdAt: string;
   updatedAt?: string;
 }
 
 type UserSettings = {
-  muteConnectionNotif: boolean | string;
   theme: string,
   leftOff: boolean | string,
+  muteConnectionNotif: boolean | string;
 };
 
 type NewUnreadMessages = {
@@ -85,6 +86,7 @@ interface UserSessionData {
 }
 
 interface Pagination {
+  total: number;
   limit: number;
   offset: number;
 }
@@ -122,5 +124,5 @@ export type {
   Pagination,
   SendThreadPayload,
   DirectMessageChannels,
-  UserSettings
+  UserSettings,
 };

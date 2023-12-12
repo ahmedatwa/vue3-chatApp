@@ -22,7 +22,7 @@ const emit = defineEmits<{
   "update:selected": [id: number | string, key: string, value: User | Channels];
   "createChannel": [value: ChannelForm];
   "update:channel:users": [value: string[]];
-  "removeUser": [value: string]
+  "removeUser": [value: User]
 }>();
 
 const onSelect = (_id: number | string, key: string, value: User | Channels) => {
@@ -60,7 +60,7 @@ watch(
           <v-list-item-title>
              <!-- remove User -->
              <v-btn v-if="user._uuid !== _uuid" icon="mdi-close" class="remove-user" size="sm" variant="plain"
-              @click.prevent="$emit('removeUser', user._uuid)"></v-btn>
+              @click.prevent="$emit('removeUser', user)"></v-btn>
             <v-icon icon="mdi-account-circle" :color="user.connected ? 'success' : 'dark'">
             </v-icon>
             {{ user.displayName }} <span class="text-caption">{{ user._uuid === _uuid ? " you" : "" }}</span>

@@ -84,7 +84,11 @@ const updateSettings = (setting: UserSettings) => {
   _theme.global.name.value = setting.theme;
 
   if (sessionStore.userSessionData?._uuid) {
-    userStore.updateUserSettings(setting, sessionStore.userSessionData?._uuid);
+    userStore.updateUserSettings(
+      sessionStore.userSessionData?._uuid,
+      setting,
+      true
+    );
   }
 };
 
@@ -135,8 +139,8 @@ onMounted(() => {
                 ...user,
                 selected: true,
                 newMessages: null,
-                messages:
-                  directMessageStore.messagesPerUser.get(user._uuid) || [],
+                //   messages:
+                //     directMessageStore.messagesPerUser.get(user._uuid) || [],
               };
             }
           }
@@ -162,9 +166,7 @@ onMounted(() => {
       }
     }
   }
-});
 
-watchEffect(() => {
   if (sessionStore.userSessionData?.settings?.theme) {
     _theme.global.name.value = sessionStore.userSessionData?.settings?.theme;
   }
@@ -179,8 +181,17 @@ onUnmounted(() => {
   for (const key in _channelListener) {
     socket.off(_channelListener[key as keyof typeof _channelListener]);
   }
+  // _directMessageEmits
+  for (const key in _directMessageEmits) {
+    socket.off(_directMessageEmits[key as keyof typeof _directMessageEmits]);
+  }
+  // _directMessageListener
+  for (const key in _directMessageListener) {
+    socket.off(
+      _directMessageListener[key as keyof typeof _directMessageListener]
+    );
+  }
 });
-
 
 // Sockets
 
@@ -214,11 +225,13 @@ socket.on("connect", () => {
               displayName: user.displayName,
               email: user.email,
               image: user.image,
+              visible: user.visible,
+              settings: user.settings,
               messagesDistributed: false,
               self: user._uuid === session._uuid,
-              visible: true,
               connected: session.connected,
               messages: [],
+              pagination: null,
               createdAt: user.createdAt,
             });
           });
@@ -232,7 +245,6 @@ socket.on("connect", () => {
         connected: session.connected,
         self: (socket as any)._uuid === session._uuid,
         _channelID: null,
-        visible: true,
       });
     }
 
@@ -300,6 +312,33 @@ const loadMoreChannelMessages = (
 ) => {
   channelStore.getChannelMessages(_channelID, offset, unshift);
 };
+
+const loadMoreMessages = (payload: {
+  _channelID: string | number;
+  limit: number;
+  offset: number;
+  unshift: boolean;
+}) => {
+  directMessageStore.getMessages(
+    payload._channelID,
+    payload.limit,
+    payload.offset,
+    payload.unshift
+  );
+};
+
+const removeUser = async (user: User) => {
+  const index = directMessageStore.users.findIndex(
+    (u) => u._uuid === user._uuid
+  );
+  if (index) {
+    directMessageStore.users.splice(index, 1);
+    directMessageStore.selectedUser = null;
+  }
+  if (sessionStore.userSessionData) {
+    userStore.updateUserSettings(user._uuid, null, false);
+  }
+};
 </script>
 <template>
   <snackbar-component :alert="newSnackbar" v-model:model-value="isAlert">
@@ -315,11 +354,12 @@ const loadMoreChannelMessages = (
       :last-active-element="lastSelectedElement"
       @update:selected="onSelect"
       @create-channel="channelStore.createChannel($event)"
-      @remove-user="directMessageStore.removeUser"
+      @remove-user="removeUser"
     ></drawer-component>
 
     <header-component
       :key="sessionStore.userSessionData?._uuid"
+      :all-users="userStore.allUsers"
       @logout="sessionStore.updateSession"
       @update:status="goOffline"
       @update:setting="updateSettings"
@@ -365,6 +405,7 @@ const loadMoreChannelMessages = (
           :uuid="sessionStore.userSessionData?._uuid"
           :typing="directMessageStore.typing"
           :is-loading="directMessageStore.isLoading"
+          @load-more-messages="loadMoreMessages"
           @send-message="directMessageStore.sendMessage"
           @sendThreadMessage="directMessageStore.sendThreadMessage"
           @edit-message="directMessageStore.editMessage"

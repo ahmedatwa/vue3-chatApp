@@ -3,7 +3,7 @@ import { ref } from "vue";
 // stores
 import { useStorageStore } from "@/stores";
 // axios
-import { instance, sessionApi } from "@/axios";
+import { instance, _sessionApi } from "@/axios";
 // types
 import type { User, UserSessionData } from "@/types/User";
 import type { Snackbar } from "@/types";
@@ -23,7 +23,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
     isLoading.value = true;
     isLoggedIn.value = false;
     await instance
-      .get(sessionApi.__getSession, {
+      .get(_sessionApi.getSession, {
         params: {
           sessionID: sessionID,
           connected: 1,
@@ -64,7 +64,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
   }) => {
     isLoading.value = true;
     await instance
-      .post(sessionApi.__updateSession, {
+      .post(_sessionApi.updateSession, {
         _uuid: session._uuid,
         sessionID: session.sessionID,
         connected: session.connected,
@@ -93,7 +93,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
   const restoreSession = async (sessionID: string) => {
     isLoading.value = true;
     await instance
-      .post(sessionApi.__restoreSession, {
+      .post(_sessionApi.restoreSession, {
         sessionID,
       })
       .then((response) => {
@@ -118,7 +118,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
     isLoading.value = true;
     let sessionID = nanoid(36);
     await instance
-      .post(sessionApi.__addSession, {
+      .post(_sessionApi.addSession, {
         _uuid: user._uuid,
         connected: true,
         sessionID,

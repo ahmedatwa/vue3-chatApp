@@ -1,44 +1,46 @@
 import axios from "axios";
 
 // sessions
-export const sessionApi = {
+export const _sessionApi = {
   // checked
-  __getSession: "/getSession",
-  __updateSession: "/updateSession",
-  __restoreSession: "/restoreSession",
-  __addSession: "/addSession",
+  getSession: "/getSession",
+  updateSession: "/updateSession",
+  restoreSession: "/restoreSession",
+  addSession: "/addSession",
 };
 
 // User
-export const userApi = {
-  __getAllUsers: "/getAllUsers",
-  __getAllChannels: "/getAllChannels",
-  __createUser: "/createUser",
-  __getUser: "/getUser",
+export const _userApi = {
+  getAllUsers: "/getAllUsers",
+  getAllChannels: "/getAllChannels",
+  createUser: "/createUser",
+  getUser: "/getUser",
+  updateUserSeetings: "/updateUserSeetings"
 };
 // Channels
-export const channelApi = {
-  __getChannels: "/channels/getChannels",
-  __getChannelMessages: "/channels/getChannelMessages",
-  __getTotalChannelMessages: "/channels/getTotalChannelMessages",
-  __addChannel: "/channels/addChannel",
-  __addChannelMessage: "/channels/addChannelMessage",
-  __addChannelMessageThread: "/channels/addChannelMessageThread",
-  __updateChannelMessage: "/channels/updateChannelMessage",
-  __deleteChannelMessage: "/channels/deleteChannelMessage",
-  __archiveChannel: "/channels/archiveChannel",
-  __updateChannelMembers: "/channels/updateChannelMembers",
-  __getChannelMembers: "/channels/getChannelMembers",
-  __updateChannel: "/channels/updateChannel",
-  __addChannelSettings: "/channels/addChannelSettings",
-  __leaveChannel: "/channels/leaveChannel",
-  __channelUpload: "/channels/channelUpload",
+export const _channelApi = {
+  getChannels: "/channels/getChannels",
+  getChannelMessages: "/channels/getChannelMessages",
+  getTotalChannelMessages: "/channels/getTotalChannelMessages",
+  addChannel: "/channels/addChannel",
+  addChannelMessage: "/channels/addChannelMessage",
+  addChannelMessageThread: "/channels/addChannelMessageThread",
+  updateChannelMessage: "/channels/updateChannelMessage",
+  deleteChannelMessage: "/channels/deleteChannelMessage",
+  archiveChannel: "/channels/archiveChannel",
+  updateChannelMembers: "/channels/updateChannelMembers",
+  getChannelMembers: "/channels/getChannelMembers",
+  updateChannel: "/channels/updateChannel",
+  addChannelSettings: "/channels/addChannelSettings",
+  leaveChannel: "/channels/leaveChannel",
+  channelUpload: "/channels/channelUpload",
 };
 
 // User Messages
-export const __directMessageApi = {
+export const _directMessageApi = {
   sendMessage: "/directmessages/addDirectMessage",
   getUserDirectMessages: "/directmessages/getUserDirectMessages",
+  getUserTotalMessages: "/directmessages/getUserTotalMessages",
   upload: "/directmessages/upload",
   addDirectMessagesMembers: "/directmessages/addDirectMessagesMembers",
   getUserDirectMessageChannels: "/directmessages/getUserDirectMessageChannels",

@@ -158,7 +158,7 @@ const startThread = (message: ChannelMessages) => {
             </v-btn>
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
-          <message-content-component :key="channel?._channelID" :thread-typing="typing.thread" :is-loading="isLoading"
+          <message-content-component :key="`channel-${channel?._channelID}`" :thread-typing="typing.thread" :is-loading="isLoading"
             :channel="channel" :is-delete="isMessageDelete" :is-scroll="isScroll" @load-more-messages="loadMoreMessages"
             @delete-message="$emit('deleteMessage', $event)" @edit-message="editMessage"
             @update:scroll="isScroll = $event" @start:thread="startThread">
