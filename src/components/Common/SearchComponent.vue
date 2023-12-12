@@ -1,26 +1,25 @@
 <script setup lang="ts">
-import { ref, watchEffect } from "vue";
+import { shallowRef, watchEffect } from "vue";
 import { useUserStore, useDirectMessageStore } from "@/stores";
-import { capitalize } from "@/helpers";
 import type { User } from "@/types/User";
 
-const searchTerm = ref("");
+const searchTerm = shallowRef("");
 const userStore = useUserStore();
 const directMessageStore = useDirectMessageStore();
-const searchItemes = ref<any[]>([]);
+const searchUsers = shallowRef<{ _id: string; name: string }[]>([]);
+
+const props = defineProps<{
+  allUsers: User[];
+}>();
 
 watchEffect(async () => {
-  const users = userStore.allUsers
-  if (users) {
-    const map2 = users.map(
-      (res: { _uuid: string; firstName: string; lastName: string }) => {
-        return {
-          _id: res._uuid,
-          name: capitalize(res.firstName + " " + res.lastName),
-        };
-      }
-    );
-    searchItemes.value.push(...map2);
+  if (props.allUsers.length > 1) {
+    searchUsers.value = props.allUsers.map(({ _uuid, displayName }) => {
+      return {
+        _id: _uuid,
+        name: displayName,
+      };
+    });
   }
 });
 
@@ -31,36 +30,22 @@ const onSelect = async () => {
     );
 
     if (found === undefined) {
-      const response = await userStore.getUser(searchTerm.value);
-      if (response?.status === 200 && response?.data) {
-        response.data.forEach((user: User) => {
+      await userStore.updateUserSettings(searchTerm.value, null, true);
+      if (userStore.allUsers) {
+        userStore.allUsers.forEach((user: User) => {
           if (user._uuid === searchTerm.value) {
             directMessageStore.users.push({
-              _id: user._id,
-              _uuid: user._uuid,
-              _channelID: null,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              displayName: user.displayName,
-              visible: true,
-              email: user.email,
-              image: user.image,
-              messagesDistributed: true,
-              connected: user.connected === "1" ? true : false,
-              self: false,
-              messages:
-                directMessageStore.messagesPerUser.get(searchTerm.value) || [],
-              createdAt: user.createdAt,
+              ...user,
             });
             return;
           }
         });
-
-        searchTerm.value = "";
       }
     } else {
-      return;
+      found.visible = true;
+      await userStore.updateUserSettings(searchTerm.value, null, true);
     }
+    searchTerm.value = "";
   }
 };
 </script>
@@ -71,7 +56,7 @@ const onSelect = async () => {
     item-value="_id"
     prepend-inner-icon="mdi-magnify"
     v-model="searchTerm"
-    :items="searchItemes"
+    :items="searchUsers"
     variant="underlined"
     hide-details
     hide-selected

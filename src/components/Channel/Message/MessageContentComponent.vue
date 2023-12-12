@@ -108,16 +108,6 @@ const autoScroll = () => {
     }, 200);
   }
 
-  // setTimeout(() => {
-  //   const el = itemRef.value.$el.children[1].lastChild;
-  //   if (el) {
-  //     el?.lastChild.scrollIntoView({
-  //       behavior: "instant",
-  //       block: "start",
-  //       inline: "nearest",
-  //     });
-  //   }
-  // }, 1200);
 };
 
 onMounted(() => {
@@ -140,13 +130,11 @@ onMounted(() => {
         </v-btn>
       </v-slide-y-transition>
     </v-sheet>
-    <v-skeleton-loader v-if="isLoading.messages" type="list-item" v-for="n in channel?.totalMessages"
-      :key="n"></v-skeleton-loader>
     <v-row no-gutters v-for="(channelMessage, index) in channelMessages" :key="index" v-if="!isLoading.messages">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
       </v-col>
-      <!-- <v-slide-x-transition group mode="out" tag="v-col"> -->
+      <v-slide-x-transition group mode="out" tag="v-col">
       <v-col v-for="message in channelMessage" :key="message._id" id="tes" cols="12" class="my-4">
         <message-action-menu id="channel" :message="message" @edit-message="$emit('editMessage', $event)"
           @delete-message="$emit('deleteMessage', $event)"
@@ -163,7 +151,7 @@ onMounted(() => {
           {{ $lang("chat.text.edited") }} {{ message.content }}</span>
         <span class="text-left" v-else>{{ message.content }}</span>
       </v-col>
-      <!-- </v-slide-x-transition> -->
+      </v-slide-x-transition>
     </v-row>
     <span ref="lastRow" class="last-ref">last</span>
   </v-container>

@@ -7,6 +7,7 @@ import type { User, Pagination, UserMessages } from "@/types/User";
 
 const currentUser = inject<User>("user");
 const pagination = ref<Pagination>({
+  total: 0,
   offset: 0,
   limit: 0,
 });
@@ -24,7 +25,14 @@ const props = defineProps<{
 
 // emits
 const emit = defineEmits<{
-  loadMoreMessages: [_channelID: string, limit: number, offset: number, unshift: boolean];
+  loadMoreMessages: [
+    value: {
+      _channelID: string;
+      limit: number;
+      offset: number;
+      unshift: boolean;
+    }
+  ];
   deleteMessage: [value: number | string];
   editMessage: [
     value: {
@@ -54,18 +62,46 @@ const loadMoreMessages = () => {
     return;
   }
   if (props.selectedUser?._channelID) {
-    emit(
-      "loadMoreMessages",
-      props.selectedUser?._channelID,
-      pagination.value.limit,
-      pagination.value.offset,
-      true
-    );
+    // pagination.value.offset = Math.ceil(
+    //   pagination.value.offset - pagination.value.limit
+    // );
+    // if (
+    //   pagination.value.offset < pagination.value.limit &&
+    //   pagination.value.offset > 0
+    // ) {
+    //   pagination.value.limit = pagination.value.offset;
+    //   pagination.value.offset = 0;
+    // }
+    emit("loadMoreMessages", {
+      _channelID: props.selectedUser?._channelID,
+      limit: pagination.value.limit,
+      offset: paginationOffset.value,
+      unshift: true,
+    });
   }
 };
 
+watchEffect(() => {
+  if (props.selectedUser?.pagination) {
+    pagination.value = props.selectedUser?.pagination;
+  }
+});
+
+const paginationOffset = computed(() => {
+  pagination.value.offset = Math.ceil(pagination.value.offset - pagination.value.limit); //2 10
+
+  if (pagination.value.offset) {
+    if (pagination.value.offset < pagination.value.limit && pagination.value.offset > 0) {
+      pagination.value.limit = pagination.value.offset + pagination.value.limit;
+      pagination.value.offset = 0;
+      return 0;
+    }
+  }
+  return pagination.value.offset;
+});
+
 const isLoadMoreDisabled = computed(() => {
-  return pagination.value.offset < 0;
+    return paginationOffset.value < 0 ? true : false
 });
 
 const lastRow = ref<HTMLDivElement | null>(null);
@@ -82,7 +118,7 @@ watchEffect(() => {
   <v-container class="container">
     <v-sheet :align="'center'" justify="center" class="my-2">
       <v-btn :loading="isLoading.messages" :disabled="isLoadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
-        :color="isLoadMoreDisabled ? 'error' : 'success'" @click="loadMoreMessages">
+        color="success" @click="loadMoreMessages">
         {{ $lang("chat.button.loadMore") }}
       </v-btn>
     </v-sheet>
@@ -92,9 +128,9 @@ watchEffect(() => {
       </v-col>
       <v-slide-x-transition group mode="in-out" tag="v-col">
         <v-col v-for="message in userMessage" :key="message._id" cols="12" class="mb-2">
-          <message-action-menu :key="message._id" :selected-user="selectedUser" 
-            :message="message" @edit-message="$emit('editMessage', $event)"
-            @delete-message="$emit('deleteMessage', $event)" @start:thread="$emit('start:thread', $event)">
+          <message-action-menu :key="message._id" :selected-user="selectedUser" :message="message"
+            @edit-message="$emit('editMessage', $event)" @delete-message="$emit('deleteMessage', $event)"
+            @start:thread="$emit('start:thread', $event)">
           </message-action-menu>
           {{ formatTimeShort(message.createdAt) }}
           <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
@@ -104,8 +140,10 @@ watchEffect(() => {
             {{ selectedUser?.displayName }}:
           </span>
           <div v-if="message.editContent" class="d-inline">
-          <span class="text-caption me-1">
-            {{ $lang("chat.text.edited") }}</span> {{ message.content }}</div>
+            <span class="text-caption me-1">
+              {{ $lang("chat.text.edited") }}</span>
+            {{ message.content }}
+          </div>
           <span class="text-left" v-else>{{ message.content }}</span>
         </v-col>
       </v-slide-x-transition>

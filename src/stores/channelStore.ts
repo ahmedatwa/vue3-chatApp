@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, computed, inject } from "vue";
 import { reactive, shallowRef, watchEffect } from "vue";
-import { instance, channelApi } from "@/axios";
+import { instance, _channelApi } from "@/axios";
 import { useSessionStore } from "@/stores";
 import { nanoid } from "nanoid";
 import { esc, remove, createDateTime, capitalize } from "@/helpers";
@@ -66,7 +66,7 @@ export const useChannelStore = defineStore("channelStore", () => {
       await uploadFiles(message.files);
     }
     await instance
-      .post(channelApi.__addChannelMessage, {
+      .post(_channelApi.addChannelMessage, {
         _channelID: selectedChannel.value?._channelID,
         from: sessionStore.userSessionData?._uuid,
         fromName: sessionStore.userSessionData?.displayName,
@@ -105,7 +105,7 @@ export const useChannelStore = defineStore("channelStore", () => {
       await uploadFiles(payload.files);
     }
     await instance
-      .post(channelApi.__addChannelMessageThread, {
+      .post(_channelApi.addChannelMessageThread, {
         from: sessionStore.userSessionData?._uuid,
         fromName: sessionStore.userSessionData?.displayName,
         to: payload.to,
@@ -161,7 +161,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   ) => {
     isLoading.messages = true;
     await instance
-      .get(channelApi.__getChannelMessages, {
+      .get(_channelApi.getChannelMessages, {
         params: {
           _channelID: _channelID,
           limit: limit ? limit : paginationLimit.value,
@@ -219,14 +219,11 @@ export const useChannelStore = defineStore("channelStore", () => {
 
   const getTotalChannelMessages = async (_channelID: string) => {
     try {
-      const response = await instance.get(
-        channelApi.__getTotalChannelMessages,
-        {
-          params: {
-            _channelID: _channelID,
-          },
-        }
-      );
+      const response = await instance.get(_channelApi.getTotalChannelMessages, {
+        params: {
+          _channelID: _channelID,
+        },
+      });
       return response.data;
     } catch (error) {}
   };
@@ -234,7 +231,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const createChannel = async (channel: ChannelForm) => {
     isLoading.channels = true;
     await instance
-      .post(channelApi.__addChannel, {
+      .post(_channelApi.addChannel, {
         _channelID: nanoid(15),
         ...channel,
         displayName: sessionStore.userSessionData?.displayName,
@@ -287,7 +284,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const getChannelMembers = async (_channelID: string) => {
     isLoading.messages = true;
     await instance
-      .get(channelApi.__getChannelMembers, {
+      .get(_channelApi.getChannelMembers, {
         params: {
           _channelID: _channelID,
         },
@@ -319,7 +316,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const getChannels = async (uuid: string) => {
     isLoading.channels = true;
     try {
-      return await instance.get(channelApi.__getChannels, {
+      return await instance.get(_channelApi.getChannels, {
         params: {
           _uuid: uuid,
         },
@@ -341,7 +338,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   }) => {
     isLoading.channels = true;
     await instance
-      .post(channelApi.__updateChannelMembers, {
+      .post(_channelApi.updateChannelMembers, {
         _channelID: selectedChannel.value?._channelID,
         channelName: selectedChannel.value?.channelName,
         members: [...payload.add],
@@ -401,7 +398,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     if (selectedChannel.value?.messages) {
       isMessageDelete.value = true;
       await instance
-        .post(channelApi.__deleteChannelMessage, { _messageID })
+        .post(_channelApi.deleteChannelMessage, { _messageID })
         .then((response) => {
           if (response.statusText === "OK" && response.status === 200) {
             if (selectedChannel.value?.messages) {
@@ -437,7 +434,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     if (selectedChannel.value?.messages) {
       isMessageEdit.value = true;
       await instance
-        .post(channelApi.__updateChannelMessage, {
+        .post(_channelApi.updateChannelMessage, {
           ...message,
         })
         .catch((error) => {
@@ -463,7 +460,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   }) => {
     isLoading.channels = true;
     await instance
-      .post(channelApi.__archiveChannel, {
+      .post(_channelApi.archiveChannel, {
         _channelID: payload._channelID,
         _uuid: sessionStore.userSessionData?._uuid,
       })
@@ -494,7 +491,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const updateChannel = async (channel: ChannelForm) => {
     isLoading.channels = true;
     await instance
-      .post(channelApi.__updateChannel, {
+      .post(_channelApi.updateChannel, {
         _channelID: selectedChannel.value?._channelID,
         ...channel,
       })
@@ -526,7 +523,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   }) => {
     isLoading.channels = true;
     await instance
-      .post(channelApi.__leaveChannel, {
+      .post(_channelApi.leaveChannel, {
         _channelID: payload._channelID,
         _uuid: sessionStore.userSessionData?._uuid,
       })
@@ -565,7 +562,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     formData.append("_channelID", selectedChannel.value?._channelID as string);
     formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
     await instance
-      .post(channelApi.__channelUpload, formData)
+      .post(_channelApi.channelUpload, formData)
       .then((response) => {
         if (response.status === 200 && response.statusText === "OK") {
           uploadedFiles.value?.push(...response.data);
@@ -599,7 +596,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   }) => {
     isLoading.channels = true;
     instance
-      .post(channelApi.__addChannelSettings, {
+      .post(_channelApi.addChannelSettings, {
         ...settings,
       })
       .then((response) => {

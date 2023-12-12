@@ -8,7 +8,7 @@ const user = inject<UserSessionData>("user")
 const settingsForm = ref<UserSettings>({
   theme: "light",
   leftOff: true,
-  muteConnectionNotif: false
+  muteConnectionNotif: false,
 })
 
 const isAlert = ref(false)
