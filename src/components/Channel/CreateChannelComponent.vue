@@ -89,10 +89,8 @@ const updateChannel = (key: string) => {
       <v-divider :thickness="3" color="error" class="mb-3"></v-divider>
       <v-tabs v-model="channelTab" color="deep-purple-accent-4" align-tabs="center">
         <v-tab key="about" value="about">{{ $lang("channel.tab.about") }}</v-tab>
-
         <v-tab key="members" value="members" v-if="channel?.createdBy === currentUser?._uuid">
           {{ $lang("channel.tab.members") }}</v-tab>
-
         <v-tab key="settings" value="settings" v-if="!create">
           {{ $lang("channel.tab.settings") }}</v-tab>
       </v-tabs>

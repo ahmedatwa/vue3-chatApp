@@ -216,24 +216,26 @@ socket.on("connect", () => {
           found._channelID = res._channelID;
         } else {
           userStore.allUsers.forEach((user) => {
-            directMessageStore.users.push({
-              _id: user._id,
-              _uuid: user._uuid,
-              _channelID: res._channelID,
-              firstName: user.firstName,
-              lastName: user.lastName,
-              displayName: user.displayName,
-              email: user.email,
-              image: user.image,
-              visible: user.visible,
-              settings: user.settings,
-              messagesDistributed: false,
-              self: user._uuid === session._uuid,
-              connected: session.connected,
-              messages: [],
-              pagination: null,
-              createdAt: user.createdAt,
-            });
+            if (user._uuid === otherUser) {
+              directMessageStore.users.push({
+                _id: user._id,
+                _uuid: user._uuid,
+                _channelID: res._channelID,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                displayName: user.displayName,
+                email: user.email,
+                image: user.image,
+                visible: user.visible,
+                settings: user.settings,
+                messagesDistributed: false,
+                self: user._uuid === session._uuid,
+                connected: session.connected,
+                messages: [],
+                pagination: null,
+                createdAt: user.createdAt,
+              });
+            }
           });
         }
       });
