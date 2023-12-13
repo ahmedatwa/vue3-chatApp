@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, inject, watchEffect, nextTick } from "vue";
+import { ref, computed, inject } from "vue";
+import { watchEffect, nextTick, watch } from "vue";
 import { formatTimeShort, formatDateLong } from "@/helpers";
 import { MessageActionMenu } from "@/components/DirectMessage";
 // types
@@ -11,6 +12,8 @@ const pagination = ref<Pagination>({
   offset: 0,
   limit: 0,
 });
+const lastRow = ref<HTMLDivElement | null>(null);
+const firstRow = ref<HTMLDivElement | null>(null);
 
 // props
 const props = defineProps<{
@@ -43,6 +46,7 @@ const emit = defineEmits<{
     }
   ];
   "start:thread": [value: UserMessages];
+  "update:scroll": [value: boolean];
 }>();
 
 // group messages by date
@@ -62,22 +66,13 @@ const loadMoreMessages = () => {
     return;
   }
   if (props.selectedUser?._channelID) {
-    // pagination.value.offset = Math.ceil(
-    //   pagination.value.offset - pagination.value.limit
-    // );
-    // if (
-    //   pagination.value.offset < pagination.value.limit &&
-    //   pagination.value.offset > 0
-    // ) {
-    //   pagination.value.limit = pagination.value.offset;
-    //   pagination.value.offset = 0;
-    // }
     emit("loadMoreMessages", {
       _channelID: props.selectedUser?._channelID,
       limit: pagination.value.limit,
       offset: paginationOffset.value,
       unshift: true,
     });
+    scroll(true)
   }
 };
 
@@ -101,18 +96,32 @@ const paginationOffset = computed(() => {
 });
 
 const isLoadMoreDisabled = computed(() => {
-    return paginationOffset.value < 0 ? true : false
+  return paginationOffset.value < 0 ? true : false
 });
 
-const lastRow = ref<HTMLDivElement | null>(null);
-
-watchEffect(() => {
-  if (props.selectedUser?.messages?.length) {
-    nextTick(() => {
-      lastRow.value?.scrollIntoView(true);
-    });
+watch(
+  () => props.isScroll,
+  (value) => {
+    if (value) {
+      scroll(false);
+      emit("update:scroll", false);
+    }
   }
-});
+);
+
+const scroll = (top: boolean) => {
+  watchEffect(() => {
+    if (props.selectedUser?.messages?.length) {
+      nextTick(() => {
+        if (top) {
+          firstRow.value?.scrollIntoView(true);
+        } else {
+          lastRow.value?.scrollIntoView(true);
+        }
+      });
+    }
+  });
+}
 </script>
 <template>
   <v-container class="container">
@@ -122,6 +131,7 @@ watchEffect(() => {
         {{ $lang("chat.button.loadMore") }}
       </v-btn>
     </v-sheet>
+    <span ref="firstRow"></span>
     <v-row no-gutters v-for="(userMessage, index) in userMessages" :key="index">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}

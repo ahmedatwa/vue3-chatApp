@@ -1,27 +1,16 @@
 <script setup lang="ts">
-import { shallowRef, watchEffect } from "vue";
+import { shallowRef } from "vue";
 import { useUserStore, useDirectMessageStore } from "@/stores";
-import type { User } from "@/types/User";
+import type { User, SearchUsers } from "@/types/User";
 
 const searchTerm = shallowRef("");
 const userStore = useUserStore();
 const directMessageStore = useDirectMessageStore();
-const searchUsers = shallowRef<{ _id: string; name: string }[]>([]);
 
-const props = defineProps<{
-  allUsers: User[];
+defineProps<{
+  searchUsers: SearchUsers[];
 }>();
 
-watchEffect(async () => {
-  if (props.allUsers.length > 1) {
-    searchUsers.value = props.allUsers.map(({ _uuid, displayName }) => {
-      return {
-        _id: _uuid,
-        name: displayName,
-      };
-    });
-  }
-});
 
 const onSelect = async () => {
   if (searchTerm.value) {
@@ -52,8 +41,8 @@ const onSelect = async () => {
 <template>
   <v-autocomplete
     :label="$lang('header.searchLabel')"
-    item-title="name"
-    item-value="_id"
+    item-title="displayName"
+    item-value="_uuid"
     prepend-inner-icon="mdi-magnify"
     v-model="searchTerm"
     :items="searchUsers"

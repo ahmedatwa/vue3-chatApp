@@ -1,17 +1,10 @@
 <script setup lang="ts">
 import { ref, provide, watch } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
-import {
-  MessageContentComponent,
-  MessageThreadComponent,
-} from "@/components/DirectMessage";
+import { MessageContentComponent, MessageThreadComponent } from "@/components/DirectMessage";
 // types
-import type {
-  User,
-  UserTyping,
-  UserMessages,
-  SendThreadPayload,
-} from "@/types/User";
+import type { User, UserTyping } from "@/types/User";
+import type { UserMessages, SendThreadPayload } from "@/types/User";
 
 const messageInput = ref("");
 const uploadedFiles = ref<File[]>([]);
@@ -93,8 +86,8 @@ const startThread = (message: UserMessages) => {
             </v-badge>
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
-          <message-content-component :key="`direct-${user?._uuid}`" :selected-user="user" :is-loading="isLoading" 
-            @start:thread="startThread" @load-more-messages="$emit('loadMoreMessages', $event)"
+          <message-content-component :key="`direct-${user?._uuid}`" :selected-user="user" :is-loading="isLoading"
+            @start:thread="startThread" :is-scroll="isScroll" @load-more-messages="$emit('loadMoreMessages', $event)"
             @delete-message="$emit('deleteMessage', $event)" @edit-message="$emit('editMessage', $event)">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">

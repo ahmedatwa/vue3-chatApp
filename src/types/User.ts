@@ -22,8 +22,8 @@ interface User {
 }
 
 type UserSettings = {
-  theme: string,
-  leftOff: boolean | string,
+  theme: string;
+  leftOff: boolean | string;
   muteConnectionNotif: boolean | string;
 };
 
@@ -114,6 +114,14 @@ interface DirectMessageChannels {
   to: string;
   createdAt: string;
 }
+
+interface SearchUsers {
+  _uuid: string | number;
+  displayName: string;
+  email: string;
+  createdAt: string;
+}
+
 export type {
   User,
   UserMessages,
@@ -125,4 +133,5 @@ export type {
   SendThreadPayload,
   DirectMessageChannels,
   UserSettings,
+  SearchUsers,
 };

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onUnmounted, onMounted, watch } from "vue";
-import { shallowRef, watchEffect, provide } from "vue";
+import { shallowRef, watchEffect, provide, computed } from "vue";
 // stores
 import { useUserStore, useStorageStore, useSessionStore } from "@/stores";
 import { useChannelStore, useDirectMessageStore } from "@/stores";
@@ -341,6 +341,17 @@ const removeUser = async (user: User) => {
     userStore.updateUserSettings(user._uuid, null, false);
   }
 };
+
+const mappedUsers = computed(() => {
+  return userStore.allUsers.map(({ _uuid, displayName, email, createdAt }) => {
+    return {
+      _uuid,
+      displayName,
+      email,
+      createdAt,
+    };
+  });
+});
 </script>
 <template>
   <snackbar-component :alert="newSnackbar" v-model:model-value="isAlert">
@@ -361,7 +372,7 @@ const removeUser = async (user: User) => {
 
     <header-component
       :key="sessionStore.userSessionData?._uuid"
-      :all-users="userStore.allUsers"
+      :search-users="mappedUsers"
       @logout="sessionStore.updateSession"
       @update:status="goOffline"
       @update:setting="updateSettings"
@@ -382,6 +393,7 @@ const removeUser = async (user: User) => {
           :is-loading="channelStore.isLoading"
           :typing="channelStore.typing"
           :is-message-delete="channelStore.isMessageDelete"
+          :search-users="mappedUsers"
           @load-more-messages="loadMoreChannelMessages"
           @send-thread-message="channelStore.sendMessageThread"
           @update-channel-settings="channelStore.updateChannelSettings"

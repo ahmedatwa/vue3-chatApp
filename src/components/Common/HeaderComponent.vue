@@ -3,7 +3,7 @@ import { ref, watch, inject } from "vue";
 import PreferenceComponent from "@/components/User/PreferenceComponent.vue"
 import { SearchComponent } from "@/components/Common"
 // types
-import { UserSessionData, UserSettings, User } from "@/types/User";
+import { UserSessionData, UserSettings, SearchUsers } from "@/types/User";
 import { langKey } from "@/types/Symbols";
 
 const drawer = inject<boolean>("drawer")
@@ -13,7 +13,7 @@ const lang = inject(langKey)
 const isPrefDialog = ref(false)
 
 defineProps<{
-  allUsers: User[]
+  searchUsers: SearchUsers[]
 }>()
 
 const emit = defineEmits<{
@@ -43,7 +43,7 @@ watch(isOffline, (newStatus) => {
       </template>
       <v-row>
         <v-col cols="9" class="mx-auto">
-          <search-component :all-users="allUsers"></search-component>
+          <search-component :search-users="searchUsers"></search-component>
         </v-col>
       </v-row>
       <v-btn icon density="compact" class="me-2" color="primary">
