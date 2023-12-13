@@ -2,7 +2,7 @@
 import { ref, computed, shallowRef } from "vue";
 import { onMounted, inject, reactive } from "vue";
 import { MembersComponent, SettingComponent } from "@/components/Channel";
-import type { UserSessionData } from "@/types/User";
+import type { UserSessionData, SearchUsers } from "@/types/User";
 import type { ChannelMembers, ChannelSettings } from "@/types/Channel";
 import type { Channels, ChannelForm } from "@/types/Channel";
 
@@ -22,6 +22,7 @@ const isEditDesc = ref(false);
 // Props
 const props = defineProps<{
   channel?: Channels | null;
+  searchUsers?: SearchUsers[];
   title?: string;
   create?: boolean;
   isLoading?: boolean;
@@ -142,7 +143,7 @@ const updateChannel = (key: string) => {
         </v-window-item>
         <!-- Members -->
         <v-window-item value="members" key="members">
-          <members-component :channel="channel" :is-loading="isLoading"
+          <members-component :channel="channel" :is-loading="isLoading" :search-users="searchUsers"
             @update:channel-members="$emit('update:channelMembers', $event)"></members-component>
         </v-window-item>
         <!-- Settings -->

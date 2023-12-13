@@ -1,6 +1,6 @@
 import { defineStore } from "pinia";
 import { computed } from "vue";
-import type { UserAppSettings } from "@/types/User";
+import type { UserSettings } from "@/types/User";
 import { createDateTime } from "@/helpers";
 
 export const useStorageStore = defineStore("storageStore", () => {
@@ -27,7 +27,7 @@ export const useStorageStore = defineStore("storageStore", () => {
     return getStorage("JSESSIOND");
   });
 
-  const userStorageSettings = computed((): UserAppSettings => {
+  const userStorageSettings = computed((): UserSettings => {
     return getStorage("APPUSSTIG");
   });
 

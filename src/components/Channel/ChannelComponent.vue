@@ -2,24 +2,11 @@
 import { ref, inject, watch, computed } from "vue";
 import { provide, shallowRef } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
-import {
-  CreateChannelComponent,
-  MessageContentComponent,
-  MessageThreadComponent,
-} from "@/components/Channel";
-import type {
-  Channels,
-  ChannelMembers,
-  ChannelMessages,
-  ChannelTyping,
-} from "@/types/Channel";
-import type {
-  ChannelForm,
-  ChannelSettings,
-  SendThreadPayload,
-} from "@/types/Channel";
+import { CreateChannelComponent, MessageContentComponent, MessageThreadComponent } from "@/components/Channel";
+import type { Channels, ChannelMembers, ChannelMessages, ChannelTyping } from "@/types/Channel";
+import type { ChannelForm, ChannelSettings, SendThreadPayload } from "@/types/Channel";
 // types
-import type { UserSessionData } from "@/types/User";
+import type { UserSessionData, SearchUsers } from "@/types/User";
 
 
 const user = inject<UserSessionData>("user");
@@ -31,6 +18,7 @@ const isScroll = ref(false);
 // Props
 const props = defineProps<{
   channel: Channels | null;
+  searchUsers: SearchUsers[]
   typing: Record<"channel" | "thread", ChannelTyping | null>;
   isLoading: {
     messages: boolean;
@@ -138,9 +126,9 @@ const startThread = (message: ChannelMessages) => {
           <v-card-title>
             <v-btn append-icon="mdi-menu-down" variant="text">
               {{ channel?.channelName }}
-              <create-channel-component :key="`channel-manage${channel?._id}`" :channel="channel"
-                :is-loading="isLoading.channels" @update:channel-settings="
-                  $emit('updateChannelSettings', $event)
+              <create-channel-component :key="`channel-manage${channel?._id}`" :channel="channel" :search-users="searchUsers"
+                :is-loading="isLoading.channels" 
+                @update:channel-settings="$emit('updateChannelSettings', $event)
                   " @archive-channel="$emit('archiveChannel', $event)" @create-channel="$emit('updateChannel', $event)"
                 @leave-channel="$emit('leaveChannel', $event)"
                 @update:channel-members="$emit('update:channelMembers', $event)"

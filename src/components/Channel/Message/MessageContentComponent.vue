@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
-import { inject, onMounted, watchEffect } from "vue";
+import { computed, ref, nextTick } from "vue";
+import { inject, watchEffect, watch } from "vue";
 import { MessageActionMenu } from "@/components/Channel";
 // types
 import type { ChannelMessages, Channels } from "@/types/Channel";
@@ -72,6 +72,7 @@ const loadMoreMessages = () => {
       pagination.value.offset,
       true
     );
+    scroll(true)
   }
 };
 
@@ -86,39 +87,39 @@ watchEffect(() => {
 });
 
 const lastRow = ref<HTMLDivElement | null>(null);
+const firstRow = ref<HTMLDivElement | null>(null);
 
 watch(
   () => props.isScroll,
-  (scroll) => {
-    if (scroll) {
-      autoScroll();
+  (value) => {
+    if (value) {
+      scroll(false);
       emit("update:scroll", false);
     }
   }
 );
 
-const autoScroll = () => {
-  if (lastRow.value) {
-    setTimeout(() => {
-      lastRow.value?.scrollIntoView({
-        behavior: "instant",
-        block: "start",
-        inline: "nearest",
+const scroll = (top: boolean) => {
+  watchEffect(() => {
+    if (props.channel?.messages?.length) {
+      nextTick(() => {
+        (top) 
+        ? firstRow.value?.scrollIntoView(true) 
+        : lastRow.value?.scrollIntoView(true);
       });
-    }, 200);
-  }
-
+    }
+  });
 };
 
-onMounted(() => {
-  setTimeout(() => {
-    lastRow.value?.scrollIntoView({
-      behavior: "instant",
-      block: "start",
-      inline: "nearest",
-    });
-  }, 200);
-});
+// onMounted(() => {
+//   setTimeout(() => {
+//     lastRow.value?.scrollIntoView({
+//       behavior: "instant",
+//       block: "start",
+//       inline: "nearest",
+//     });
+//   }, 200);
+// });
 </script>
 <template>
   <v-container class="container">
@@ -130,30 +131,30 @@ onMounted(() => {
         </v-btn>
       </v-slide-y-transition>
     </v-sheet>
+    <span ref="firstRow"></span>
     <v-row no-gutters v-for="(channelMessage, index) in channelMessages" :key="index" v-if="!isLoading.messages">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
       </v-col>
       <v-slide-x-transition group mode="out" tag="v-col">
-      <v-col v-for="message in channelMessage" :key="message._id" id="tes" cols="12" class="my-4">
-        <message-action-menu id="channel" :message="message" @edit-message="$emit('editMessage', $event)"
-          @delete-message="$emit('deleteMessage', $event)"
-          @start:thread="$emit('start:thread', $event)">
-        </message-action-menu>
-        {{ formatTimeShort(message.createdAt) }}
-        <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
-          {{ message.fromName }}:
-        </span>
-        <span class="font-weight-bold text-blue" v-else>
-          {{ message.fromName }}:
-        </span>
-        <span v-if="message.editContent" class="text-caption me-1">
-          {{ $lang("chat.text.edited") }} {{ message.content }}</span>
-        <span class="text-left" v-else>{{ message.content }}</span>
-      </v-col>
+        <v-col v-for="message in channelMessage" :key="message._id" id="tes" cols="12" class="my-4">
+          <message-action-menu id="channel" :message="message" @edit-message="$emit('editMessage', $event)"
+            @delete-message="$emit('deleteMessage', $event)" @start:thread="$emit('start:thread', $event)">
+          </message-action-menu>
+          {{ formatTimeShort(message.createdAt) }}
+          <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
+            {{ message.fromName }}:
+          </span>
+          <span class="font-weight-bold text-blue" v-else>
+            {{ message.fromName }}:
+          </span>
+          <span v-if="message.editContent" class="text-caption me-1">
+            {{ $lang("chat.text.edited") }} {{ message.content }}</span>
+          <span class="text-left" v-else>{{ message.content }}</span>
+        </v-col>
       </v-slide-x-transition>
     </v-row>
-    <span ref="lastRow" class="last-ref">last</span>
+    <span ref="lastRow"></span>
   </v-container>
 </template>
 <style scoped>
@@ -188,10 +189,5 @@ onMounted(() => {
 
 .text-divider::after {
   margin-left: var(--text-divider-gap);
-}
-
-.last-ref {
-  opacity: 0;
-  scroll-margin-top: 1em;
 }
 </style>
