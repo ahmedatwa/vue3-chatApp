@@ -56,6 +56,8 @@ export default {
       threadTitle: "Thread: {0}",
       editMessage: "Edit Message",
       deleteMessage: "Delete Message",
+      replyThread: "Reply in Thread",
+      emoji: "More Emojis",
       confirm: "Are you sure you want to {0}? This can't be undone.",
     },
     help: {
@@ -82,8 +84,8 @@ export default {
   },
 
   header: {
-    profile: "User Profile",
-    preferences: "User Preferences",
+    profile: "Profile",
+    preferences: "Preferences",
     downloads: "Downloads",
     offline: "Set yourself as {0}",
     signOut: "Sign out",

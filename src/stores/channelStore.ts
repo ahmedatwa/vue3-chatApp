@@ -6,9 +6,9 @@ import { useSessionStore } from "@/stores";
 import { nanoid } from "nanoid";
 import { esc, remove, createDateTime, capitalize } from "@/helpers";
 // types
-import type { Snackbar, UploadedFiles } from "@/types";
+import type { Snackbar, UploadedFiles, Typing } from "@/types/Chat";
 import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel";
-import type { SendThreadPayload, ChannelTyping } from "@/types/Channel";
+import type { SendThreadPayload } from "@/types/Channel";
 import type { ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
@@ -29,7 +29,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const isMessageDelete = shallowRef(false);
   const channels = ref<Channels[]>([]);
   const uploadedFiles = ref<UploadedFiles[]>([]);
-  const typing = ref<Record<"channel" | "thread", ChannelTyping | null>>({
+  const typing = ref<Record<"channel" | "thread", Typing | null>>({
     channel: null,
     thread: null,
   });
@@ -554,6 +554,43 @@ export const useChannelStore = defineStore("channelStore", () => {
       });
   };
 
+  const updateMessageReaction = (event: { _id: string | number; emoji: string }) => {
+    instance
+      .post(_channelApi.updateMessageReaction, {
+        _messageID: event._id,
+        _channelID: selectedChannel.value?._channelID,
+        _uuid: sessionStore.userSessionData?._uuid,
+        displayName: sessionStore.userSessionData?.displayName,
+        emoji: event.emoji,
+      })
+      .then((response) => {
+        if (response.status === 200) {
+          const found = selectedChannel.value?.messages?.find(
+            (message) => message._id === event._id
+          ); 
+          console.log(found);
+          
+          if (found) {
+            const emoji = found.reactions?.find(
+              (emoji) => emoji.emoji === event.emoji
+            );
+            if (emoji) {
+              emoji.total++;
+            } else {
+              found.reactions?.push({ ...response.data, total: 1 });
+            }
+          }
+        }
+      })
+      .catch((error) => {
+        newAlert.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      });
+  };
+
   const uploadFiles = async (files: File[]) => {
     uploadedFiles.value = [];
     isLoading.channels = true;
@@ -800,12 +837,13 @@ export const useChannelStore = defineStore("channelStore", () => {
     });
   };
 
-  socket.on(_channelListener.typing, (event: ChannelTyping) => {
-    if (event.input.length > 0) {
+  socket.on(_channelListener.typing, (event: Typing) => {
+    if (event.input > 0) {
       typing.value.channel = {
         from: event.from,
-        input: "",
+        input: event.input,
         displayName: event.displayName,
+        isTyping: true
       };
     } else {
       typing.value.channel = null;
@@ -821,12 +859,13 @@ export const useChannelStore = defineStore("channelStore", () => {
     });
   };
 
-  socket.on(_channelListener.threadTyping, (event: ChannelTyping) => {
-    if (event.input.length > 0) {
+  socket.on(_channelListener.threadTyping, (event: Typing) => {
+    if (event.input > 0) {
       typing.value.thread = {
         from: event.from,
         displayName: event.displayName,
-        input: "",
+        input: event.input,
+        isTyping: true
       };
     } else {
       typing.value.thread = null;
@@ -870,6 +909,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     channelTyping,
     onSelectChannel,
     leaveChannel,
+    updateMessageReaction,
     downloadFile,
     editChannelMessage,
     deleteChannelMessage,

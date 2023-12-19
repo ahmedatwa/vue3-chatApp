@@ -1,3 +1,5 @@
+import type { MessageThread, UploadedFiles, MessagePagination, MessageReactions } from "./Chat"
+
 type ChannelMembers = {
   _uuid: string;
   displayName: string;
@@ -19,7 +21,7 @@ interface Channels {
   membersDistributed?: boolean;
   messages: ChannelMessages[];
   totalMessages: number;
-  pagination?: Pagination | null;
+  pagination?: MessagePagination | null;
   members?: ChannelMembers[];
   newMessages?: NewChannelUnreadMessages | null;
   settings?: ChannelSettings;
@@ -33,6 +35,7 @@ interface ChannelMessages {
   from: string;
   fromName: string;
   content: string;
+  reactions?: MessageReactions[];
   files?: UploadedFiles[];
   createdAt: string;
   updatedAt?: string;
@@ -45,30 +48,6 @@ interface ChannelMessages {
   isDelivered?: boolean;
   thread: MessageThread[];
 }
-
-type MessageThread = {
-  _id: number;
-  _messageID: number;
-  _channelID: string;
-  from: string;
-  fromName: string;
-  to: string;
-  toName: string;
-  content: string;
-  files?: File[];
-  createdAt?: string;
-};
-
-type UploadedFiles = {
-  _id: number | string;
-  name: string;
-  size: number;
-  type: string;
-  randomName: string;
-  path: URL;
-  _uuid: string;
-  _channelID: string;
-};
 
 type NewChannelUnreadMessages = {
   total: number;
@@ -96,18 +75,7 @@ interface SendThreadPayload {
   content: string;
   files?: File[];
 }
-
-interface Pagination {
-  limit: number;
-  offset: number;
-}
-
-interface ChannelTyping {
-  _channelID?: string;
-  from: string;
-  input: string;
-  displayName: string;
-}
+ 
 
 export type {
   ChannelMessages,
@@ -116,8 +84,5 @@ export type {
   SendChannelMessagePayload,
   ChannelMembers,
   ChannelSettings,
-  MessageThread,
   SendThreadPayload,
-  Pagination,
-  ChannelTyping,
 };

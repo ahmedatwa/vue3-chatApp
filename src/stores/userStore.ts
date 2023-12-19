@@ -1,15 +1,17 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, inject } from "vue";
 import { instance, _userApi } from "@/axios";
 import type { Snackbar } from "@/types";
 import type { UserSettings, User } from "@/types/User";
 import { nanoid } from "nanoid";
 import { capitalize, createDateTime } from "@/helpers";
+import { langKey } from "@/types/Symbols";
 
 export const useUserStore = defineStore("userStore", () => {
   const isLoading = ref(false);
   const newAlert = ref<Snackbar | null>(null);
   const allUsers = ref<User[]>([]);
+  const $lang = inject(langKey);
 
   const getAllUsers = async () => {
     isLoading.value = true;
@@ -17,7 +19,24 @@ export const useUserStore = defineStore("userStore", () => {
       .get(_userApi.getAllUsers)
       .then((response) => {
         if (response.data) {
-          allUsers.value.push(...response.data);
+          response.data.forEach((user: User) => {
+            allUsers.value.push({
+              _id: user._id,
+              _uuid: user._uuid,
+              _channelID: user._channelID || null,
+              displayName: user.displayName,
+              firstName: user.firstName,
+              lastName: user.lastName,
+              image: user.image ? import.meta.env.VITE_API_UPLOAD_URL + user.image : '',
+              email: user.email,
+              connected: user.connected || false,
+              visible: user.visible,
+              settings: user.settings,
+              messages: [],
+              pagination: null,
+              createdAt: user.createdAt,
+            });
+          });
         }
       })
       .catch((error) => {
@@ -102,29 +121,65 @@ export const useUserStore = defineStore("userStore", () => {
   const updateUserSettings = async (
     _uuid: string | number,
     settings: UserSettings | null,
-    visible: boolean,
-    displayName?: string,
-    image?: string
+    displayName?: string | null,
+    image?: File | null
   ) => {
+    isLoading.value = true;
+    let formData = new FormData();
+    formData.append("_uuid", _uuid as string);
+    settings ? formData.append("settings", JSON.stringify(settings)) : null;
+    displayName !== null ? formData.append("displayName", displayName as string) : null;
+    image ? formData.append("image", image) : null;
     await instance
-      .post(_userApi.updateUserSeetings, {
-        _uuid,
-        settings,
-        visible,
-        displayName,
-        image,
-      })
+      .post(_userApi.updateUserSettings, formData)
       .then((response) => {
-        console.log(response.data);
+        if (response.status === 200) {
+          newAlert.value = {
+            text: $lang?.getLine("preference.success", ["profile settings"]),
+            type: "success",
+          };
+        }
       })
       .catch((error) => {
-        console.log(error);
+        newAlert.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
       })
-      .finally(() => {});
+      .finally(() => {
+        isLoading.value = false;
+      });
+  };
+
+  const updateUserStatus = async (
+    _uuid: string | number,
+    connected: boolean | null,
+    visible: boolean | null
+  ) => {
+    isLoading.value = true;
+    await instance
+      .post(_userApi.updateUserStatus, {
+        _uuid,
+        visible,
+        connected,
+      })
+      .then((_response) => {})
+      .catch((error) => {
+        newAlert.value = {
+          code: error.code,
+          text: error.message,
+          type: "error",
+        };
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
   };
   return {
     newAlert,
     allUsers,
+    updateUserStatus,
     updateUserSettings,
     getUser,
     createUser,

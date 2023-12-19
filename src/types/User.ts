@@ -1,3 +1,5 @@
+import type { MessageThread, MessagePagination, MessageReactions } from "./Chat"
+
 interface User {
   _id: number;
   _uuid: string;
@@ -15,7 +17,7 @@ interface User {
   settings: UserSettings;
   newMessages?: NewUnreadMessages | null;
   messages?: UserMessages[];
-  pagination: Pagination | null;
+  pagination: MessagePagination | null;
   messagesDistributed?: boolean;
   createdAt: string;
   updatedAt?: string;
@@ -32,12 +34,6 @@ type NewUnreadMessages = {
   lastMessage?: string;
 };
 
-type DBUserMessages = {
-  _channelId: string;
-  createdAt: string;
-  updatedAt: string;
-  content: UserMessages[];
-};
 type UserMessages = {
   _id: string | number;
   from: string;
@@ -49,27 +45,12 @@ type UserMessages = {
   seen?: boolean;
   last?: boolean;
   thread?: MessageThread[];
+  reactions?: MessageReactions[];
   isUpdated?: boolean;
   isEdit?: boolean;
   updatedAt?: string;
   createdAt: string;
 };
-
-type MessageThread = {
-  _id: number;
-  _messageID: number;
-  from: string;
-  to: string;
-  content: string;
-  files?: File[];
-  createdAt?: string;
-};
-
-interface NewUserForm {
-  firstName: string;
-  lastName: string;
-  email: string;
-}
 
 interface UserSessionData {
   _id: number;
@@ -78,35 +59,14 @@ interface UserSessionData {
   firstName: string;
   lastName: string;
   displayName: string;
-  settings?: UserSettings | null;
   email: string;
   image: string;
   connected: boolean;
+  settings?: UserSettings | null;
   createdAt: string;
 }
 
-interface Pagination {
-  total: number;
-  limit: number;
-  offset: number;
-}
 
-interface UserTyping {
-  from: string;
-  input: string;
-  displayName: string;
-  isTyping: boolean;
-}
-
-interface SendThreadPayload {
-  _messageID: number | string;
-  _channelID: string;
-  from: string;
-  to: string;
-  content: string;
-  files?: File[];
-  createdAt?: string;
-}
 
 interface DirectMessageChannels {
   _channelID: string;
@@ -115,23 +75,21 @@ interface DirectMessageChannels {
   createdAt: string;
 }
 
-interface SearchUsers {
-  _uuid: string | number;
-  displayName: string;
-  email: string;
+type DBUserMessages = {
+  _channelId: string;
   createdAt: string;
-}
+  updatedAt: string;
+  content: UserMessages[];
+};
+
+
+
 
 export type {
   User,
   UserMessages,
-  DBUserMessages,
-  NewUserForm,
-  UserTyping,
   UserSessionData,
-  Pagination,
-  SendThreadPayload,
   DirectMessageChannels,
   UserSettings,
-  SearchUsers,
+  DBUserMessages
 };

@@ -11,14 +11,14 @@ import { ChannelComponent } from "@/components/Channel";
 // types
 import SnackbarComponent from "@/components/SnackbarComponent.vue";
 import type { Channels } from "@/types/Channel";
-import type { Snackbar } from "@/types";
+import type { Snackbar } from "@/types/Chat";
 import type { User, UserSettings, DirectMessageChannels } from "@/types/User";
 // vuetify
 import { useTheme } from "vuetify";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
 import { _directMessageEmits, _directMessageListener } from "@/client";
-import { capitalize } from "@/helpers";
+import { capitalize, arrayUniqueBy } from "@/helpers";
 
 // Stores
 const userStore = useUserStore();
@@ -84,15 +84,35 @@ const updateSettings = (setting: UserSettings) => {
   _theme.global.name.value = setting.theme;
 
   if (sessionStore.userSessionData?._uuid) {
-    userStore.updateUserSettings(
-      sessionStore.userSessionData?._uuid,
-      setting,
-      true
-    );
+    userStore.updateUserSettings(sessionStore.userSessionData?._uuid, setting);
   }
 };
 
-const updateProfile = () => {};
+const updateProfile = (event: { displayName: string; image: File | null }) => {
+  if (sessionStore.userSessionData?._uuid) {
+    userStore.updateUserSettings(
+      sessionStore.userSessionData?._uuid,
+      null,
+      event.displayName,
+      event.image
+    );
+    const user = directMessageStore.users.find(
+      (user) => user._uuid === sessionStore.userSessionData?._uuid
+    );
+
+    if (user) {
+      if (event.displayName) {
+        sessionStore.userSessionData.displayName = event.displayName;
+        user.displayName = event.displayName;
+      }
+
+      if (event.image?.name) {
+        sessionStore.userSessionData.image = import.meta.env.VITE_API_UPLOAD_URL + event.image.name;
+        user.image = import.meta.env.VITE_API_UPLOAD_URL + event.image.name;
+      }
+    }
+  }
+};
 
 // Watchers
 //new userStore socket Notification
@@ -203,6 +223,15 @@ socket.on("connect", () => {
     ]);
 
     // User Channels
+    const users = [];
+    users.push({
+      ...session,
+      messages: [],
+      messagesDistributed: false,
+      connected: session.connected,
+      self: (socket as any)._uuid === session._uuid,
+      _channelID: null,
+    });
 
     if (directMessagesChannels.length) {
       directMessagesChannels.map((res: DirectMessageChannels) => {
@@ -217,7 +246,7 @@ socket.on("connect", () => {
         } else {
           userStore.allUsers.forEach((user) => {
             if (user._uuid === otherUser) {
-              directMessageStore.users.push({
+              users.push({
                 _id: user._id,
                 _uuid: user._uuid,
                 _channelID: res._channelID,
@@ -229,8 +258,8 @@ socket.on("connect", () => {
                 visible: user.visible,
                 settings: user.settings,
                 messagesDistributed: false,
-                self: user._uuid === session._uuid,
-                connected: session.connected,
+                self: user._uuid === (socket as any)._uuid,
+                connected: user.connected,
                 messages: [],
                 pagination: null,
                 createdAt: user.createdAt,
@@ -239,6 +268,11 @@ socket.on("connect", () => {
           });
         }
       });
+      // Unique
+      const unique = arrayUniqueBy(users, "_uuid");
+      if (unique) {
+        directMessageStore.users = unique;
+      }
     } else {
       directMessageStore.users.push({
         ...session,
@@ -338,7 +372,7 @@ const removeUser = async (user: User) => {
     directMessageStore.selectedUser = null;
   }
   if (sessionStore.userSessionData) {
-    userStore.updateUserSettings(user._uuid, null, false);
+    userStore.updateUserStatus(user._uuid, true, false);
   }
 };
 
@@ -358,7 +392,7 @@ const mappedUsers = computed(() => {
   </snackbar-component>
   <div v-if="sessionStore.isLoggedIn">
     <drawer-component
-      :_uuid="sessionStore.userSessionData?._uuid!"
+      :_uuid="sessionStore.userSessionData?._uuid"
       :users="directMessageStore.filteredUsers"
       :channels="channelStore.filteredChannels"
       :selected-channel="channelStore.selectedChannel"
@@ -407,11 +441,12 @@ const mappedUsers = computed(() => {
           @update-channel="channelStore.updateChannel"
           @leave-channel="channelStore.leaveChannel"
           @download-file="channelStore.downloadFile"
+          @update:messageReaction="channelStore.updateMessageReaction"
         >
         </channel-component>
         <direct-message-component
           v-for="user in directMessageStore.users"
-          :key="user._uuid"
+          :key="`direct-message-${user._uuid}`"
           :id="`direct-message-${user._uuid}`"
           :user="user"
           :class="activeComponent === 'user' ? '' : 'd-none'"
@@ -419,13 +454,14 @@ const mappedUsers = computed(() => {
           :uuid="sessionStore.userSessionData?._uuid"
           :typing="directMessageStore.typing"
           :is-loading="directMessageStore.isLoading"
+          @update:messageReaction="directMessageStore.updateMessageReaction"
           @load-more-messages="loadMoreMessages"
           @send-message="directMessageStore.sendMessage"
-          @sendThreadMessage="directMessageStore.sendThreadMessage"
+          @send:thread-message="directMessageStore.sendThreadMessage"
           @edit-message="directMessageStore.editMessage"
           @delete-message="directMessageStore.deleteMessage"
           @user-typing="directMessageStore.userTyping"
-          @thread-typing="directMessageStore.userTheadTyping"
+          @update:thread-typing="directMessageStore.userTheadTyping"
         ></direct-message-component>
       </v-container>
     </v-main>

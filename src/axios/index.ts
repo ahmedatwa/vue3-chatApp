@@ -15,7 +15,8 @@ export const _userApi = {
   getAllChannels: "/getAllChannels",
   createUser: "/createUser",
   getUser: "/getUser",
-  updateUserSeetings: "/updateUserSeetings"
+  updateUserSettings: "/updateUserSettings",
+  updateUserStatus: "/updateUserStatus"
 };
 // Channels
 export const _channelApi = {
@@ -34,6 +35,7 @@ export const _channelApi = {
   addChannelSettings: "/channels/addChannelSettings",
   leaveChannel: "/channels/leaveChannel",
   channelUpload: "/channels/channelUpload",
+  updateMessageReaction: "/channels/updateMessageReaction",
 };
 
 // User Messages
@@ -47,6 +49,8 @@ export const _directMessageApi = {
   sendThreadMessage: "/directmessages/sendThreadMessage",
   updateMessage: "/directmessages/updateMessage",
   deleteMessage: "/directmessages/deleteMessage",
+  updateMessageReaction: "/directmessages/updateMessageReaction",
+  getMessageThread: "/directmessages/getMessageThread",
 };
 
 export const instance = axios.create({

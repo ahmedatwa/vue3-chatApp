@@ -14,7 +14,7 @@ const props = defineProps<{
   channels: Channels[];
   isLoadingChannels: boolean;
   isLoadingUsers: boolean;
-  _uuid: string;
+  _uuid?: string;
   lastActiveElement?: number | string | null;
 }>();
 
@@ -38,7 +38,6 @@ watch(
     }
   })
 
-
 </script>
 <template>
   <v-navigation-drawer v-model="drawer">
@@ -55,15 +54,21 @@ watch(
         <v-list-item v-for="user in users" :key="user._uuid" color="teal-darken-1" v-if="!isLoadingUsers"
           :active="activeElement === user._uuid" @click="onSelect(user._uuid, 'user', user)" class="list-item">
           <template #append v-if="user.newMessages && activeElement !== user._uuid">
-            <v-badge :color="user.connected ? 'success' : 'dark'" :content="user.newMessages.total  " inline></v-badge>
+            <v-badge :color="user.connected ? 'success' : 'dark'" :content="user.newMessages.total" inline></v-badge>
           </template>
           <v-list-item-title>
-             <!-- remove User -->
-             <v-btn v-if="user._uuid !== _uuid" icon="mdi-close" class="remove-user" size="sm" variant="plain"
+            <!-- remove User -->
+            <v-btn v-if="user._uuid !== _uuid" icon="mdi-close" class="remove-user" size="sm" variant="plain"
               @click.prevent="$emit('removeUser', user)"></v-btn>
-            <v-icon icon="mdi-account-circle" :color="user.connected ? 'success' : 'dark'">
-            </v-icon>
-            {{ user.displayName }} <span class="text-caption">{{ user._uuid === _uuid ? " you" : "" }}</span>
+              <v-sheet class="d-flex">
+            <v-badge dot location="bottom end" :color="user.connected ? 'success' : 'grey'" class="ma-1">
+              <v-avatar v-if="user.image" :image="user.image"></v-avatar>
+              <v-avatar color="info" v-else>
+                <v-icon icon="mdi-account-circle"></v-icon>
+              </v-avatar>
+            </v-badge>
+            <p class="ms-1 d-inline my-auto">{{ user.displayName }}</p>
+          </v-sheet>
             <v-list-item-subtitle v-if="user.newMessages && activeElement !== user._uuid" class="ms-1 mt-1">
               {{ user.newMessages.lastMessage }}
             </v-list-item-subtitle>
@@ -76,8 +81,8 @@ watch(
           <v-list-item v-bind="props" :title="$lang('channel.title')" elevation="1" class="mt-3" variant="flat">
             <template #append>
               <v-btn prepend-icon="mdi-chat-plus" variant="plain" color="teal">
-                <create-channel-component @create-channel="emit('createChannel', $event)"
-                  :title="$lang('channel.create')" create :key="_uuid" :users="users">
+                <create-channel-component @create-channel="emit('createChannel', $event)" :title="$lang('channel.create')"
+                  create :key="_uuid" :users="users">
                 </create-channel-component>
               </v-btn>
             </template>
@@ -112,6 +117,7 @@ watch(
   display: none;
   float: right;
 }
+
 .list-item:hover .remove-user {
   display: inline-block;
 }

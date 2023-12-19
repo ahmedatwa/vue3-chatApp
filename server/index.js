@@ -61,7 +61,7 @@ io.on("connection", (socket) => {
   // emit session details and save
   const sessionData = {...socket.handshake.auth, connected: true,}
 
-  socket.emit("session", sessionData);
+  socket.emit("session", {...sessionData, connected: true});
   // join the "uuid" room
   socket.join(socket._uuid);
 
@@ -113,13 +113,14 @@ io.on("connection", (socket) => {
 
   // notify users upon disconnection
   socket.on("disconnect", async (reason, details) => {
-    socket.broadcast.emit("user_disconnected", socket._uuid, reason);
+    //socket.broadcast.emit("client_user_disconnected", socket._uuid, reason);
     // console.log(details.context.responseText);
     const matchingSockets = await io.in(socket._uuid).fetchSockets();
+    console.log(matchingSockets)
     const isDisconnected = matchingSockets.size === 0;
     if (isDisconnected) {
       // notify other users
-      socket.broadcast.emit("user_disconnected", socket._uuid, reason);
+      socket.broadcast.emit("client_user_disconnected", socket._uuid, reason);
     }
   });
 
