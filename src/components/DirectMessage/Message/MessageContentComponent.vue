@@ -1,17 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, inject } from "vue";
-import { watchEffect, nextTick, watch } from "vue";
+import { watchEffect, nextTick } from "vue";
 import { formatTimeShort, formatDateLong } from "@/helpers";
-import { MessageActionMenu } from "@/components/DirectMessage";
+import { MessageActionMenu, MessageThreadChipComponent } from "@/components/Chat";
+import { MessageReactionComponent } from "@/components/Chat";
 // types
-import type { User, Pagination, UserMessages } from "@/types/User";
+import type { User, UserMessages } from "@/types/User";
+import type { MessagePagination } from "@/types/Chat";
 
 const currentUser = inject<User>("user");
-const pagination = ref<Pagination>({
+const pagination = ref<MessagePagination>({
   total: 0,
   offset: 0,
   limit: 0,
 });
+const isLoadMore = ref(true);
 const lastRow = ref<HTMLDivElement | null>(null);
 const firstRow = ref<HTMLDivElement | null>(null);
 
@@ -45,8 +48,9 @@ const emit = defineEmits<{
       updatedAt: string;
     }
   ];
-  "start:thread": [value: UserMessages];
+  "update:threadMessages": [value: UserMessages];
   "update:scroll": [value: boolean];
+  "update:messageReaction": [value: { _id: string | number; emoji: string }];
 }>();
 
 // group messages by date
@@ -72,21 +76,29 @@ const loadMoreMessages = () => {
       offset: paginationOffset.value,
       unshift: true,
     });
-    scroll(true)
+    scroll(true);
   }
 };
 
 watchEffect(() => {
   if (props.selectedUser?.pagination) {
     pagination.value = props.selectedUser?.pagination;
+    if (props.selectedUser?.pagination.limit === 0) {
+      isLoadMore.value = false;
+    }
   }
 });
 
 const paginationOffset = computed(() => {
-  pagination.value.offset = Math.ceil(pagination.value.offset - pagination.value.limit); //2 10
+  pagination.value.offset = Math.ceil(
+    pagination.value.offset - pagination.value.limit
+  ); //2 10
 
   if (pagination.value.offset) {
-    if (pagination.value.offset < pagination.value.limit && pagination.value.offset > 0) {
+    if (
+      pagination.value.offset < pagination.value.limit &&
+      pagination.value.offset > 0
+    ) {
       pagination.value.limit = pagination.value.offset + pagination.value.limit;
       pagination.value.offset = 0;
       return 0;
@@ -95,19 +107,18 @@ const paginationOffset = computed(() => {
   return pagination.value.offset;
 });
 
-const isLoadMoreDisabled = computed(() => {
-  return paginationOffset.value < 0 ? true : false
+watchEffect(() => {
+  if (paginationOffset.value < 0 || pagination.value.limit === 0) {
+    isLoadMore.value = false;
+  }
 });
 
-watch(
-  () => props.isScroll,
-  (value) => {
-    if (value) {
-      scroll(false);
-      emit("update:scroll", false);
-    }
+watchEffect(() => {
+  if (props.isScroll) {
+    scroll(false);
+    emit("update:scroll", false);
   }
-);
+});
 
 const scroll = (top: boolean) => {
   watchEffect(() => {
@@ -121,13 +132,21 @@ const scroll = (top: boolean) => {
       });
     }
   });
-}
+};
+
+const actionMenu = ref(false);
+const actionMenuID = ref<any>();
+const showActionMenu = (visible: boolean, id?: UserMessages) => {
+  actionMenu.value = visible;
+  actionMenuID.value = id;
+};
+
 </script>
 <template>
-  <v-container class="container">
-    <v-sheet :align="'center'" justify="center" class="my-2">
-      <v-btn :loading="isLoading.messages" :disabled="isLoadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
-        color="success" @click="loadMoreMessages">
+  <v-container class="container" :key="selectedUser?._uuid">
+    <v-sheet :align="'center'" justify="center" class="my-2" :key="selectedUser?._uuid">
+      <v-btn :loading="isLoading.messages" v-if="isLoadMore" variant="plain" prepend-icon="mdi-refresh"
+        @click="loadMoreMessages" color="success">
         {{ $lang("chat.button.loadMore") }}
       </v-btn>
     </v-sheet>
@@ -136,29 +155,49 @@ const scroll = (top: boolean) => {
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
       </v-col>
-      <v-slide-x-transition group mode="in-out" tag="v-col">
-        <v-col v-for="message in userMessage" :key="message._id" cols="12" class="mb-2">
-          <message-action-menu :key="message._id" :selected-user="selectedUser" :message="message"
+      <v-col v-for="message in userMessage" :key="`col-${message._id}`" :id="`col-${message._id}`" cols="12"
+        class="ma-1 pa-2 column__wrapper" @mouseover="showActionMenu(true, message._id)">
+        <v-sheet :key="`message-wrapper-${message._id}`" class="transparent">
+          <message-thread-chip-component v-if="message.thread.length" :key="`thread-chip-${message._id}`"
+            :message="(message as UserMessages)"
+            @update:thread-messages="$emit('update:threadMessages', $event as UserMessages)">
+          </message-thread-chip-component>
+          <v-sheet class="transparent d-inline" :id="`message-content-wrapper-${message._id}`">
+            {{ formatTimeShort(message.createdAt) }}
+            <div class="font-weight-bold text-teal d-inline" v-if="message.from === currentUser?._uuid">
+              {{ currentUser?.displayName }}:
+            </div>
+            <div class="font-weight-bold text-blue d-inline" v-else>
+              {{ selectedUser?.displayName }}:
+            </div>
+            <div :key="`message-edited-${message._id}`" v-if="message.editContent" class="d-inline transparent">
+              <span class="text-caption me-1">
+                {{ $lang("chat.text.edited") }}
+                <p v-html="message.content" class="d-inline"></p>
+              </span>
+            </div>
+            <div :key="`message-content-${message._id}`" class="text-left d-inline transparent" v-else>
+              <p class="d-inline" v-html="message.content"></p>
+            </div>
+            <!-- reactions -->
+            <message-reaction-component v-if="message.reactions" :key="`reaction-${message._id}`"
+              :message-id="message._id" :reactions="message.reactions"
+              @update:message-reaction="$emit('update:messageReaction', $event)">
+            </message-reaction-component>
+          </v-sheet>
+          <!-- message-action-menu -->
+          <message-action-menu v-if="actionMenuID === message._id" :message-value="actionMenuID"
+            :key="`action-menu${message._id}`" :selected-user="selectedUser" :message="message" :action-menu="actionMenu"
             @edit-message="$emit('editMessage', $event)" @delete-message="$emit('deleteMessage', $event)"
-            @start:thread="$emit('start:thread', $event)">
+            @update:action-menu="actionMenu = $event"
+            @update:thread-messages="$emit('update:threadMessages', $event as UserMessages)"
+            @update:messageReaction="$emit('update:messageReaction', $event)">
           </message-action-menu>
-          {{ formatTimeShort(message.createdAt) }}
-          <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
-            {{ currentUser?.displayName }}:
-          </span>
-          <span class="font-weight-bold text-blue" v-else>
-            {{ selectedUser?.displayName }}:
-          </span>
-          <div v-if="message.editContent" class="d-inline">
-            <span class="text-caption me-1">
-              {{ $lang("chat.text.edited") }}</span>
-            {{ message.content }}
-          </div>
-          <span class="text-left" v-else>{{ message.content }}</span>
-        </v-col>
-      </v-slide-x-transition>
+        </v-sheet>
+      </v-col>
     </v-row>
     <span ref="lastRow"></span>
+
   </v-container>
 </template>
 <style scoped>
@@ -195,8 +234,17 @@ const scroll = (top: boolean) => {
   margin-left: var(--text-divider-gap);
 }
 
-.last-ref {
-  opacity: 0;
-  scroll-margin-top: 1em;
+.transparent {
+  background-color: transparent;
+}
+
+.column__wrapper {
+  position: relative;
+}
+
+.column__wrapper:hover {
+  background-color: rgb(var(--v-theme-on-surface-variant));
+  height: auto;
+  border-radius: 6px;
 }
 </style>

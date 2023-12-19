@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { ref, watch, inject, watchEffect, nextTick } from "vue";
-import { UserMessages, UserTyping, SendThreadPayload, User } from "@/types/User";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
+// Types
+import type { SendThreadPayload, User } from "@/types/User";
+import type { Typing } from "@/types/Chat";
 
 const currentUser = inject<User>("user");
 
 const props = defineProps<{
   user: User | null;
-  message: UserMessages | null;
-  typing: UserTyping | null;
+  typing: Typing | null;
   threadCard: boolean;
   name?: string;
 }>();
@@ -96,7 +97,7 @@ watchEffect(() => {
 <style scoped>
 .text {
   overflow-y: scroll;
-  height: 439px;
+  height: 455px;
   scroll-snap-type: y mandatory;
   overflow-x: hidden;
 }

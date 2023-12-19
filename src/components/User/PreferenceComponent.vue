@@ -13,7 +13,7 @@ defineProps<{
 }>()
 
 const emit = defineEmits<{
-  "update:profile": [value: { displayName: string, image: string }];
+  "update:profile": [value: { displayName: string, image: File | null }];
   "update:settings": [value: UserSettings];
   "update:modelValue": [value: boolean]
 }>();

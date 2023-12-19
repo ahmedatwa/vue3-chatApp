@@ -33,6 +33,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
         if (response.data) {
           userSessionData.value = {
             ...response.data,
+            image: import.meta.env.VITE_API_UPLOAD_URL + response.data.image
           };
           socket.auth = { ...userSessionData.value };
           socket.connect();

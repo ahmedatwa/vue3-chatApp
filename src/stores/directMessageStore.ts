@@ -5,40 +5,38 @@ import { useSessionStore, useUserStore } from "@/stores";
 import { instance, _directMessageApi } from "@/axios";
 import { createDateTime, esc, getRandom } from "@/helpers";
 // types
-import type { Snackbar, UploadedFiles } from "@/types";
-import type { User, UserTyping, SendThreadPayload } from "@/types/User";
+import type {
+  Snackbar,
+  UploadedFiles,
+  SendThreadPayload,
+  Typing,
+} from "@/types/Chat";
+import type { User } from "@/types/User";
 import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
 
 export const useDirectMessageStore = defineStore("directMessageStore", () => {
-  const users = ref<User[]>([]);
+  // Stores
+  const sessionStore = useSessionStore();
+  const userStore = useUserStore();
 
+  const users = ref<User[]>([]);
   const $lang = inject(langKey);
   const selectedUser = shallowRef<User | null>(null);
   const filterSearchInput = ref("");
+  const uploadedFiles = ref<UploadedFiles[]>([]);
   const newAlert = ref<Snackbar | null>(null);
-
-  const typing = ref<Record<"messages" | "thread", UserTyping | null>>({
+  const paginationLimit = ref(10);
+  const typing = ref<Record<"messages" | "thread", Typing | null>>({
     messages: null,
     thread: null,
   });
-
-  const uploadedFiles = ref<UploadedFiles[]>([]);
-
   const isLoading = reactive({
     thread: false,
     messages: false,
     users: false,
   });
-
-  const paginationLimit = ref(10);
-  // const messagesPerUser = ref(new Map());
-  // const otherUsers = ref<string[]>([]);
-
-  // Stores
-  const sessionStore = useSessionStore();
-  const userStore = useUserStore();
 
   // Filter Users
   const filteredUsers = computed(() => {
@@ -246,7 +244,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
           },
         }
       );
-      return response.data;
+      return response.data as number;
     } catch (error: any) {
       newAlert.value = {
         title: error.code,
@@ -255,6 +253,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       };
     }
   };
+
   const editMessage = async (message: {
     _messageID: string | number;
     editContent: string;
@@ -309,7 +308,8 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         });
     }
   };
-
+  
+  
   const uploadFiles = async (files: File[]) => {
     uploadedFiles.value = [];
     isLoading.messages = true;
@@ -380,11 +380,44 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     }
   });
 
+  const updateMessageReaction = (event: { _id: string; emoji: string }) => {
+    instance
+      .post(_directMessageApi.updateMessageReaction, {
+        _messageID: event._id,
+        _uuid: sessionStore.userSessionData?._uuid,
+        displayName: sessionStore.userSessionData?.displayName,
+        emoji: event.emoji,
+      })
+      .then((response) => {
+        if (response.status === 200) {
+          const found = selectedUser.value?.messages?.find(
+            (message) => message._id === event._id
+          );
+          if (found) {
+            const emoji = found.reactions?.find(
+              (emoji) => emoji.emoji === event.emoji
+            );
+            if (emoji) {
+              emoji.total++;
+            } else {
+              found.reactions?.push({ ...response.data, total: 1 });
+            }
+          }
+        }
+      })
+      .catch((error) => {
+        newAlert.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      });
+  };
   // Sockets
   const UnreadMessagesTotal = reactive({ count: 0 });
 
-  const userTyping = (input: string) => {
-    socket.timeout(500).emit("user_typing", {
+  const userTyping = (input: number) => {
+    socket.timeout(500).emit(_directMessageEmits.typing, {
       input: input,
       to: selectedUser.value?._uuid,
       displayName: selectedUser.value?.displayName,
@@ -392,7 +425,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   };
 
   // Thread Typing
-  const userTheadTyping = (input: string) => {
+  const userTheadTyping = (input: number) => {
     socket.timeout(500).emit(_directMessageEmits.threadTyping, {
       _channelID: selectedUser.value?._channelID,
       to: selectedUser.value?._uuid,
@@ -401,23 +434,23 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     });
   };
 
-  socket.on(_directMessageListener.typing, (event: UserTyping) => {
-    if (event.input.length > 0 && event.from === selectedUser.value?._uuid) {
+  socket.on(_directMessageListener.typing, (event: Typing) => {
+    if (event.input > 0 && event.from === selectedUser.value?._uuid) {
       typing.value.messages = {
         from: event.from,
         displayName: event.displayName,
-        input: "",
+        input: event.input,
         isTyping: true,
       };
     }
   });
 
-  socket.on(_directMessageListener.threadTyping, (event: UserTyping) => {
-    if (event.input.length > 0) {
+  socket.on(_directMessageListener.threadTyping, (event: Typing) => {
+    if (event.input > 0) {
       typing.value.thread = {
         from: event.from,
         displayName: event.displayName,
-        input: "",
+        input: event.input,
         isTyping: true,
       };
     } else {
@@ -530,7 +563,8 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     }
   );
 
-  socket.on(_directMessageListener.disconnect, (user) => {
+  socket.on(_directMessageListener.connected, async (user) => {
+    await userStore.updateUserStatus(user._uuid, true, null);
     users.value.forEach((u) => {
       if (u._uuid === user._uuid) {
         u.connected = true;
@@ -548,22 +582,23 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     });
   });
 
-  socket.on(_directMessageListener.disconnect, () => {
-    users.value.forEach(async (user) => {
-      if (user.self) {
+  socket.on(_directMessageListener.disconnect, async (_uuid) => {
+    await userStore.updateUserStatus(_uuid, false, null);
+    users.value.forEach((user: User) => {
+      if (user._uuid === _uuid) {
         user.connected = false;
         newAlert.value = {
           title: user.displayName,
           text: "is Offline.",
           type: "success",
         };
-        return;
       }
     });
   });
 
   // Disconnection
-  socket.on(_directMessageListener.userDisconnected, (_uuid) => {
+  socket.on(_directMessageListener.userDisconnected, async (_uuid) => {
+    await userStore.updateUserStatus(_uuid, false, null);
     users.value.forEach((user) => {
       if (user._uuid === _uuid) {
         user.connected = false;
@@ -590,6 +625,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     isLoading,
     filteredUsers,
     paginationLimit,
+    updateMessageReaction,
     getUserDirectMessageChannels,
     sendMessage,
     sendThreadMessage,

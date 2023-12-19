@@ -3,14 +3,14 @@ import { ref, inject, watch, computed } from "vue";
 import { provide, shallowRef } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 import { CreateChannelComponent, MessageContentComponent, MessageThreadComponent } from "@/components/Channel";
-import type { Channels, ChannelMembers, ChannelMessages, ChannelTyping } from "@/types/Channel";
-import type { ChannelForm, ChannelSettings, SendThreadPayload } from "@/types/Channel";
 // types
-import type { UserSessionData, SearchUsers } from "@/types/User";
+import type { UserSessionData } from "@/types/User";
+import type { SearchUsers, Typing } from "@/types/Chat";
+import type { Channels, ChannelMembers, ChannelMessages } from "@/types/Channel";
+import type { ChannelForm, ChannelSettings, SendThreadPayload } from "@/types/Channel";
 
 
 const user = inject<UserSessionData>("user");
-
 const messageInput = ref("");
 const uploadedFiles = ref<File[]>([]);
 const isScroll = ref(false);
@@ -19,7 +19,7 @@ const isScroll = ref(false);
 const props = defineProps<{
   channel: Channels | null;
   searchUsers: SearchUsers[]
-  typing: Record<"channel" | "thread", ChannelTyping | null>;
+  typing: Record<"channel" | "thread", Typing | null>;
   isLoading: {
     messages: boolean;
     thread: boolean;
@@ -41,7 +41,7 @@ const emit = defineEmits<{
   threadTyping: [value: string];
   editMessage: [
     value: {
-      _messageId: string | number;
+      _messageID: string | number;
       editContent: string;
       content: string;
       updatedAt: string;
@@ -63,17 +63,9 @@ const emit = defineEmits<{
   "update:channelMembers": [
     { add: ChannelMembers[]; remove: ChannelMembers[] }
   ];
+  "update:messageReaction": [value: { _id: string | number; emoji: string }];
 }>();
 
-// checked
-const editMessage = (event: {
-  _messageId: string | number;
-  editContent: string;
-  content: string;
-  updatedAt: string;
-}) => {
-  emit("editMessage", event);
-};
 
 const updateEmoji = (emoji: string) => {
   messageInput.value += emoji;
@@ -126,9 +118,8 @@ const startThread = (message: ChannelMessages) => {
           <v-card-title>
             <v-btn append-icon="mdi-menu-down" variant="text">
               {{ channel?.channelName }}
-              <create-channel-component :key="`channel-manage${channel?._id}`" :channel="channel" :search-users="searchUsers"
-                :is-loading="isLoading.channels" 
-                @update:channel-settings="$emit('updateChannelSettings', $event)
+              <create-channel-component :key="`channel-manage${channel?._id}`" :channel="channel"
+                :search-users="searchUsers" :is-loading="isLoading.channels" @update:channel-settings="$emit('updateChannelSettings', $event)
                   " @archive-channel="$emit('archiveChannel', $event)" @create-channel="$emit('updateChannel', $event)"
                 @leave-channel="$emit('leaveChannel', $event)"
                 @update:channel-members="$emit('update:channelMembers', $event)"
@@ -146,16 +137,17 @@ const startThread = (message: ChannelMessages) => {
             </v-btn>
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
-          <message-content-component :key="`channel-${channel?._channelID}`" :thread-typing="typing.thread" :is-loading="isLoading"
-            :channel="channel" :is-delete="isMessageDelete" :is-scroll="isScroll" @load-more-messages="loadMoreMessages"
-            @delete-message="$emit('deleteMessage', $event)" @edit-message="editMessage"
-            @update:scroll="isScroll = $event" @start:thread="startThread">
+          <message-content-component :key="`channel-${channel?._channelID}`" :thread-typing="typing.thread"
+            :is-loading="isLoading" :channel="channel" :is-delete="isMessageDelete" :is-scroll="isScroll"
+            @load-more-messages="loadMoreMessages" @delete-message="$emit('deleteMessage', $event)"
+            @edit-message="$emit('editMessage', $event)" @update:scroll="isScroll = $event" @start:thread="startThread"
+            @update:message-reaction="$emit('update:messageReaction', $event)">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">
             <chat-form-component :id="channel?._channelID" :key="`channel-${channel?._channelID}`"
-              v-model:model-value="messageInput" v-model:files="uploadedFiles" :text-area-row-height="10"
-              :text-area-rows="2" :text-area-label="$lang('channel.input.send', [channel?.channelName])
-                " :auto-grow="true" @update:emoji="updateEmoji" @submit="sendMessage">
+              v-model:input-value="messageInput" v-model:files="uploadedFiles" :text-area-row-height="10"
+              :text-area-rows="2" :text-area-label="$lang('channel.input.send', [channel?.channelName])"
+              @update:emoji="updateEmoji" @update:submit="sendMessage" auto-grow upload-button>
             </chat-form-component>
             <!-- Typing -->
             <chat-typing-component :typing="typing.channel"></chat-typing-component>

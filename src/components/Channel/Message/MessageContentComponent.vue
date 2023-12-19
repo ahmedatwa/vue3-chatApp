@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, nextTick } from "vue";
 import { inject, watchEffect, watch } from "vue";
-import { MessageActionMenu } from "@/components/Channel";
+import { MessageActionMenu, MessageThreadChipComponent } from "@/components/Chat";
+import { MessageReactionComponent } from "@/components/Chat";
 // types
 import type { ChannelMessages, Channels } from "@/types/Channel";
-import type { Pagination, ChannelTyping } from "@/types/Channel";
+import type { MessagePagination, Typing } from "@/types/Chat";
 import type { User } from "@/types/User";
 import { formatTimeShort, formatDateLong } from "@/helpers";
 
 const currentUser = inject<User>("user");
 const isLoadMore = ref(true)
-const pagination = ref<Pagination>({
+const pagination = ref<MessagePagination>({
   offset: 0,
   limit: 0,
 });
@@ -25,27 +26,28 @@ const props = defineProps<{
     thread: boolean;
     channels: boolean;
   };
-  threadTyping: ChannelTyping | null;
+  threadTyping: Typing | null;
 }>();
 
 // emits
 const emit = defineEmits<{
-  "deleteMessage": [value: number];
-  "editMessage": [
+  deleteMessage: [value: number | string];
+  editMessage: [
     value: {
-      _messageId: string | number;
+      _messageID: string | number;
       editContent: string;
       content: string;
       updatedAt: string;
     }
   ];
-  "loadMoreMessages": [
+  loadMoreMessages: [
     _channelID: string | number,
     offset: number,
     unshift: boolean
   ];
+  "update:threadMessages": [value: ChannelMessages];
   "update:scroll": [value: boolean];
-  "start:thread": [value: ChannelMessages]
+  "update:messageReaction": [value: { _id: string | number; emoji: string }];
 }>();
 
 // group messages by date
@@ -103,23 +105,21 @@ const scroll = (top: boolean) => {
   watchEffect(() => {
     if (props.channel?.messages?.length) {
       nextTick(() => {
-        (top) 
-        ? firstRow.value?.scrollIntoView(true) 
-        : lastRow.value?.scrollIntoView(true);
+        (top)
+          ? firstRow.value?.scrollIntoView(true)
+          : lastRow.value?.scrollIntoView(true);
       });
     }
   });
 };
 
-// onMounted(() => {
-//   setTimeout(() => {
-//     lastRow.value?.scrollIntoView({
-//       behavior: "instant",
-//       block: "start",
-//       inline: "nearest",
-//     });
-//   }, 200);
-// });
+const actionMenu = ref(false);
+const actionMenuID = ref<any>();
+const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
+  actionMenu.value = visible;
+  actionMenuID.value = id;
+};
+
 </script>
 <template>
   <v-container class="container">
@@ -132,27 +132,44 @@ const scroll = (top: boolean) => {
       </v-slide-y-transition>
     </v-sheet>
     <span ref="firstRow"></span>
+
     <v-row no-gutters v-for="(channelMessage, index) in channelMessages" :key="index" v-if="!isLoading.messages">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
       </v-col>
-      <v-slide-x-transition group mode="out" tag="v-col">
-        <v-col v-for="message in channelMessage" :key="message._id" id="tes" cols="12" class="my-4">
-          <message-action-menu id="channel" :message="message" @edit-message="$emit('editMessage', $event)"
-            @delete-message="$emit('deleteMessage', $event)" @start:thread="$emit('start:thread', $event)">
+      <v-col v-for="message in channelMessage" :key="message._id" cols="12" :id="`col-${message._id}`"
+        @mouseover="showActionMenu(true, message._id)" class="ma-1 pa-2 column__wrapper">
+        <v-sheet :key="`message-wrapper-${message._id}`" class="transparent">
+          <message-thread-chip-component v-if="message.thread.length" :key="`channel-thread-chip-${message._id}`"
+            :message="(message as ChannelMessages)"
+            @update:thread-messages="$emit('update:threadMessages', $event as ChannelMessages)">
+          </message-thread-chip-component>
+          <v-sheet class="transparent d-inline" :id="`message-content-wrapper-${message._id}`">
+            {{ formatTimeShort(message.createdAt) }}
+            <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
+              {{ message.fromName }}:
+            </span>
+            <span class="font-weight-bold text-blue" v-else>
+              {{ message.fromName }}:
+            </span>
+            <span v-if="message.editContent" class="text-caption me-1">
+              {{ $lang("chat.text.edited") }} {{ message.content }} </span>
+            <span class="text-left" v-else>{{ message.content }}</span>
+            <!-- reactions -->
+            <message-reaction-component v-if="message.reactions" :key="`reaction-${message._id}`"
+              :message-id="message._id" :reactions="message.reactions"
+              @update:message-reaction="$emit('update:messageReaction', $event)">
+            </message-reaction-component>
+          </v-sheet>
+          <message-action-menu v-if="actionMenuID === message._id" :message-value="actionMenuID"
+            :key="`action-menu${message._id}`" :message="message" :action-menu="actionMenu"
+            @edit-message="$emit('editMessage', $event)" @delete-message="$emit('deleteMessage', $event)"
+            @update:action-menu="actionMenu = $event"
+            @update:thread-messages="$emit('update:threadMessages', $event as ChannelMessages)"
+            @update:messageReaction="$emit('update:messageReaction', $event)">
           </message-action-menu>
-          {{ formatTimeShort(message.createdAt) }}
-          <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
-            {{ message.fromName }}:
-          </span>
-          <span class="font-weight-bold text-blue" v-else>
-            {{ message.fromName }}:
-          </span>
-          <span v-if="message.editContent" class="text-caption me-1">
-            {{ $lang("chat.text.edited") }} {{ message.content }}</span>
-          <span class="text-left" v-else>{{ message.content }}</span>
-        </v-col>
-      </v-slide-x-transition>
+        </v-sheet>
+      </v-col>
     </v-row>
     <span ref="lastRow"></span>
   </v-container>
@@ -189,5 +206,19 @@ const scroll = (top: boolean) => {
 
 .text-divider::after {
   margin-left: var(--text-divider-gap);
+}
+
+.transparent {
+  background-color: transparent;
+}
+
+.column__wrapper {
+  position: relative;
+}
+
+.column__wrapper:hover {
+  background-color: rgb(var(--v-theme-on-surface-variant));
+  height: auto;
+  border-radius: 6px;
 }
 </style>

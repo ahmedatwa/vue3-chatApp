@@ -22,7 +22,7 @@ const emit = defineEmits<{
   "update:setting": [value: UserSettings];
   "update:search": [value: string];
   "update:locale": [value: string];
-  "update:profile": [value: { displayName: string, image: string }]
+  "update:profile": [value: { displayName: string, image: File | null }];
 }>();
 
 const logout = () => {
@@ -63,20 +63,22 @@ watch(isOffline, (newStatus) => {
       <v-menu transition="slide-y-transition">
         <template v-slot:activator="{ props }">
           <v-list-item v-bind:="props" value="avatar">
-            <v-avatar v-if="user?.image !== ''" :image="user?.image"></v-avatar>
-            <v-avatar icon="mdi-account-circle" :color="user.connected ? 'success' : ''" v-else> </v-avatar>
-            <v-icon icon="mdi-menu-down"></v-icon>
+            <v-badge dot location="bottom end" :color="user?.connected ? 'success' : 'grey'" class="ma-1">
+              <v-avatar v-if="user?.image" :image="user.image"></v-avatar>
+              <v-avatar color="info" v-else>
+                <v-icon icon="mdi-account-circle"></v-icon>
+              </v-avatar>
+            </v-badge>
           </v-list-item>
         </template>
         <v-list>
           <v-list-item class="text-center" key="user" value="user">
-            <v-avatar>
-              <v-img v-if="user?.image !== ''" :src="user?.image" :alt="user?.displayName"></v-img>
-              <v-icon icon="mdi-account-circle" :color="user.connected ? 'success' : ''" v-else> </v-icon>
-            </v-avatar>
-            <v-badge dot inline :color="user?.connected ? 'success' : 'dark'">
-              <p class="mr-1">{{ user?.displayName }}</p>
-            </v-badge>
+            <v-badge dot location="bottom end" :color="user?.connected ? 'success' : 'grey'" class="ma-1">
+              <v-avatar v-if="user?.image" :image="user.image"></v-avatar>
+              <v-avatar color="info" v-else>
+                <v-icon icon="mdi-account-circle"></v-icon>
+              </v-avatar>
+            </v-badge><p class="mr-1 mt-1">{{ user?.displayName }}</p>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item @click="isOffline = !isOffline" key="status">

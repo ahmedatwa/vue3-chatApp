@@ -3,15 +3,7 @@ import { nanoid } from "nanoid";
 // regex expression to match all
 // non-alphanumeric characters in string
 const NoneAlphaNumeric = shallowRef(/[^A-Za-z0-9]/g);
-// html escape map
-/** Used to map characters to HTML entities. */
-const htmlEscapes = ref({
-  "&": "&amp;",
-  "<": "&lt;",
-  ">": "&gt;",
-  '"': "&quot;",
-  "'": "&#39;",
-});
+
 
 /**
  *
@@ -176,16 +168,24 @@ const remove = (object: object[], needle: string[]) => {
 
 /** Used to match HTML entities and HTML characters. */
 const reUnescapedHtml = /[&<>"']/g;
+// html escape map
+/** Used to map characters to HTML entities. */
+const htmlEscapes = shallowRef({
+  "&": "&amp;",
+  "<": "&lt;",
+  ">": "&gt;",
+  '"': "&quot;",
+  "'": "&#39;",
+});
 const reHasUnescapedHtml = RegExp(reUnescapedHtml.source);
 const esc = (string: string) => {
-  const result =
-    string && reHasUnescapedHtml.test(string)
+  return string && reHasUnescapedHtml.test(string)
       ? string.replace(
           reUnescapedHtml,
           (chr) => htmlEscapes.value[chr as keyof typeof htmlEscapes.value]
         )
       : string || "";
-  return result.replace("\n", "");
+  // result.replace("\n", "");
 };
 
 function isUndefined(value: any) {
@@ -248,7 +248,7 @@ const writeClipboard = (text: string) => {
  * @param key
  * @returns
  */
-const arrayUniqueBy = (array: [], key: string | number) => {
+const arrayUniqueBy = (array: any[], key: string | number) => {
   if (key) return [...new Map(array.map((item) => [item[key], item])).values()];
 };
 
