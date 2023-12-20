@@ -5,12 +5,7 @@ import { useSessionStore, useUserStore } from "@/stores";
 import { instance, _directMessageApi } from "@/axios";
 import { createDateTime, esc, getRandom } from "@/helpers";
 // types
-import type {
-  Snackbar,
-  UploadedFiles,
-  SendThreadPayload,
-  Typing,
-} from "@/types/Chat";
+import type { Snackbar, UploadedFiles, SendThreadPayload, Typing } from "@/types/Chat";
 import type { User } from "@/types/User";
 import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
