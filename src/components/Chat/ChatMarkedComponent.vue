@@ -1,30 +1,23 @@
 <script setup lang="ts">
 defineProps<{
   isMarkdown?: boolean;
-  formatting: string[];
+  formatting: string;
   alignment: string;
 }>();
 
 const emit = defineEmits<{
   "update:modelValue": [value: boolean];
-  "update:formatting": [value: string[]];
+  "update:formatting": [value: string];
   "update:alignment": [value: string];
 }>();
 </script>
 
 <template>
-  <!-- <v-sheet class="d-inline ms-4">
-    <v-icon
-      icon="mdi-format-header-pound"
-      @click="isActive = !isActive"
-    ></v-icon>
-  </v-sheet> -->
   <v-expand-transition>
     <v-sheet class="d-inline mb-2 ms-2" v-if="isMarkdown">
       <v-btn-toggle
         :model-value="formatting"
         @update:model-value="$emit('update:formatting', $event)"
-        multiple
         variant="outlined"
         divided
         density="comfortable"

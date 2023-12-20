@@ -6,9 +6,8 @@ import { useSessionStore } from "@/stores";
 import { nanoid } from "nanoid";
 import { esc, remove, createDateTime, capitalize } from "@/helpers";
 // types
-import type { Snackbar, UploadedFiles, Typing } from "@/types/Chat";
+import type { Snackbar, UploadedFiles, Typing, SendThreadPayload } from "@/types/Chat";
 import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel";
-import type { SendThreadPayload } from "@/types/Channel";
 import type { ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";

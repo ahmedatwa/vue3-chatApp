@@ -315,12 +315,13 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     isLoading.messages = true;
     let formData = new FormData();
     files.forEach((file) => formData.append("files[]", file));
+    formData.append("_channelID", selectedUser.value?._channelID as string);
     formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
     await instance
       .post(_directMessageApi.upload, formData)
       .then((response) => {
         if (response.status === 200 && response.statusText === "OK") {
-          uploadedFiles.value?.push(...response.data);
+          uploadedFiles.value?.push({...response.data});
         }
       })
       .catch((error) => {

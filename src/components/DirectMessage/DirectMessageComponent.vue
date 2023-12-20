@@ -1,8 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, provide } from "vue";
-import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
+import { ChatFormComponent, ChatTypingComponent, MessageThreadComponent } from "@/components/Chat";
 import { MessageContentComponent } from "@/components/DirectMessage";
-import MessageThreadComponent from "@/components/Chat/Message/MessageThreadComponent.vue"
 // types
 import type { User, UserMessages } from "@/types/User";
 import type { Typing, SendThreadPayload } from "@/types/Chat";
@@ -31,7 +30,7 @@ defineProps<{
 // emits
 const emit = defineEmits<{
   sendMessage: [value: { content: string; files: File[] }];
-  userTyping: [value: number];
+  "update:typing": [value: number];
   deleteMessage: [value: number | string];
   editMessage: [
     value: {
@@ -62,7 +61,7 @@ const updateEmoji = (emoji: string) => {
 };
 
 watch(formInputValue, (newValue) => {
-  emit("userTyping", newValue.length);
+  emit("update:typing", newValue.length);
 });
 
 const updateThread = (message: UserMessages) => {
@@ -107,7 +106,7 @@ const updateThread = (message: UserMessages) => {
       <!-- Thread -->
       <v-col cols="3" v-if="isThread">
         <message-thread-component :typing="typing.thread" :message="(threadMessage as UserMessages)"
-          :is-loading="isLoading.thread" :selected-user="user"
+          :is-loading="isLoading.thread" :selected-user="user" height="455px"
           @send:thread-message="$emit('send:threadMessage', $event)"
           @update:thread-typing="$emit('update:threadTyping', $event)">
         </message-thread-component>

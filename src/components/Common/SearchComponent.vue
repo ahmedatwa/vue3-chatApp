@@ -1,55 +1,27 @@
 <script setup lang="ts">
-import { shallowRef } from "vue";
-import { useUserStore, useDirectMessageStore } from "@/stores";
-import type { User, SearchUsers } from "@/types/User";
+import { ref, nextTick } from "vue";
+import type { SearchUsers } from "@/types/Chat"
 
-const searchTerm = shallowRef("");
-const userStore = useUserStore();
-const directMessageStore = useDirectMessageStore();
+const searchTerm = ref("");
 
 defineProps<{
   searchUsers: SearchUsers[];
 }>();
 
+const emit = defineEmits<{
+  "update:searchValue": [value: string];
+}>()
 
-const onSelect = async () => {
-  if (searchTerm.value) {
-    const found = directMessageStore.users.find(
-      (u) => u._uuid === searchTerm.value
-    );
-
-    if (found === undefined) {
-      await userStore.updateUserSettings(searchTerm.value, null, true);
-      if (userStore.allUsers) {
-        userStore.allUsers.forEach((user: User) => {
-          if (user._uuid === searchTerm.value) {
-            directMessageStore.users.push({
-              ...user,
-            });
-            return;
-          }
-        });
-      }
-    } else {
-      found.visible = true;
-      await userStore.updateUserSettings(searchTerm.value, null, true);
-    }
-    searchTerm.value = "";
-  }
-};
+const onSelect = (e: string) => {
+  emit('update:searchValue', e)
+  nextTick(() => {
+    searchTerm.value = ""
+  })
+}
 </script>
 <template>
-  <v-autocomplete
-    :label="$lang('header.searchLabel')"
-    item-title="displayName"
-    item-value="_uuid"
-    prepend-inner-icon="mdi-magnify"
-    v-model="searchTerm"
-    :items="searchUsers"
-    variant="underlined"
-    hide-details
-    hide-selected
-    @update:model-value="onSelect"
-  >
+  <v-autocomplete :label="$lang('header.searchLabel')" item-title="displayName" item-value="_uuid"
+    prepend-inner-icon="mdi-magnify" v-model="searchTerm" :items="searchUsers" variant="underlined" hide-details
+    hide-selected @update:model-value="onSelect">
   </v-autocomplete>
 </template>

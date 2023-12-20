@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, inject, watchEffect, nextTick } from "vue";
+import { ref, watch, inject, computed } from "vue";
+import { watchEffect, nextTick } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 //types 
 import type { User, UserMessages } from "@/types/User";
@@ -13,10 +14,12 @@ const uploadFiles = ref<File[] | null>(null);
 const lastRef = ref<HTMLDivElement | null>(null)
 
 const props = defineProps<{
-  selectedUser: User | null;
+  selectedUser?: User | null;
   message: UserMessages | ChannelMessages | null
   typing: Typing | null;
-  isLoading: boolean
+  isLoading: boolean;
+  title?: string;
+  height?: string | number
 }>();
 
 const emit = defineEmits<{
@@ -31,10 +34,18 @@ const updatethreadMessageEmoji = (emoji: string) => {
 
 const sendThreadMessage = () => {
   if (formInputValue.value.length || uploadFiles.value !== null) {
+
     if (props.message) {
+      let toName = null
+      if ("fromName" in props.message) {
+        toName = props.message?.fromName
+      }
+      
       emit("send:threadMessage", {
         _messageID: props.message?._id,
         _channelID: props.selectedUser?._channelID ? props.selectedUser?._channelID : null,
+        to: props.message?.from,
+        toName: toName,
         content: formInputValue.value,
         files: uploadFiles.value,
       });
@@ -57,18 +68,27 @@ watchEffect(() => {
   }
 })
 
+const threadTitle = computed(() => {
+  return props.title ? props.title : props.selectedUser?.displayName
+})
+
+const cssVars = computed(() => {
+  return {
+    '--card-height': props.height,
+  }
+})
 </script>
 
 <template>
   <v-slide-x-reverse-transition mode="in-out">
-    <v-card class="mx-auto overflow-y-auto" elevation="3" :model-value="isThread" :loading="isLoading">
+    <v-card class="mx-auto overflow-y-auto" elevation="3" v-if="isThread" :model-value="isThread" :loading="isLoading">
       <v-card-title>
-        <span class="text-subtitle-1">{{ $lang("chat.text.threadTitle", [selectedUser?.displayName]) }}</span>
+        <span class="text-subtitle-1">{{ $lang("chat.text.threadTitle", [threadTitle]) }}</span>
         <v-icon class="float-right" size="small" icon="mdi-close-circle-outline" @click="isThread = false"
           color="error"></v-icon>
       </v-card-title>
       <v-divider :thickness="3" color="warning"></v-divider>
-      <v-card-text class="text">
+      <v-card-text class="text" :style="cssVars">
         <div class="d-flex flex-wrap overflow-y-auto" :id="`thread-container-${message?._id}`">
           <div class="flex-1-1-100 mx-2 py-2" v-for="thread in message?.thread" :key="thread._id">
             <span class="font-weight-bold text-teal" v-if="thread?.from === currentUser?._uuid">
@@ -96,7 +116,7 @@ watchEffect(() => {
 <style scoped>
 .text {
   overflow-y: scroll;
-  height: 455px;
+  height: var(--card-height);
   scroll-snap-type: y mandatory;
   overflow-x: hidden;
 }

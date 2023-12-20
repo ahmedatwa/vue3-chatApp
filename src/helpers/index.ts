@@ -1,9 +1,8 @@
-import { ref, shallowRef, toValue } from "vue";
+import { shallowRef, toValue } from "vue";
 import { nanoid } from "nanoid";
 // regex expression to match all
 // non-alphanumeric characters in string
 const NoneAlphaNumeric = shallowRef(/[^A-Za-z0-9]/g);
-
 
 /**
  *

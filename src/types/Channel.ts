@@ -67,15 +67,6 @@ interface SendChannelMessagePayload {
   files?: FileList;
 }
 
-interface SendThreadPayload {
-  _messageID: number;
-  _channelID: string;
-  to: string;
-  toName: string;
-  content: string;
-  files?: File[];
-}
- 
 
 export type {
   ChannelMessages,
@@ -84,5 +75,4 @@ export type {
   SendChannelMessagePayload,
   ChannelMembers,
   ChannelSettings,
-  SendThreadPayload,
 };

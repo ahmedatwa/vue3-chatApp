@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, shallowRef } from "vue";
 import { onMounted, inject, reactive } from "vue";
+// Types
 import { MembersComponent, SettingComponent } from "@/components/Channel";
-import type { UserSessionData, SearchUsers } from "@/types/User";
 import type { ChannelMembers, ChannelSettings } from "@/types/Channel";
 import type { Channels, ChannelForm } from "@/types/Channel";
+import type { UserSessionData } from "@/types/User";
+import type { SearchUsers } from "@/types/Chat"
 
 const currentUser = inject<UserSessionData>("user");
 // Channel

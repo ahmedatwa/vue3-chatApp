@@ -3,7 +3,8 @@ import { ref, watch, inject } from "vue";
 import PreferenceComponent from "@/components/User/PreferenceComponent.vue"
 import { SearchComponent } from "@/components/Common"
 // types
-import { UserSessionData, UserSettings, SearchUsers } from "@/types/User";
+import { UserSessionData, UserSettings } from "@/types/User";
+import type { SearchUsers } from "@/types/Chat"
 import { langKey } from "@/types/Symbols";
 
 const drawer = inject<boolean>("drawer")
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   "update:search": [value: string];
   "update:locale": [value: string];
   "update:profile": [value: { displayName: string, image: File | null }];
+  "update:searchValue": [value: string];
 }>();
 
 const logout = () => {
@@ -43,7 +45,9 @@ watch(isOffline, (newStatus) => {
       </template>
       <v-row>
         <v-col cols="9" class="mx-auto">
-          <search-component :search-users="searchUsers"></search-component>
+          <search-component :search-users="searchUsers"
+            @update:search-value="$emit('update:searchValue', $event)">
+          </search-component>
         </v-col>
       </v-row>
       <v-btn icon density="compact" class="me-2" color="primary">
@@ -78,7 +82,8 @@ watch(isOffline, (newStatus) => {
               <v-avatar color="info" v-else>
                 <v-icon icon="mdi-account-circle"></v-icon>
               </v-avatar>
-            </v-badge><p class="mr-1 mt-1">{{ user?.displayName }}</p>
+            </v-badge>
+            <p class="mr-1 mt-1">{{ user?.displayName }}</p>
           </v-list-item>
           <v-divider></v-divider>
           <v-list-item @click="isOffline = !isOffline" key="status">
