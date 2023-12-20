@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from "vue";
-import { UploadSettings } from "@/types"
+import { UploadSettings } from "@/types/Chat"
 
 
 const uploadSettings: UploadSettings = reactive({

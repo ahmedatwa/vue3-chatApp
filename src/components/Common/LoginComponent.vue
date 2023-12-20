@@ -2,7 +2,8 @@
 import { ref, onMounted, onBeforeMount } from "vue";
 import { useStorageStore, useSessionStore, useUserStore } from "@/stores";
 // types
-import type { User, NewUserForm } from "@/types/User.ts";
+import type { User } from "@/types/User.ts";
+import type { NewUserForm } from "@/types/Chat"
 
 const storageStore = useStorageStore();
 const sessionStore = useSessionStore();
@@ -72,8 +73,8 @@ const createUser = () => {
         </tr>
         <tr class="text-end">
           <td colspan="6">
-            <v-btn :disabled="!selected" :loading="sessionStore.isLoading" @click="login" prepend-icon="mdi-location-enter"
-              color="primary">Login
+            <v-btn :disabled="!selected" :loading="sessionStore.isLoading" @click="login"
+              prepend-icon="mdi-location-enter" color="primary">Login
             </v-btn>
           </td>
         </tr>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { Snackbar } from "@/types";
+import type { Snackbar } from "@/types/Chat";
 
 defineProps<{
   alert: Snackbar | null;
