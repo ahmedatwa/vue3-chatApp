@@ -11,8 +11,8 @@ import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel";
 import type { ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
-import type { NewThreadMessage, AddMembers } from "@/types/Sockets.ts";
-import type { NewChannel, JoinChannel } from "@/types/Sockets.ts";
+import type { NewThreadMessage, AddMembers } from "@/types/Sockets";
+import type { NewChannel, JoinChannel } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
 
 export const useChannelStore = defineStore("channelStore", () => {

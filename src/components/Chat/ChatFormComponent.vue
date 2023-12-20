@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onUnmounted } from "vue";
-import { onMounted } from "vue";
+import { ref, computed, onUnmounted, onMounted } from "vue";
 import { ChatUploadComponent, ChatMarkedComponent } from "@/components/Chat";
 import { ChatEmojiComponent } from "@/components/Chat";
 import { useMarkdown } from "@/composables/markdown"
