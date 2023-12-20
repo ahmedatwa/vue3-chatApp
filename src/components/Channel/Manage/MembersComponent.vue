@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { onMounted, ref, inject } from "vue";
-import type { UserSessionData, SearchUsers } from "@/types/User";
+// types
+import { SearchUsers } from "@/types/Chat"
+import type { UserSessionData } from "@/types/User";
 import type { Channels } from "@/types/Channel";
 
 const selectedMembers = ref<SearchUsers | null>(null);
