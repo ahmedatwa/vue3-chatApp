@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import type { UserTyping } from "@/types/User";
-import type { ChannelTyping } from "@/types/Channel";
+import type { Typing } from "@/types/Chat";
 
 defineProps<{
-  typing: UserTyping | ChannelTyping | null;
+  typing: Typing | null;
 }>();
 </script>
 <template>

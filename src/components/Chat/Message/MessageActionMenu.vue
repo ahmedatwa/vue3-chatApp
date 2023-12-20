@@ -144,7 +144,8 @@ onMounted(() => {
     position: absolute;
     transform: translate(0, 10px);
     overflow: hidden;
-    bottom: 3.1rem;
+    /* bottom: 3.1rem; */
+    bottom: calc(100% - 0.10em);
     right: 0;
 }
 .border {

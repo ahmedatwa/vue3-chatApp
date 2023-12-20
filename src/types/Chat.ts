@@ -45,9 +45,11 @@ type MessageThread = {
 
 interface SendThreadPayload {
   _messageID: number | string;
-  _channelID: string | null;
+  _channelID: string | number | null;
   content: string;
   files?: File[] | null;
+  to?: string | null;
+  toName?: string | null;
   createdAt?: string;
 }
 
@@ -82,10 +84,9 @@ interface MessageReactions {
   emoji: string;
   _uuid: string;
   _messageID: number | string;
-  total: number
-  displayName: string
+  total: number;
+  displayName: string;
 }
-
 
 export type {
   Snackbar,
@@ -98,5 +99,5 @@ export type {
   SearchUsers,
   NewUserForm,
   MessageReactions,
-  SendThreadPayload
+  SendThreadPayload,
 };

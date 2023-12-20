@@ -18,7 +18,7 @@ const updateMessageReaction = (_id: string | number, emoji: string) => {
 
 <template>
   <v-sheet class="reactions-wrapper" :id="`reaction-${messageId}`">
-    <v-chip @click="updateMessageReaction(messageId, reaction.emoji)" size="small" class="mx-2" elevation="3"
+    <v-chip @click="updateMessageReaction(messageId, reaction.emoji)" size="small" class="mx-2" elevation="2"
       v-for="reaction in reactions" :key="reaction._messageID">
       <v-badge :content="reaction.total" color="transparent" location="bottom end">
         <h4 class="me-2">{{ reaction.emoji }}</h4>

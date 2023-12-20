@@ -114,6 +114,28 @@ const updateProfile = (event: { displayName: string; image: File | null }) => {
   }
 };
 
+const addSelectedChatUser = async(_uuid: string) => {
+    const found = directMessageStore.users.find(
+      (u) => u._uuid === _uuid
+    );
+
+    if (found === undefined) {
+      await userStore.updateUserStatus(_uuid, null, true);
+      if (userStore.allUsers) {
+        userStore.allUsers.forEach((user: User) => {
+          if (user._uuid === _uuid) {
+            directMessageStore.users.push({
+              ...user,
+            });
+            return;
+          }
+        });
+      }
+    } else {
+      found.visible = true;
+      await userStore.updateUserStatus(_uuid, null, true);
+    }
+}
 // Watchers
 //new userStore socket Notification
 watch(
@@ -407,6 +429,7 @@ const mappedUsers = computed(() => {
     <header-component
       :key="sessionStore.userSessionData?._uuid"
       :search-users="mappedUsers"
+      @update:search-value="addSelectedChatUser"
       @logout="sessionStore.updateSession"
       @update:status="goOffline"
       @update:setting="updateSettings"
@@ -429,11 +452,11 @@ const mappedUsers = computed(() => {
           :is-message-delete="channelStore.isMessageDelete"
           :search-users="mappedUsers"
           @load-more-messages="loadMoreChannelMessages"
-          @send-thread-message="channelStore.sendMessageThread"
+          @send:thread-message="channelStore.sendMessageThread"
           @update-channel-settings="channelStore.updateChannelSettings"
           @update:channel-members="channelStore.updateChannelMembers"
           @send-message="channelStore.sendMessage"
-          @channel-typing="channelStore.channelTyping"
+          @update:typing="channelStore.channelTyping"
           @thread-typing="channelStore.channelTheadTyping"
           @edit-message="channelStore.editChannelMessage"
           @delete-message="channelStore.deleteChannelMessage"
@@ -460,7 +483,7 @@ const mappedUsers = computed(() => {
           @send:thread-message="directMessageStore.sendThreadMessage"
           @edit-message="directMessageStore.editMessage"
           @delete-message="directMessageStore.deleteMessage"
-          @user-typing="directMessageStore.userTyping"
+          @update:typing="directMessageStore.userTyping"
           @update:thread-typing="directMessageStore.userTheadTyping"
         ></direct-message-component>
       </v-container>

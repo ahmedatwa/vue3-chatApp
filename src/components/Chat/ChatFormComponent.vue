@@ -3,13 +3,16 @@ import { ref, computed, onUnmounted } from "vue";
 import { onMounted, watchEffect } from "vue";
 import { ChatUploadComponent, ChatMarkedComponent } from "@/components/Chat";
 import { ChatEmojiComponent } from "@/components/Chat";
+import { useMarkdown } from "@/composables/markdown"
 
 const uploadedFiles = ref<File[]>([]);
 const error = ref("");
 const isEmoji = ref(false);
 const alignment = ref("");
-const formatting = ref<string[]>([]);
+const formatting = ref('');
 const isMarkDown = ref(false);
+const txtareaRef = ref<HTMLInputElement>();
+const selectedTxt = ref("");
 
 interface Props {
   id?: string | number;
@@ -59,9 +62,10 @@ const removeFile = (index: number) => {
 };
 
 const isDisabled = computed((): boolean => {
-  return props.inputValue.length > 1 || uploadedFiles.value.length > 1
-    ? false
-    : true;
+  if (props.inputValue.length > 0 || uploadedFiles.value.length > 0) {
+    return false
+  }
+  return true
 });
 
 const submitForm = () => {
@@ -76,55 +80,41 @@ const handleEnter = (event: KeyboardEvent) => {
   }
 };
 
-const txtAreaRef = ref<HTMLInputElement>();
-const selectedTxt = ref("");
+
 
 const getSelected = () => {
-  const start = txtAreaRef.value?.selectionStart;
-  const finish = txtAreaRef.value?.selectionEnd;
+  const start = txtareaRef.value?.selectionStart;
+  const finish = txtareaRef.value?.selectionEnd;
   if (start && finish)
-    selectedTxt.value = txtAreaRef.value?.value.substring(start, finish) ?? "";
+    selectedTxt.value = txtareaRef.value?.value.substring(start, finish) ?? "";
 };
 
-onMounted(() => txtAreaRef.value?.addEventListener("mouseup", getSelected));
+onMounted(() =>  txtareaRef.value?.addEventListener("mouseup", getSelected))
 
 onUnmounted(() =>
-  txtAreaRef.value?.removeEventListener("mouseup", getSelected)
+  txtareaRef.value?.removeEventListener("mouseup", getSelected)
 );
 
-watchEffect(() => {
-  if (formatting.value) {
 
+const { markedTextResult } = useMarkdown(props.inputValue, selectedTxt.value, formatting.value, alignment.value)
 
-    // if(format === "italic") {
-    //   if(selectedTxt.value.indexOf("<i>") === -1) 
-    //   selectedTxt.value = '<i>' + selectedTxt.value + '</i>'
-    // }  else {
-    //   selectedTxt.value.substring( selectedTxt.value.indexOf("<i>"))
-    // }
-    // if(format === "bold") {
-    //   if(selectedTxt.value.indexOf("<b>") === -1) 
-    //   selectedTxt.value = '<b>' + selectedTxt.value + '</b>'
-    // }
-    // if(format === "underline") {
-    //   if(selectedTxt.value.indexOf("<u>") === -1) 
-    //   selectedTxt.value = '<u>' + selectedTxt.value + '</u>'
-    // }
+if(markedTextResult.value) {
+  emit('update:inputValue', markedTextResult.value)
+}
 
+ 
 
-  }
-});
 </script>
 
 <template>
   <v-form :id="`chat-input${id}`" :key="`chat-input${id}`" @submit.prevent>
     sss: {{ selectedTxt }}
     <v-card elevation="4" id="message-form-wrapper">
-      <v-textarea ref="txtAreaRef" :name="`input-message${id}`" :label="textAreaLabel" :rows="textAreaRows"
+      <v-textarea ref="txtareaRef" :name="`input-message${id}`" :label="textAreaLabel" :rows="textAreaRows"
         :row-height="textAreaRowHeight" :auto-grow="autoGrow" :no-resize="noResize" :model-value="inputValue"
         hide-details="auto" clearable autofocus :hint="$lang('chat.help.newLine')" :error-messages="error"
         @click:clear="clearMessage" persistent-hint @update:model-value="$emit('update:inputValue', $event)"
-        @keyup.enter="handleEnter">
+        @keyup.enter="handleEnter" >
         <template v-slot:prepend-inner>
           <div class="d-flex flex-wrap" v-if="uploadedFiles">
             <v-chip v-for="(file, index) in uploadedFiles" :key="file.name" closable class="ma-2"
@@ -133,6 +123,7 @@ watchEffect(() => {
             </v-chip>
           </div>
         </template>
+        <div v-html="markedTextResult"></div>
       </v-textarea>
       <v-sheet class="d-flex flex-wrap">
         <div class="flex-1-0">
@@ -151,7 +142,7 @@ watchEffect(() => {
         <!-- submit buton -->
         <div v-if="submitButton">
           <v-btn icon color="teal" :disabled="isDisabled" type="submit" @click="$emit('update:submit', true)"
-            variant="plain">
+            variant="text">
             <v-icon icon="mdi-send" size="large"></v-icon>
           </v-btn>
         </div>

@@ -1,7 +1,7 @@
 import { defineStore } from "pinia";
 import { ref, inject } from "vue";
 import { instance, _userApi } from "@/axios";
-import type { Snackbar } from "@/types";
+import type { Snackbar } from "@/types/Chat";
 import type { UserSettings, User } from "@/types/User";
 import { nanoid } from "nanoid";
 import { capitalize, createDateTime } from "@/helpers";
@@ -27,7 +27,7 @@ export const useUserStore = defineStore("userStore", () => {
               displayName: user.displayName,
               firstName: user.firstName,
               lastName: user.lastName,
-              image: user.image ? import.meta.env.VITE_API_UPLOAD_URL + user.image : '',
+              image: user.image.length ? import.meta.env.VITE_API_UPLOAD_URL + user.image : '',
               email: user.email,
               connected: user.connected || false,
               visible: user.visible,

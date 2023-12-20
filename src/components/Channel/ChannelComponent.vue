@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { ref, inject, watch, computed } from "vue";
-import { provide, shallowRef } from "vue";
-import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
-import { CreateChannelComponent, MessageContentComponent, MessageThreadComponent } from "@/components/Channel";
+import { ref, watch } from "vue";
+import { provide, computed } from "vue";
+import { ChatFormComponent, ChatTypingComponent, MessageThreadComponent } from "@/components/Chat";
+import { CreateChannelComponent, MessageContentComponent } from "@/components/Channel";
 // types
-import type { UserSessionData } from "@/types/User";
-import type { SearchUsers, Typing } from "@/types/Chat";
+import type { SearchUsers, Typing, SendThreadPayload } from "@/types/Chat";
 import type { Channels, ChannelMembers, ChannelMessages } from "@/types/Channel";
-import type { ChannelForm, ChannelSettings, SendThreadPayload } from "@/types/Channel";
+import type { ChannelForm, ChannelSettings } from "@/types/Channel";
 
-
-const user = inject<UserSessionData>("user");
 const messageInput = ref("");
 const uploadedFiles = ref<File[]>([]);
 const isScroll = ref(false);
@@ -34,11 +31,9 @@ const emit = defineEmits<{
   seen: [value: boolean];
   newMessagesCount: [value: number];
   downloadFile: [value: { name: string; path: string }];
-
+  "update:typing": [value: number];
   // checked
   leaveChannel: [value: { _channelID: string; name: string }];
-  channelTyping: [value: string];
-  threadTyping: [value: string];
   editMessage: [
     value: {
       _messageID: string | number;
@@ -48,7 +43,6 @@ const emit = defineEmits<{
     }
   ];
   deleteMessage: [value: string | number];
-  sendThreadMessage: [payload: SendThreadPayload];
   loadMoreMessages: [
     _channelID: string | number,
     offset: number,
@@ -64,6 +58,8 @@ const emit = defineEmits<{
     { add: ChannelMembers[]; remove: ChannelMembers[] }
   ];
   "update:messageReaction": [value: { _id: string | number; emoji: string }];
+  "update:threadTyping": [value: number];
+  "send:threadMessage": [value: SendThreadPayload];
 }>();
 
 
@@ -89,7 +85,7 @@ const totalChannelMemebers = computed((): number => {
 });
 
 watch(messageInput, (newValue) => {
-  emit("channelTyping", newValue);
+  emit("update:typing", newValue.length);
 });
 
 const loadMoreMessages = (
@@ -101,13 +97,24 @@ const loadMoreMessages = (
 };
 
 // thread
-const isThreadOpen = shallowRef(false);
-provide("isStartThread", isThreadOpen);
-const threadMessage = ref<ChannelMessages>();
-
+const isThread = ref(false);
+provide("isThread", isThread);
+const threadMessage = ref<ChannelMessages | null>(null);
 const startThread = (message: ChannelMessages) => {
+  isThread.value = true
   threadMessage.value = message;
 };
+
+const sendThreadMessage = (message: SendThreadPayload) => {
+  if (props.channel?._channelID) {
+    emit("send:threadMessage", {
+      ...message,
+      _channelID: props.channel?._channelID as string,
+    })
+  }
+
+
+}
 </script>
 <template>
   <v-container class="flex-1-1-100 ma-2 pa-2" :id="`channel${channel?._channelID}`" :class="selected ? '' : 'd-none'"
@@ -140,8 +147,8 @@ const startThread = (message: ChannelMessages) => {
           <message-content-component :key="`channel-${channel?._channelID}`" :thread-typing="typing.thread"
             :is-loading="isLoading" :channel="channel" :is-delete="isMessageDelete" :is-scroll="isScroll"
             @load-more-messages="loadMoreMessages" @delete-message="$emit('deleteMessage', $event)"
-            @edit-message="$emit('editMessage', $event)" @update:scroll="isScroll = $event" @start:thread="startThread"
-            @update:message-reaction="$emit('update:messageReaction', $event)">
+            @edit-message="$emit('editMessage', $event)" @update:scroll="isScroll = $event"
+            @update:thread-messages="startThread" @update:message-reaction="$emit('update:messageReaction', $event)">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">
             <chat-form-component :id="channel?._channelID" :key="`channel-${channel?._channelID}`"
@@ -155,38 +162,12 @@ const startThread = (message: ChannelMessages) => {
         </v-card>
       </v-col>
       <!-- Thread -->
-      <v-col cols="3" v-if="isThreadOpen">
-        <message-thread-component v-model:thread-card="isThreadOpen" :message="threadMessage"
-          :channelName="channel?.channelName" :typing="typing.thread" :uuid="user?._uuid"
-          @update:thread-card="isThreadOpen = $event" @on:send-thread-message="$emit('sendThreadMessage', $event)"
-          @on:thread-typing="$emit('threadTyping', $event)"></message-thread-component>
+      <v-col cols="3" v-if="isThread">
+        <message-thread-component :typing="typing.thread" :message="(threadMessage as ChannelMessages)"
+          :is-loading="isLoading.thread" :title="channel?.channelName" height="435px"
+          @send:thread-message="sendThreadMessage" @update:thread-typing="$emit('update:threadTyping', $event)">
+        </message-thread-component>
       </v-col>
     </v-row>
   </v-container>
 </template>
-<style scoped>
-.text-divider {
-  --text-divider-gap: 1rem;
-  display: flex;
-  align-items: center;
-  font-size: 0.9375rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
-.text-divider::before,
-.text-divider::after {
-  content: "";
-  height: 1px;
-  background-color: silver;
-  flex-grow: 1;
-}
-
-.text-divider::before {
-  margin-right: var(--text-divider-gap);
-}
-
-.text-divider::after {
-  margin-left: var(--text-divider-gap);
-}
-</style>
