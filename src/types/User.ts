@@ -66,8 +66,6 @@ interface UserSessionData {
   createdAt: string;
 }
 
-
-
 interface DirectMessageChannels {
   _channelID: string;
   from: string;
@@ -81,9 +79,6 @@ type DBUserMessages = {
   updatedAt: string;
   content: UserMessages[];
 };
-
-
-
 
 export type {
   User,
