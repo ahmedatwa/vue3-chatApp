@@ -3,13 +3,16 @@ import { ref, computed, shallowRef } from "vue";
 import { inject, reactive, watchEffect } from "vue";
 import { useSessionStore, useUserStore } from "@/stores";
 import { instance, _directMessageApi } from "@/axios";
-import { createDateTime, esc, getRandom } from "@/helpers";
+import { createDateTime, getRandom } from "@/helpers";
 // types
-import type { Snackbar, UploadedFiles, SendThreadPayload, Typing } from "@/types/Chat";
+import type { Snackbar, UploadedFiles, MessageReactions } from "@/types/Chat";
+import type { SendThreadPayload, Typing, TenorGifs } from "@/types/Chat";
 import type { User } from "@/types/User";
 import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
+import DOMPurify from "isomorphic-dompurify";
+import { marked } from "marked";
 
 export const useDirectMessageStore = defineStore("directMessageStore", () => {
   // Stores
@@ -20,9 +23,13 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   const $lang = inject(langKey);
   const selectedUser = shallowRef<User | null>(null);
   const filterSearchInput = ref("");
-  const uploadedFiles = ref<UploadedFiles[]>([]);
+  const uploadedFiles = ref<UploadedFiles[] | null>(null);
   const newAlert = ref<Snackbar | null>(null);
   const paginationLimit = ref(10);
+  const DOMPurifySettings = shallowRef({
+    ALLOWED_TAGS: ["strong", "ul", "li", "a", "blockquote", "h2", "img"],
+    ALLOWED_ATTR: ["href", "target", "src", "height", "width"],
+  });
   const typing = ref<Record<"messages" | "thread", Typing | null>>({
     messages: null,
     thread: null,
@@ -32,6 +39,8 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     messages: false,
     users: false,
   });
+
+  const isScroll = shallowRef<{ start: boolean; end: boolean } | null>(null);
 
   // Filter Users
   const filteredUsers = computed(() => {
@@ -54,37 +63,55 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
   const sendMessage = async (message: {
     content: string;
-    files?: File[] | null;
+    files?: File[] | TenorGifs | null;
   }) => {
+    isScroll.value = null;
+    const renderer = {
+      link(href: string, title: string | null | undefined, text: string) {
+        return `<a target="blank" href="${href}" title="${title}">${text}</a>`;
+      },
+    };
+
+    marked.use({ renderer });
+
     if (selectedUser.value?._channelID === null) {
       await addChannelsMember(getRandom(30));
     }
 
-    if (message.files?.length) {
+    if (message.files) {
       await uploadFiles(message.files);
     }
 
     await instance
       .post(_directMessageApi.sendMessage, {
-        content: esc(message.content),
+        content: DOMPurify.sanitize(
+          marked.parse(message.content) as string,
+          DOMPurifySettings.value
+        ),
         editContent: "",
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
         _channelID: selectedUser.value?._channelID,
-        files: uploadedFiles.value,
+        files: uploadedFiles.value?.map((file) => file._id) || null,
         createdAt: createDateTime(),
       })
-      .then((response) => {
+      .then(async (response) => {
         if (response.statusText === "OK" && response.status === 200) {
           if (selectedUser.value?.messages)
             selectedUser.value?.messages.push({
               ...response.data,
+              files: uploadedFiles.value || null,
               thread: [],
             });
+
           // update server
           socket.emit(_directMessageEmits.newMessage, {
             ...response.data,
           });
+          isScroll.value = {
+            start: false,
+            end: true,
+          };
         }
       })
       .catch((error) => {
@@ -106,7 +133,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     await instance
       .post(_directMessageApi.sendThreadMessage, {
         _messageID: message._messageID,
-        content: esc(message.content),
+        content: DOMPurify.sanitize(message.content, DOMPurifySettings.value),
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
         files: uploadedFiles.value,
@@ -194,6 +221,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     unshift: boolean
   ) => {
     isLoading.messages = true;
+    isScroll.value = null;
     return instance
       .get(_directMessageApi.getUserDirectMessages, {
         params: {
@@ -205,9 +233,19 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
           if (selectedUser.value) {
-            unshift
-              ? selectedUser.value.messages?.unshift(...response.data)
-              : selectedUser.value?.messages?.push(...response.data);
+            if (unshift) {
+              selectedUser.value.messages?.unshift(...response.data);
+              isScroll.value = {
+                start: true,
+                end: false,
+              };
+            } else {
+              selectedUser.value?.messages?.push(...response.data);
+              isScroll.value = {
+                start: false,
+                end: true,
+              };
+            }
 
             const user = users.value.find((u) => u._channelID === _channelID);
             if (user) {
@@ -303,20 +341,31 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         });
     }
   };
-  
-  
-  const uploadFiles = async (files: File[]) => {
+
+  const uploadFiles = async (
+    files: File[] | TenorGifs,
+    _messageID?: string | number
+  ) => {
     uploadedFiles.value = [];
     isLoading.messages = true;
     let formData = new FormData();
-    files.forEach((file) => formData.append("files[]", file));
+    if (Array.isArray(files)) {
+      files.forEach((file) => formData.append("files[]", file));
+    } else {
+      for (const key in files as TenorGifs) {
+        const element = files[key as keyof typeof files];
+        formData.append(key, element as string);
+      }
+    }
+
     formData.append("_channelID", selectedUser.value?._channelID as string);
     formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
+
     await instance
       .post(_directMessageApi.upload, formData)
       .then((response) => {
         if (response.status === 200 && response.statusText === "OK") {
-          uploadedFiles.value?.push({...response.data});
+          uploadedFiles.value?.push(...response.data);
         }
       })
       .catch((error) => {
@@ -328,6 +377,27 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       })
       .finally(() => {
         isLoading.messages = false;
+      });
+  };
+
+  const deleteFiles = async (file: {
+    fileID: string | number;
+    messageID: string | number;
+  }) => {
+    await instance
+      .post(_directMessageApi.deleteFile, {
+        ...file,
+      })
+      .then((response) => {
+        if (response.status === 200) {
+        }
+      })
+      .catch((error) => {
+        newAlert.value = {
+          title: "",
+          text: error.code + " " + error.message,
+          type: "error",
+        };
       });
   };
 
@@ -376,27 +446,30 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     }
   });
 
-  const updateMessageReaction = (event: { _id: string; emoji: string }) => {
+  const updateMessageReaction = (reaction: MessageReactions) => {
+    const total = shallowRef(1);
     instance
       .post(_directMessageApi.updateMessageReaction, {
-        _messageID: event._id,
-        _uuid: sessionStore.userSessionData?._uuid,
-        displayName: sessionStore.userSessionData?.displayName,
-        emoji: event.emoji,
+        ...reaction,
       })
       .then((response) => {
         if (response.status === 200) {
-          const found = selectedUser.value?.messages?.find(
-            (message) => message._id === event._id
+          const message = selectedUser.value?.messages?.find(
+            (m) => m._id === reaction._messageID
           );
-          if (found) {
-            const emoji = found.reactions?.find(
-              (emoji) => emoji.emoji === event.emoji
-            );
-            if (emoji) {
-              emoji.total++;
+          if (message?.reactions) {
+            if (message.reactions?.length > 0) {
+              const reactionIndex = message.reactions?.findIndex(
+                (o) => o._uuid === reaction._uuid
+              );
+              if (reactionIndex > -1) {
+                message.reactions?.splice(reactionIndex, 1);
+              }
             } else {
-              found.reactions?.push({ ...response.data, total: 1 });
+              message.reactions?.push({
+                ...response.data,
+                total: total.value++,
+              });
             }
           }
         }
@@ -453,6 +526,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       typing.value.thread = null;
     }
   });
+
   // new Message
   socket.on(
     _directMessageListener.newMessage,
@@ -462,7 +536,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       const fromSelf = (socket as any)._uuid === newMessage.from;
       // Push new User
       const newUser = users.value.find((u) => u._uuid === newMessage.from);
-      if (newUser === undefined) {
+      if (!newUser) {
         const response = await userStore.getUser(newMessage.from);
         if (response?.data) {
           response.data.forEach((user: User) => {
@@ -498,7 +572,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
               from: newMessage.from,
               to: newMessage.to,
               content: newMessage.content,
-              file: newMessage.file,
+              files: newMessage.file,
               seen: false,
               fromSelf,
               createdAt: newMessage.createdAt,
@@ -621,6 +695,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     isLoading,
     filteredUsers,
     paginationLimit,
+    isScroll,
     updateMessageReaction,
     getUserDirectMessageChannels,
     sendMessage,
@@ -631,5 +706,8 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     userTheadTyping,
     getMessages,
     onSelectUser,
+    deleteFiles,
+    //
+    uploadedFiles
   };
 });

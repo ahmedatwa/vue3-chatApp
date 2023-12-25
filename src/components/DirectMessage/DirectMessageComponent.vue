@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, provide } from "vue";
-import { ChatFormComponent, ChatTypingComponent, MessageThreadComponent } from "@/components/Chat";
+import { ref, provide, inject } from "vue";
+import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
+import { MessageThreadComponent } from "@/components/Chat";
 import { MessageContentComponent } from "@/components/DirectMessage";
 // types
-import type { User, UserMessages } from "@/types/User";
-import type { Typing, SendThreadPayload } from "@/types/Chat";
+import type { User, UserMessages, UserSessionData } from "@/types/User";
+import type { Typing, SendThreadPayload, TenorGifs } from "@/types/Chat";
+import type { UploadedFiles, MessageReactions } from "@/types/Chat";
 
-const formInputValue = ref("");
-const uploadedFiles = ref<File[]>([]);
-const isScroll = ref(false);
+const currentUser = inject<UserSessionData>("user");
 // thread
 const isThread = ref(false);
 const threadMessage = ref<UserMessages | null>(null)
@@ -18,18 +18,18 @@ provide("isThread", isThread);
 defineProps<{
   user: User | null;
   selected: boolean;
-  uuid: string | undefined;
   typing: Record<"messages" | "thread", Typing | null>;
   isLoading: {
     messages: boolean;
     thread: boolean;
     users: boolean;
   };
+  isScroll: { start: boolean; end: boolean } | null
 }>();
 
 // emits
 const emit = defineEmits<{
-  sendMessage: [value: { content: string; files: File[] }];
+  "update:sendMessage": [value: { content: string; files: File[] | TenorGifs | null }];
   "update:typing": [value: number];
   deleteMessage: [value: number | string];
   editMessage: [
@@ -41,40 +41,40 @@ const emit = defineEmits<{
     }
   ];
   loadMoreMessages: [value: { _channelID: string; limit: number, offset: number; unshift: boolean }];
-  "update:messageReaction": [value: { _id: string | number, emoji: string }];
+  "update:messageReaction": [value: MessageReactions];
   "update:threadTyping": [value: number];
   "send:threadMessage": [value: SendThreadPayload];
+  "update:deleteFile": [value: { fileID: string | number, messageID: string | number }];
+  "update:downdloadFile": [value: UploadedFiles];
+  // 
+  "update:formatting": [value: string[]];
+  "update:alignment": [value: string];
+  "update:selectedTxt": [value: string];
 }>();
 
-const sendMessage = () => {
-  emit("sendMessage", {
-    content: formInputValue.value,
-    files: uploadedFiles.value,
-  });
-  formInputValue.value = "";
-  uploadedFiles.value = [];
-  isScroll.value = true;
-};
-
-const updateEmoji = (emoji: string) => {
-  formInputValue.value += emoji;
-};
-
-watch(formInputValue, (newValue) => {
-  emit("update:typing", newValue.length);
-});
+const updateMessageReaction = (event: { _id: string | number; emoji: string }) => {
+  if (currentUser) {
+    emit("update:messageReaction", {
+      _uuid: currentUser?._uuid,
+      _messageID: event._id,
+      emoji: event.emoji,
+      displayName: currentUser?.displayName,
+    })
+  }
+}
 
 const updateThread = (message: UserMessages) => {
   isThread.value = true
   threadMessage.value = message
 }
 
+
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`direct-message-${user?._uuid}`" :class="selected ? '' : 'd-none'"
-    fluid>
+  <v-container class="flex-1-1-100 ma-2 pa-2" 
+    :id="`direct-message-${user?._uuid}`" :class="selected ? '' : 'd-none'" fluid>
     <v-row>
-      <v-col>
+      <v-col :id="`direct-${user?._uuid}`">
         <v-card class="mx-auto" id="container" :loading="isLoading.messages">
           <v-card-title>
             <v-sheet class="d-inline">
@@ -89,14 +89,14 @@ const updateThread = (message: UserMessages) => {
           <message-content-component :key="`direct-${user?._uuid}`" :selected-user="user" :is-loading="isLoading"
             @update:thread-messages="updateThread" :is-scroll="isScroll"
             @load-more-messages="$emit('loadMoreMessages', $event)" @delete-message="$emit('deleteMessage', $event)"
-            @edit-message="$emit('editMessage', $event)"
-            @update:messageReaction="$emit('update:messageReaction', $event)">
+            @edit-message="$emit('editMessage', $event)" @update:messageReaction="updateMessageReaction"
+            @update:delete-file="$emit('update:deleteFile', $event)"
+            @update:downdload-file="$emit('update:downdloadFile', $event)">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">
-            <chat-form-component :id="user?._uuid" :key="`user-${user?._uuid}`" v-model:input-value="formInputValue"
-              v-model:files="uploadedFiles" :text-area-row-height="10" :text-area-rows="2"
-              :text-area-label="$lang('chat.input.send')" @update:emoji="updateEmoji" @update:submit="sendMessage"
-              upload-button auto-grow>
+            <chat-form-component :id="user?._uuid" :key="`user-${user?._uuid}`" :text-area-row-height="10"
+              :text-area-rows="2" :text-area-label="$lang('chat.input.send')"
+              @update:submit="$emit('update:sendMessage', $event)" upload-button auto-grow>
             </chat-form-component>
             <!-- Typing -->
             <chat-typing-component :typing="typing.messages"></chat-typing-component>
@@ -104,7 +104,7 @@ const updateThread = (message: UserMessages) => {
         </v-card>
       </v-col>
       <!-- Thread -->
-      <v-col cols="3" v-if="isThread">
+      <v-col cols="3" v-if="isThread" :id="`thread-${user?._uuid}`">
         <message-thread-component :typing="typing.thread" :message="(threadMessage as UserMessages)"
           :is-loading="isLoading.thread" :selected-user="user" height="455px"
           @send:thread-message="$emit('send:threadMessage', $event)"

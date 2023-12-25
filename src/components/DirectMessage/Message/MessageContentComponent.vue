@@ -3,10 +3,10 @@ import { ref, computed, inject } from "vue";
 import { watchEffect, nextTick } from "vue";
 import { formatTimeShort, formatDateLong } from "@/helpers";
 import { MessageActionMenu, MessageThreadChipComponent } from "@/components/Chat";
-import { MessageReactionComponent } from "@/components/Chat";
+import { MessageReactionComponent, MessageFilesComponent } from "@/components/Chat";
 // types
 import type { User, UserMessages } from "@/types/User";
-import type { MessagePagination } from "@/types/Chat";
+import type { MessagePagination, UploadedFiles } from "@/types/Chat";
 
 const currentUser = inject<User>("user");
 const pagination = ref<MessagePagination>({
@@ -14,14 +14,14 @@ const pagination = ref<MessagePagination>({
   offset: 0,
   limit: 0,
 });
-const isLoadMore = ref(true);
+const isLoadMore = ref(false);
 const lastRow = ref<HTMLDivElement | null>(null);
 const firstRow = ref<HTMLDivElement | null>(null);
 
 // props
 const props = defineProps<{
   selectedUser: User | null;
-  isScroll?: boolean;
+  isScroll: { start: boolean; end: boolean } | null
   isLoading: {
     messages: boolean;
     thread: boolean;
@@ -49,8 +49,9 @@ const emit = defineEmits<{
     }
   ];
   "update:threadMessages": [value: UserMessages];
-  "update:scroll": [value: boolean];
   "update:messageReaction": [value: { _id: string | number; emoji: string }];
+  "update:deleteFile": [value: { fileID: string | number, messageID: string | number }];
+  "update:downdloadFile": [value: UploadedFiles];
 }>();
 
 // group messages by date
@@ -66,77 +67,86 @@ const userMessages = computed(() => {
 
 // Load More
 const loadMoreMessages = () => {
+
   if (pagination.value.offset < 0) {
     return;
   }
   if (props.selectedUser?._channelID) {
+    pagination.value.offset = Math.ceil(pagination.value.offset - pagination.value.limit)
+
     emit("loadMoreMessages", {
       _channelID: props.selectedUser?._channelID,
       limit: pagination.value.limit,
       offset: paginationOffset.value,
       unshift: true,
     });
-    scroll(true);
   }
 };
 
 watchEffect(() => {
   if (props.selectedUser?.pagination) {
     pagination.value = props.selectedUser?.pagination;
-    if (props.selectedUser?.pagination.limit === 0) {
-      isLoadMore.value = false;
-    }
   }
 });
 
 const paginationOffset = computed(() => {
-  pagination.value.offset = Math.ceil(
-    pagination.value.offset - pagination.value.limit
-  ); //2 10
-
-  if (pagination.value.offset) {
-    if (
-      pagination.value.offset < pagination.value.limit &&
-      pagination.value.offset > 0
-    ) {
-      pagination.value.limit = pagination.value.offset + pagination.value.limit;
-      pagination.value.offset = 0;
-      return 0;
-    }
+  if (
+    pagination.value.offset < pagination.value.limit &&
+    pagination.value.offset > 0
+  ) {
+    pagination.value.limit = pagination.value.offset + pagination.value.limit;
+    pagination.value.offset = 0;
+    return 0;
   }
   return pagination.value.offset;
 });
 
 watchEffect(() => {
-  if (paginationOffset.value < 0 || pagination.value.limit === 0) {
-    isLoadMore.value = false;
+  if (pagination.value.total > pagination.value.limit) {
+    isLoadMore.value = true;
   }
 });
 
 watchEffect(() => {
-  if (props.isScroll) {
-    scroll(false);
-    emit("update:scroll", false);
+  if (props.selectedUser?.messages?.length) {
+    if (props.isScroll) {
+      scroll(props.isScroll);
+    }
   }
 });
 
-const scroll = (top: boolean) => {
-  watchEffect(() => {
-    if (props.selectedUser?.messages?.length) {
-      nextTick(() => {
-        if (top) {
-          firstRow.value?.scrollIntoView(true);
-        } else {
-          lastRow.value?.scrollIntoView(true);
-        }
+
+const scroll = (direction: { start: boolean, end: boolean }) => {
+  if (direction.start) {
+    nextTick(() => {
+      firstRow.value?.scrollIntoView({
+        behavior: "instant",
+        block: "nearest",
+        inline: "end"
       });
-    }
-  });
+    });
+  } else if (direction.end) {
+    nextTick(() => {
+      lastRow.value?.scrollIntoView({
+        behavior: "instant",
+        block: "nearest",
+        inline: "start"
+      });
+    });
+  }
 };
 
+const loadMoreDisabled = computed(() => {
+  if (props.selectedUser?.messages)
+    if (pagination.value.total === props.selectedUser?.messages?.length) {
+      return false
+    }
+  return true
+})
+
 const actionMenu = ref(false);
-const actionMenuID = ref<any>();
-const showActionMenu = (visible: boolean, id?: UserMessages) => {
+const actionMenuID = ref<string | number | null>(null);
+const showActionMenu = (visible: boolean, id: string | number | null) => {
   actionMenu.value = visible;
   actionMenuID.value = id;
 };
@@ -145,7 +155,7 @@ const showActionMenu = (visible: boolean, id?: UserMessages) => {
 <template>
   <v-container class="container" :key="selectedUser?._uuid">
     <v-sheet :align="'center'" justify="center" class="my-2" :key="selectedUser?._uuid">
-      <v-btn :loading="isLoading.messages" v-if="isLoadMore" variant="plain" prepend-icon="mdi-refresh"
+      <v-btn :loading="isLoading.messages" v-if="loadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
         @click="loadMoreMessages" color="success">
         {{ $lang("chat.button.loadMore") }}
       </v-btn>
@@ -158,7 +168,7 @@ const showActionMenu = (visible: boolean, id?: UserMessages) => {
       <v-col v-for="message in userMessage" :key="`col-${message._id}`" :id="`col-${message._id}`" cols="12"
         class="ma-1 pa-2 column__wrapper" @mouseover="showActionMenu(true, message._id)">
         <v-sheet :key="`message-wrapper-${message._id}`" class="transparent">
-          <message-thread-chip-component v-if="message.thread.length" :key="`thread-chip-${message._id}`"
+          <message-thread-chip-component v-if="message.thread" :key="`thread-chip-${message._id}`"
             :message="(message as UserMessages)"
             @update:thread-messages="$emit('update:threadMessages', $event as UserMessages)">
           </message-thread-chip-component>
@@ -176,8 +186,12 @@ const showActionMenu = (visible: boolean, id?: UserMessages) => {
                 <p v-html="message.content" class="d-inline"></p>
               </span>
             </div>
-            <div :key="`message-content-${message._id}`" class="text-left d-inline transparent" v-else>
-              <p class="d-inline" v-html="message.content"></p>
+            <div :id="`message-content-${message._id}`" class="text-left d-inline transparent" v-else>
+              <div class="d-inline" v-html="message.content"></div>
+              <message-files-component v-if="message.files" :files="message.files" :message-id="message._id"
+                @update:delete-file="$emit('update:deleteFile', $event)"
+                @update:downdload-file="$emit('update:downdloadFile', $event)">
+              </message-files-component>
             </div>
             <!-- reactions -->
             <message-reaction-component v-if="message.reactions" :key="`reaction-${message._id}`"
@@ -189,7 +203,7 @@ const showActionMenu = (visible: boolean, id?: UserMessages) => {
           <message-action-menu v-if="actionMenuID === message._id" :message-value="actionMenuID"
             :key="`action-menu${message._id}`" :selected-user="selectedUser" :message="message" :action-menu="actionMenu"
             @edit-message="$emit('editMessage', $event)" @delete-message="$emit('deleteMessage', $event)"
-            @update:action-menu="actionMenu = $event"
+            @update:action-menu="actionMenu = $event" @update:message-value="actionMenuID = $event"
             @update:thread-messages="$emit('update:threadMessages', $event as UserMessages)"
             @update:messageReaction="$emit('update:messageReaction', $event)">
           </message-action-menu>

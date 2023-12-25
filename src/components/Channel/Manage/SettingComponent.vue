@@ -105,7 +105,7 @@ onMounted(() => {
     {{ $lang("channel.archive") }}
     <v-dialog v-model="isArchiveChannelDialog" key="archive-channel">
       <v-card prepend-icon="mdi-archive" :title="$lang('channel.archive')"
-        :text="$lang('chat.text.confirm', ['archive channel'])" width="400" class="mx-auto">
+        :text="$lang('channel.archive', ['archive channel'])" width="400" class="mx-auto">
         <v-card-actions>
           <v-btn color="red" prepend-icon="mdi-close" variant="plain" class="me-auto"
             @click.prevent="isArchiveChannelDialog = false">

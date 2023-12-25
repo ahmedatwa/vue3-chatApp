@@ -1,16 +1,18 @@
 import { defineStore } from "pinia";
 import { ref, inject } from "vue";
 import { instance, _userApi } from "@/axios";
-import type { Snackbar } from "@/types/Chat";
-import type { UserSettings, User } from "@/types/User";
 import { nanoid } from "nanoid";
 import { capitalize, createDateTime } from "@/helpers";
 import { langKey } from "@/types/Symbols";
+// Types
+import type { Snackbar, UploadedFiles } from "@/types/Chat";
+import type { UserSettings, User } from "@/types/User";
 
 export const useUserStore = defineStore("userStore", () => {
   const isLoading = ref(false);
   const newAlert = ref<Snackbar | null>(null);
   const allUsers = ref<User[]>([]);
+  const downloadedFiles = ref<UploadedFiles[]>([]);
   const $lang = inject(langKey);
 
   const getAllUsers = async () => {
@@ -27,7 +29,9 @@ export const useUserStore = defineStore("userStore", () => {
               displayName: user.displayName,
               firstName: user.firstName,
               lastName: user.lastName,
-              image: user.image.length ? import.meta.env.VITE_API_UPLOAD_URL + user.image : '',
+              image: user.image.length
+                ? import.meta.env.VITE_API_UPLOAD_URL + user.image
+                : "",
               email: user.email,
               connected: user.connected || false,
               visible: user.visible,
@@ -121,14 +125,14 @@ export const useUserStore = defineStore("userStore", () => {
   const updateUserSettings = async (
     _uuid: string | number,
     settings: UserSettings | null,
-    displayName?: string | null,
-    image?: File | null
+    displayName: string | null,
+    image: File | null
   ) => {
     isLoading.value = true;
     let formData = new FormData();
     formData.append("_uuid", _uuid as string);
     settings ? formData.append("settings", JSON.stringify(settings)) : null;
-    displayName !== null ? formData.append("displayName", displayName as string) : null;
+    displayName ? formData.append("displayName", displayName as string) : null;
     image ? formData.append("image", image) : null;
     await instance
       .post(_userApi.updateUserSettings, formData)
@@ -176,14 +180,73 @@ export const useUserStore = defineStore("userStore", () => {
         isLoading.value = false;
       });
   };
+
+  const getUserFilesDownloads = async (_uuid: string | undefined) => {
+    await instance
+      .get(_userApi.getUserFilesDownloads, {
+        params: {
+          _uuid,
+        },
+      })
+      .then((response) => {
+        if (response.status === 200) {
+          response.data.forEach((file: UploadedFiles) => {
+            downloadedFiles.value.push({
+              _id: file._id,
+              _uuid: file._uuid,
+              _channelID: file._channelID,
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              randomName: file.randomName,
+              path: file.path,
+              createdAt: file.createdAt,
+              url: import.meta.env.VITE_API_ROOT_URL + file.path,
+            })
+          })
+         
+        }
+      });
+  };
+
+  const downloadFiles = async (_uuid: string, file: UploadedFiles) => {
+    await instance
+      .get(_userApi.downloadFile, {
+        params: {
+          path: file.path,
+          name: file.name,
+          fileID: file._id,
+          _uuid,
+        },
+        // responseType: "blob",
+      })
+      .then((response) => {
+        const blob = new Blob([response.data], { type: file.type });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = file.name;
+        link.click();
+        URL.revokeObjectURL(link.href);
+      })
+      .catch((error) => {
+        newAlert.value = {
+          title: $lang?.getLine("error.upload"),
+          text: error.code + " " + error.message,
+          type: "error",
+        };
+      });
+  };
   return {
     newAlert,
     allUsers,
+    downloadedFiles,
     updateUserStatus,
     updateUserSettings,
+    downloadFiles,
     getUser,
     createUser,
     getAllUsers,
     getAllChannels,
+    getUserFilesDownloads,
   };
 });

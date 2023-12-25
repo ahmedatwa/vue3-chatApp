@@ -9,8 +9,7 @@ const isEmoji = ref(false)
 
 defineProps<{
   hideSearch?: boolean;
-  tooltip?: boolean;
-  tooltipText?: string;
+  tooltip?: string;
   iconColor?: string;
   offset?: string | number | number[];
   location?: any;
@@ -35,6 +34,6 @@ watch(isEmoji, (value) => {
         :theme="theme.global.name.value" @select="$emit('update:selected', $event.i)"></emoji-picker>
     </v-menu>
     <v-icon icon="mdi-emoticon" size="large" :color="iconColor"></v-icon>
-    <v-tooltip activator="parent" location="top" v-if="tooltip">{{ $lang("chat.text.emoji") }}</v-tooltip>
+    <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
   </v-btn>
 </template>

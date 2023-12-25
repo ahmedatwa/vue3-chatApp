@@ -41,7 +41,7 @@ type UserMessages = {
   content: string;
   editContent?: string;
   fromSelf?: boolean;
-  file?: File[] | null;
+  files?: File[] | null;
   seen?: boolean;
   last?: boolean;
   thread?: MessageThread[];

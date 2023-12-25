@@ -38,6 +38,13 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 5173,
+      proxy: {
+        // '/api': {
+        //   target: 'http://localhost/project-root/public/api/chat',
+        //   changeOrigin: true,
+        //   //rewrite: (path) => path.replace(/^\/api/, ''),
+        // },
+      }
     },
     extensions: [".js", ".json", ".jsx", ".mjs", ".ts", ".tsx", ".vue"],
   };

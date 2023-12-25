@@ -11,7 +11,7 @@ import { ChannelComponent } from "@/components/Channel";
 // types
 import SnackbarComponent from "@/components/SnackbarComponent.vue";
 import type { Channels } from "@/types/Channel";
-import type { Snackbar } from "@/types/Chat";
+import type { Snackbar, UploadedFiles } from "@/types/Chat";
 import type { User, UserSettings, DirectMessageChannels } from "@/types/User";
 // vuetify
 import { useTheme } from "vuetify";
@@ -36,57 +36,10 @@ const lastSelectedElement = ref<string | number | null>(null);
 const isAlert = ref(false);
 const _theme = useTheme();
 
-// Offline
-const goOffline = (value: boolean) => {
-  const $status = value === true ? false : true;
-  socket.emit(_directMessageEmits.status, { status: $status });
-  directMessageStore.users.forEach((user) => {
-    if (user._uuid === sessionStore.userSessionData?._uuid) {
-      user.connected = $status;
-      if (sessionStore.userSessionData) {
-        sessionStore.userSessionData.connected = $status;
-      }
-      return;
-    }
-  });
-};
 
-const onSelect = (
-  _id: string | number,
-  key: string,
-  value: User | Channels
-) => {
-  let prev = null;
-  //const $_ = storageStore.getLastSelectedElement;
-  // if ($_) {
-  //   prev = $_.current;
-  // }
 
-  if (key === "user") {
-    directMessageStore.onSelectUser({ ...(value as User) });
-  } else {
-    channelStore.onSelectChannel({ ...(value as Channels) });
-  }
-  activeComponent.value = key;
 
-  storageStore.setStorage("LSTSELECD", {
-    current: { _id, comp: key },
-    prev: prev,
-  });
-};
 
-// update veutify theme
-const updateSettings = (setting: UserSettings) => {
-  storageStore.setStorage("APPUSSTIG", {
-    theme: setting.theme,
-    muteConnectionNotif: setting.muteConnectionNotif,
-  });
-  _theme.global.name.value = setting.theme;
-
-  if (sessionStore.userSessionData?._uuid) {
-    userStore.updateUserSettings(sessionStore.userSessionData?._uuid, setting);
-  }
-};
 
 const updateProfile = (event: { displayName: string; image: File | null }) => {
   if (sessionStore.userSessionData?._uuid) {
@@ -107,35 +60,15 @@ const updateProfile = (event: { displayName: string; image: File | null }) => {
       }
 
       if (event.image?.name) {
-        sessionStore.userSessionData.image = import.meta.env.VITE_API_UPLOAD_URL + event.image.name;
+        sessionStore.userSessionData.image =
+          import.meta.env.VITE_API_UPLOAD_URL + event.image.name;
         user.image = import.meta.env.VITE_API_UPLOAD_URL + event.image.name;
       }
     }
   }
 };
 
-const addSelectedChatUser = async(_uuid: string) => {
-    const found = directMessageStore.users.find(
-      (u) => u._uuid === _uuid
-    );
 
-    if (found === undefined) {
-      await userStore.updateUserStatus(_uuid, null, true);
-      if (userStore.allUsers) {
-        userStore.allUsers.forEach((user: User) => {
-          if (user._uuid === _uuid) {
-            directMessageStore.users.push({
-              ...user,
-            });
-            return;
-          }
-        });
-      }
-    } else {
-      found.visible = true;
-      await userStore.updateUserStatus(_uuid, null, true);
-    }
-}
 // Watchers
 //new userStore socket Notification
 watch(
@@ -329,6 +262,7 @@ socket.on("connect", () => {
                     )
                   : 0,
               limit: channelStore.paginationLimit,
+              total: channel.totalMessages,
             },
             members: [],
             messages: [],
@@ -362,6 +296,70 @@ socket.on(
   }
 );
 
+
+
+// Header Component
+const getUserDownloads = () => {
+  userStore.getUserFilesDownloads(sessionStore.userSessionData?._uuid);
+};
+const DownloadFile = (file: UploadedFiles) => {  
+  if (sessionStore.userSessionData?._uuid) {
+    userStore.downloadFiles(sessionStore.userSessionData?._uuid, file);
+  }
+};
+
+const addSelectedChatUser = async (_uuid: string) => {
+  const found = directMessageStore.users.find((u) => u._uuid === _uuid);
+
+  if (found === undefined) {
+    await userStore.updateUserStatus(_uuid, null, true);
+    if (userStore.allUsers) {
+      userStore.allUsers.forEach((user: User) => {
+        if (user._uuid === _uuid) {
+          directMessageStore.users.push({
+            ...user,
+          });
+          return;
+        }
+      });
+    }
+  } else {
+    found.visible = true;
+    await userStore.updateUserStatus(_uuid, null, true);
+  }
+};
+
+const goOffline = (value: boolean) => {
+  const $status = value === true ? false : true;
+  socket.emit(_directMessageEmits.status, { status: $status });
+  directMessageStore.users.forEach((user) => {
+    if (user._uuid === sessionStore.userSessionData?._uuid) {
+      user.connected = $status;
+      if (sessionStore.userSessionData) {
+        sessionStore.userSessionData.connected = $status;
+      }
+      return;
+    }
+  });
+};
+
+const updateSettings = (setting: UserSettings) => {
+  storageStore.setStorage("APPUSSTIG", {
+    theme: setting.theme,
+    muteConnectionNotif: setting.muteConnectionNotif,
+  });
+  _theme.global.name.value = setting.theme;
+
+  if (sessionStore.userSessionData?._uuid) {
+    userStore.updateUserSettings(
+      sessionStore.userSessionData?._uuid,
+      setting,
+      null,
+      null
+    );
+  }
+};
+
 // Channel Loading More
 const loadMoreChannelMessages = (
   _channelID: string | number,
@@ -385,6 +383,21 @@ const loadMoreMessages = (payload: {
   );
 };
 
+
+
+const mappedUsers = computed(() => {
+  return userStore.allUsers.map(({ _uuid, displayName, email, createdAt }) => {
+    return {
+      _uuid,
+      displayName,
+      email,
+      createdAt,
+    };
+  });
+});
+
+// Drawer Component
+
 const removeUser = async (user: User) => {
   const index = directMessageStore.users.findIndex(
     (u) => u._uuid === user._uuid
@@ -398,16 +411,29 @@ const removeUser = async (user: User) => {
   }
 };
 
-const mappedUsers = computed(() => {
-  return userStore.allUsers.map(({ _uuid, displayName, email, createdAt }) => {
-    return {
-      _uuid,
-      displayName,
-      email,
-      createdAt,
-    };
+const onSelect = (
+  _id: string | number,
+  key: string,
+  value: User | Channels
+) => {
+  let prev = null;
+  //const $_ = storageStore.getLastSelectedElement;
+  // if ($_) {
+  //   prev = $_.current;
+  // }
+
+  if (key === "user") {
+    directMessageStore.onSelectUser({ ...(value as User) });
+  } else {
+    channelStore.onSelectChannel({ ...(value as Channels) });
+  }
+  activeComponent.value = key;
+
+  storageStore.setStorage("LSTSELECD", {
+    current: { _id, comp: key },
+    prev: prev,
   });
-});
+};
 </script>
 <template>
   <snackbar-component :alert="newSnackbar" v-model:model-value="isAlert">
@@ -422,18 +448,21 @@ const mappedUsers = computed(() => {
       :is-loading-users="directMessageStore.isLoading.users"
       :last-active-element="lastSelectedElement"
       @update:selected="onSelect"
-      @create-channel="channelStore.createChannel($event)"
+      @create-channel="channelStore.createChannel"
       @remove-user="removeUser"
     ></drawer-component>
 
     <header-component
       :key="sessionStore.userSessionData?._uuid"
       :search-users="mappedUsers"
+      :downloaded-files="userStore.downloadedFiles"
       @update:search-value="addSelectedChatUser"
       @logout="sessionStore.updateSession"
       @update:status="goOffline"
       @update:setting="updateSettings"
       @update:profile="updateProfile"
+      @update:downloads="getUserDownloads"
+      @update:download-file="DownloadFile"
     ></header-component>
 
     <v-main>
@@ -455,7 +484,7 @@ const mappedUsers = computed(() => {
           @send:thread-message="channelStore.sendMessageThread"
           @update-channel-settings="channelStore.updateChannelSettings"
           @update:channel-members="channelStore.updateChannelMembers"
-          @send-message="channelStore.sendMessage"
+          @update:send-message="channelStore.sendMessage"
           @update:typing="channelStore.channelTyping"
           @thread-typing="channelStore.channelTheadTyping"
           @edit-message="channelStore.editChannelMessage"
@@ -474,17 +503,19 @@ const mappedUsers = computed(() => {
           :user="user"
           :class="activeComponent === 'user' ? '' : 'd-none'"
           :selected="directMessageStore.selectedUser?._uuid === user._uuid"
-          :uuid="sessionStore.userSessionData?._uuid"
           :typing="directMessageStore.typing"
           :is-loading="directMessageStore.isLoading"
+          :is-scroll="directMessageStore.isScroll"
           @update:messageReaction="directMessageStore.updateMessageReaction"
           @load-more-messages="loadMoreMessages"
-          @send-message="directMessageStore.sendMessage"
+          @update:send-message="directMessageStore.sendMessage"
           @send:thread-message="directMessageStore.sendThreadMessage"
           @edit-message="directMessageStore.editMessage"
           @delete-message="directMessageStore.deleteMessage"
           @update:typing="directMessageStore.userTyping"
           @update:thread-typing="directMessageStore.userTheadTyping"
+          @update:delete-file="directMessageStore.deleteFiles"
+          @update:downdload-file="DownloadFile"
         ></direct-message-component>
       </v-container>
     </v-main>

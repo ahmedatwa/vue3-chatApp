@@ -91,18 +91,18 @@ const updateChannel = (key: string) => {
       </v-card-title>
       <v-divider :thickness="3" color="error" class="mb-3"></v-divider>
       <v-tabs v-model="channelTab" color="deep-purple-accent-4" align-tabs="center">
-        <v-tab key="about" value="about">{{ $lang("channel.tab.about") }}</v-tab>
+        <v-tab key="about" value="about">{{ $lang("channel.aboutTab") }}</v-tab>
         <v-tab key="members" value="members" v-if="channel?.createdBy === currentUser?._uuid">
-          {{ $lang("channel.tab.members") }}</v-tab>
+          {{ $lang("channel.membersTab") }}</v-tab>
         <v-tab key="settings" value="settings" v-if="!create">
-          {{ $lang("channel.tab.settings") }}</v-tab>
+          {{ $lang("channel.settingsTab") }}</v-tab>
       </v-tabs>
       <v-window v-model="channelTab" class="ma-4">
         <!-- About -->
         <v-window-item value="about" key="about">
           <v-form class="ma-2" name="create-room">
             <v-text-field :label="$lang('channel.input.name')" v-model="channelForm.channelName"
-              :hint="$lang('help.name')" clearable prepend-inner-icon="mdi-forum" :disabled="!create">
+              :hint="$lang('channel.help.name')" clearable prepend-inner-icon="mdi-forum" :disabled="!create">
             </v-text-field>
             <v-text-field :label="$lang('channel.input.topic')" v-model="channelForm.channelTopic" clearable
               prepend-inner-icon="mdi-information-outline">
@@ -132,14 +132,14 @@ const updateChannel = (key: string) => {
               <v-divider></v-divider>
               <v-btn block prepend-icon="mdi-database-plus" color="indigo" @click.prevent="createChannel"
                 :disabled="channelForm.channelName.length < 3" :loading="isLoading">
-                {{ $lang("channel.channel.create") }}</v-btn>
+                {{ $lang("channel.title") }}</v-btn>
             </div>
           </v-form>
           <v-sheet v-if="!create">
-            <v-text-field :label="$lang('channel.managed')" disabled prepend-inner-icon="mdi-account-switch"
+            <v-text-field :label="$lang('channel.managedBy')" disabled prepend-inner-icon="mdi-account-switch"
               :model-value="currentUser?.displayName">
             </v-text-field>
-            <v-text-field :label="$lang('channel.created')" prepend-inner-icon="mdi-account-key" disabled
+            <v-text-field :label="$lang('channel.create.createdBy')" prepend-inner-icon="mdi-account-key" disabled
               :model-value="currentUser?.displayName"></v-text-field>
           </v-sheet>
         </v-window-item>

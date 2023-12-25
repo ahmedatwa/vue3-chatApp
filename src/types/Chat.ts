@@ -5,6 +5,7 @@ interface Snackbar {
   code?: number;
   timeout?: number;
   location?: string;
+  isSnackbar?: boolean;
 }
 
 type Alert = {
@@ -21,15 +22,24 @@ interface UploadSettings {
 
 type UploadedFiles = {
   _id: number | string;
+  _uuid: string;
+  _channelID: string;
   name: string;
   size: number;
   type: string;
   randomName: string;
-  path: URL;
-  _uuid: string;
-  _channelID: string;
+  path: string;
+  url: string;
+  createdAt?: string;
 };
 
+type TenorGifs = {
+  name: string;
+  size: number;
+  id: string | number;
+  type: string;
+  src: string;
+};
 type MessageThread = {
   _id?: number;
   _messageID: number;
@@ -56,7 +66,7 @@ interface SendThreadPayload {
 interface MessagePagination {
   limit: number;
   offset: number;
-  total?: number;
+  total: number;
 }
 
 interface Typing {
@@ -81,10 +91,11 @@ interface NewUserForm {
 }
 
 interface MessageReactions {
+  _id?: number;
   emoji: string;
   _uuid: string;
   _messageID: number | string;
-  total: number;
+  total?: number;
   displayName: string;
 }
 
@@ -100,4 +111,5 @@ export type {
   NewUserForm,
   MessageReactions,
   SendThreadPayload,
+  TenorGifs
 };

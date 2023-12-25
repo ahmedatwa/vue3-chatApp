@@ -14,6 +14,7 @@ const isLoadMore = ref(true)
 const pagination = ref<MessagePagination>({
   offset: 0,
   limit: 0,
+  total: 0
 });
 
 // props
@@ -140,7 +141,7 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
       <v-col v-for="message in channelMessage" :key="message._id" cols="12" :id="`col-${message._id}`"
         @mouseover="showActionMenu(true, message._id)" class="ma-1 pa-2 column__wrapper">
         <v-sheet :key="`message-wrapper-${message._id}`" class="transparent">
-          <message-thread-chip-component v-if="message.thread.length" :key="`channel-thread-chip-${message._id}`"
+          <message-thread-chip-component v-if="message.thread" :key="`channel-thread-chip-${message._id}`"
             :message="(message as ChannelMessages)"
             @update:thread-messages="$emit('update:threadMessages', $event as ChannelMessages)">
           </message-thread-chip-component>
