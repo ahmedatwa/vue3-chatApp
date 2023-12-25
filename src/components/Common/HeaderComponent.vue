@@ -2,9 +2,12 @@
 import { ref, watch, inject } from "vue";
 import PreferenceComponent from "@/components/User/PreferenceComponent.vue"
 import { SearchComponent } from "@/components/Common"
+
 // types
-import { UserSessionData, UserSettings } from "@/types/User";
+import type { UserSessionData, UserSettings } from "@/types/User";
 import type { SearchUsers } from "@/types/Chat"
+import type { UploadedFiles } from '@/types/Chat';
+
 import { langKey } from "@/types/Symbols";
 
 const drawer = inject<boolean>("drawer")
@@ -15,6 +18,7 @@ const isPrefDialog = ref(false)
 
 defineProps<{
   searchUsers: SearchUsers[]
+  downloadedFiles: UploadedFiles[]
 }>()
 
 const emit = defineEmits<{
@@ -25,6 +29,8 @@ const emit = defineEmits<{
   "update:locale": [value: string];
   "update:profile": [value: { displayName: string, image: File | null }];
   "update:searchValue": [value: string];
+  "update:downloads": [value: boolean];
+  "update:downloadFile": [value: UploadedFiles];
 }>();
 
 const logout = () => {
@@ -45,8 +51,7 @@ watch(isOffline, (newStatus) => {
       </template>
       <v-row>
         <v-col cols="9" class="mx-auto">
-          <search-component :search-users="searchUsers"
-            @update:search-value="$emit('update:searchValue', $event)">
+          <search-component :search-users="searchUsers" @update:search-value="$emit('update:searchValue', $event)">
           </search-component>
         </v-col>
       </v-row>
@@ -106,9 +111,11 @@ watch(isOffline, (newStatus) => {
         </v-list>
       </v-menu>
     </v-app-bar>
-    <preference-component v-model:model-value="isPrefDialog" :user="user"
-      @update:profile="$emit('update:profile', $event)"
-      @update:settings="$emit('update:setting', $event)"></preference-component>
+    <preference-component v-model:model-value="isPrefDialog" :user="user" :downloaded-files="downloadedFiles"
+      @update:profile="$emit('update:profile', $event)" @update:downloads="$emit('update:downloads', $event)"
+      @update:settings="$emit('update:setting', $event)"
+      @update:download-file="$emit('update:downloadFile', $event)">
+    </preference-component>
 
   </v-container>
 </template>

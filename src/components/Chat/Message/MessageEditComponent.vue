@@ -10,7 +10,6 @@ const user = inject<UserSessionData>("user");
 const isDialog = ref(false)
 
 const props = defineProps<{
-    // modelValue: boolean;
     message: UserMessages | ChannelMessages;
     selectedUser?: User | null;
     tooltip?: string;
@@ -79,7 +78,7 @@ watch(isDialog, (value) => {
                         <p class="font-weight-bold">{{ displayName }}:
                             <span class="text-caption">{{ message.createdAt }}</span>
                         </p>
-                        <div class="mt-3">{{ message.content }}</div>
+                        <div class="mt-3" v-html="message.content"></div>
                     </v-sheet>
                 </v-card-text>
                 <v-card-actions class="w-100 d-inline-block">

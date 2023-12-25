@@ -3,7 +3,6 @@ import App from "./App.vue";
 import { createPinia } from "pinia";
 import axios from "axios";
 import { registerPlugins } from "@/plugins";
-
 import {en, ar} from "./locales";
 import language from "./plugins/language";
 

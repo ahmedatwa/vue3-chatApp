@@ -116,7 +116,6 @@ io.on("connection", (socket) => {
     //socket.broadcast.emit("client_user_disconnected", socket._uuid, reason);
     // console.log(details.context.responseText);
     const matchingSockets = await io.in(socket._uuid).fetchSockets();
-    console.log(matchingSockets)
     const isDisconnected = matchingSockets.size === 0;
     if (isDisconnected) {
       // notify other users

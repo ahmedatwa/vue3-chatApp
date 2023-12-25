@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, inject, watch, onMounted } from "vue";
+import { ref, inject, watch, onMounted, onUnmounted } from "vue";
 import { ChatEmojiComponent, MessageEditComponent } from "@/components/Chat"
 import { MessageDeleteComponent } from "@/components/Chat"
 // types
@@ -11,12 +11,11 @@ const isEditDialog = ref(false);
 const isDeleteDialog = ref(false);
 const isEmoji = ref(false);
 const itemRef = ref<HTMLDivElement>()
-const isActive = ref(false)
 
 // Props
 const props = defineProps<{
     message: UserMessages | ChannelMessages;
-    messageValue?: string | number;
+    messageValue?: string | number | null;
     actionMenu?: boolean;
     selectedUser?: User | null;
 }>();
@@ -35,6 +34,7 @@ const emit = defineEmits<{
     "update:threadMessages": [value: UserMessages | ChannelMessages];
     "update:messageReaction": [value: { _id: string | number; emoji: string }];
     "update:actionMenu": [value: boolean];
+    "update:messageValue": [value: string | number | null];
 }>();
 
 const startThread = (
@@ -57,7 +57,7 @@ watch(isEmoji, (val) => {
         itemRef.value?.classList.remove('is-open')
         if (!itemRef.value?.classList.contains("is-open") || !itemRef.value?.classList.contains("menu-active")) {
             emit("update:actionMenu", false)
-            isActive.value = false
+            emit("update:messageValue", null)
         }
     }
 })
@@ -69,7 +69,7 @@ watch([isEditDialog, () => isDeleteDialog.value], ([newEdit, newDelete]) => {
         itemRef.value?.classList.remove('is-open')
         if (!itemRef.value?.classList.contains("is-open") || !itemRef.value?.classList.contains("menu-active")) {
             emit("update:actionMenu", false)
-            isActive.value = false
+            emit("update:messageValue", null)
         }
     }
 })
@@ -92,7 +92,6 @@ onMounted(() => {
             activeElement?.addEventListener("mouseover", (e) => {
                 e.stopPropagation()
                 activeElement.classList.add("is-hover")
-                isActive.value = true
             })
 
             activeElement?.addEventListener("mouseleave", (e) => {
@@ -100,26 +99,33 @@ onMounted(() => {
                 if (!itemRef.value?.classList.contains("is-open")) {
                     activeElement.classList.remove("is-hover")
                     emit("update:actionMenu", false)
-                    isActive.value = false
+                    emit("update:messageValue", null)
                 }
             })
         }
     }
 })
 
+onUnmounted(() => {
+    itemRef.value?.replaceWith(itemRef.value.cloneNode(true))
+    emit("update:actionMenu", false)
+    emit("update:messageValue", null)
+})
 
 </script>
 <template>
     <div class="action-menu-content-wrapper" ref="itemRef">
         <v-slide-x-reverse-transition>
-            <v-btn-toggle divided density="comfortable" variant="elevated" v-if="isActive" class="border">
-                <v-btn @click="messageReaction(message._id, '😀')">
-                    <h2>😀</h2>
+            <v-btn-toggle divided density="comfortable" variant="elevated" v-if="actionMenu" class="border">
+                <v-btn @click="messageReaction(message._id, '😂')">
+                    <h2>😂</h2>
+                    <v-tooltip activator="parent" location="top">joy</v-tooltip>
                 </v-btn>
-                <v-btn @click="messageReaction(message._id, '🤪')">
-                    <h2>🤪</h2>
+                <v-btn @click="messageReaction(message._id, '😆')">
+                    <h2>😆</h2>
+                    <v-tooltip activator="parent" location="top">laughing</v-tooltip>
                 </v-btn>
-                <chat-emoji-component @update:open="isEmoji = $event"
+                <chat-emoji-component @update:open="isEmoji = $event" :tooltip="$lang('chat.text.emoji')"
                     @update:selected="messageReaction(message._id, $event)"></chat-emoji-component>
                 <v-btn @click.stop="startThread((isThread = true), message)">
                     <v-icon icon="mdi-message-reply-text" size="large"></v-icon>
@@ -127,7 +133,7 @@ onMounted(() => {
                         $lang("chat.text.replyThread")
                     }}</v-tooltip>
                 </v-btn>
-                <message-edit-component :tooltip="$lang('chat.text.deleteMessage')" @update:open="isEditDialog = $event"
+                <message-edit-component :tooltip="$lang('chat.text.editMessage')" @update:open="isEditDialog = $event"
                     :message="message" :selected-user="selectedUser" @edit-message="$emit('editMessage', $event)"
                     :key="`message-edit${message._id}`">
                 </message-edit-component>
@@ -148,6 +154,7 @@ onMounted(() => {
     bottom: calc(100% - 0.10em);
     right: 0;
 }
+
 .border {
     border: thin #f5f5f5f5;
     border-radius: 8px;

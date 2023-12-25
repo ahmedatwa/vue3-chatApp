@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from "vue";
+import { ref } from "vue";
 import type { SearchUsers } from "@/types/Chat"
 
 const searchTerm = ref("");
@@ -14,9 +14,7 @@ const emit = defineEmits<{
 
 const onSelect = (e: string) => {
   emit('update:searchValue', e)
-  nextTick(() => {
     searchTerm.value = ""
-  })
 }
 </script>
 <template>

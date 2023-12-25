@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { provide, computed } from "vue";
+import { ref, provide, computed } from "vue";
 import { ChatFormComponent, ChatTypingComponent, MessageThreadComponent } from "@/components/Chat";
 import { CreateChannelComponent, MessageContentComponent } from "@/components/Channel";
 // types
-import type { SearchUsers, Typing, SendThreadPayload } from "@/types/Chat";
+import type { SearchUsers, Typing, SendThreadPayload, TenorGifs } from "@/types/Chat";
 import type { Channels, ChannelMembers, ChannelMessages } from "@/types/Channel";
 import type { ChannelForm, ChannelSettings } from "@/types/Channel";
 
-const messageInput = ref("");
-const uploadedFiles = ref<File[]>([]);
 const isScroll = ref(false);
 
 // Props
@@ -48,7 +45,7 @@ const emit = defineEmits<{
     offset: number,
     unshift: boolean
   ];
-  sendMessage: [payload: { content: string; files?: File[] }];
+  "update:sendMessage": [value: { content: string; files: File[] | TenorGifs | null }];
   archiveChannel: [value: { _channelID: string; name: string }];
   updateChannelSettings: [
     value: { _channelID: string; _uuid: string; setting: ChannelSettings }
@@ -63,19 +60,6 @@ const emit = defineEmits<{
 }>();
 
 
-const updateEmoji = (emoji: string) => {
-  messageInput.value += emoji;
-};
-
-const sendMessage = () => {
-  emit("sendMessage", {
-    content: messageInput.value,
-    files: uploadedFiles.value,
-  });
-  messageInput.value = "";
-  uploadedFiles.value = [];
-  isScroll.value = true;
-};
 
 const totalChannelMemebers = computed((): number => {
   if (props?.channel?.members) {
@@ -84,9 +68,6 @@ const totalChannelMemebers = computed((): number => {
   return 0;
 });
 
-watch(messageInput, (newValue) => {
-  emit("update:typing", newValue.length);
-});
 
 const loadMoreMessages = (
   _channelID: string | number,
@@ -117,10 +98,10 @@ const sendThreadMessage = (message: SendThreadPayload) => {
 }
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`channel${channel?._channelID}`" :class="selected ? '' : 'd-none'"
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`channel-${channel?._channelID}`" :class="selected ? '' : 'd-none'"
     fluid>
     <v-row>
-      <v-col>
+      <v-col :id="`main-channel-${channel?._channelID}`">
         <v-card class="mx-auto" id="channel-container" :key="`channel${channel?._channelID}`" elevation="3">
           <v-card-title>
             <v-btn append-icon="mdi-menu-down" variant="text">
@@ -152,9 +133,9 @@ const sendThreadMessage = (message: SendThreadPayload) => {
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">
             <chat-form-component :id="channel?._channelID" :key="`channel-${channel?._channelID}`"
-              v-model:input-value="messageInput" v-model:files="uploadedFiles" :text-area-row-height="10"
-              :text-area-rows="2" :text-area-label="$lang('channel.input.send', [channel?.channelName])"
-              @update:emoji="updateEmoji" @update:submit="sendMessage" auto-grow upload-button>
+              :text-area-row-height="10" :text-area-rows="2"
+              :text-area-label="$lang('channel.input.send', [channel?.channelName])"
+              @update:submit="$emit('update:sendMessage', $event)" auto-grow upload-button>
             </chat-form-component>
             <!-- Typing -->
             <chat-typing-component :typing="typing.channel"></chat-typing-component>
@@ -162,7 +143,7 @@ const sendThreadMessage = (message: SendThreadPayload) => {
         </v-card>
       </v-col>
       <!-- Thread -->
-      <v-col cols="3" v-if="isThread">
+      <v-col cols="3" v-if="isThread" :id="`channel-thread-${channel?._channelID}`">
         <message-thread-component :typing="typing.thread" :message="(threadMessage as ChannelMessages)"
           :is-loading="isLoading.thread" :title="channel?.channelName" height="435px"
           @send:thread-message="sendThreadMessage" @update:thread-typing="$emit('update:threadTyping', $event)">

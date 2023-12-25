@@ -11,9 +11,9 @@
   },
   "dependencies": {
     "@mdi/font": "7.0.96",
-    "@vueuse/core": "^10.5.0",
     "axios": "^1.5.1",
     "core-js": "^3.29.0",
+    "isomorphic-dompurify": "^1.13.0",
     "marked": "^11.1.0",
     "nanoid": "^5.0.3",
     "pinia": "^2.1.6",

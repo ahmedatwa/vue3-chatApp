@@ -1,4 +1,5 @@
-import { watchEffect, shallowRef, computed } from "vue";
+import { watchEffect, shallowRef, computed, toValue } from "vue";
+import type { Ref } from "vue";
 
 type Format = {
   italic?: boolean;
@@ -7,71 +8,77 @@ type Format = {
 };
 type Alignment = "center" | "left" | "right";
 
-export function useMarkdown(
-  inputValue: string,
-  selectedTxt: string,
-  format?: string,
-  alignment?: string
-) {
-  const marked = shallowRef("");
-  const classAlignment = shallowRef<Alignment | string>("");
-  const classFormat = shallowRef<Format | null>(null);
+export function useMarkdown(input: Ref<string>, format: Ref<string[] | null>) {
+  const selection = shallowRef<Selection | null>(null);
+  const ranges = computed<Range[]>(() =>
+    selection.value ? getRangesFromSelection(selection.value) : []
+  );
+  const rects = computed(() =>
+    ranges.value.map((range) => range.getBoundingClientRect())
+  );
 
-  watchEffect(() => {
-    classAlignment.value = "";
-    if (alignment) {
-      switch (alignment) {
-        case "center":
-          classAlignment.value = "text-center";
-          break;
-        case "left":
-          classAlignment.value = "text-left";
-          break;
-        case "right":
-          classAlignment.value = "text-right";
-          break;
-        default:
-          break;
-      }
-    }
-  });
+  const pattern = /[\<>]/g;
 
-  watchEffect(() => {
-    classFormat.value = null;
-    if (format) {
-      switch (format) {
-        case "italic":
-          classFormat.value = { italic: true };
-          break;
-        case "bold":
-          classFormat.value = { bold: true };
-          break;
-        case "undeline":
-          classFormat.value = { undeline: true };
-          break;
-        default:
-          break;
-      }
-    }
-  });
+  const data = shallowRef("");
 
-  const formats = computed(() => {
-    return {
-      "font-weight-bold": classFormat.value?.bold ? true : false,
-      "font-italic": classFormat.value?.italic ? true : false,
-      "text-decoration-underline": classFormat.value?.undeline ? true : false,
-    };
-  });
+  // - unordered list
+  // **text** bold
+  // [text](link)
+  // ---- h2
+  // > blockquote
 
-  if(classAlignment.value) {
-    marked.value += `<span :class="${classAlignment.value}">${selectedTxt}</span>`;
-  } else if (formats.value) {
-    marked.value += `<span :class="${formats.value}">${selectedTxt}</span>`;
+  function getRangesFromSelection(selection: Selection) {
+    const rangeCount = selection.rangeCount ?? 0;
+    return Array.from({ length: rangeCount }, (_, i) =>
+      selection.getRangeAt(i)
+    );
   }
 
-  const markedTextResult = computed(() => {    
-    return inputValue.replace(selectedTxt, marked.value);
+  function onSelectionChange() {
+    selection.value = null; // trigger computed update
+    if (window) selection.value = window.getSelection();
+  }
+
+  if (window) {
+    window.document.addEventListener("selectionchange", onSelectionChange);
+  }
+
+  const text = computed(() => selection.value?.toString() ?? "");
+
+  const formatted = computed(() => {
+    if (format) {
+      const formatting = toValue(format);
+      let result = ""
+      if (formatting?.includes("bold"))  {
+        result = `<strong>${text.value}</strong>`;
+      } else {
+        result = text.value.replace(pattern, "");
+      }
+      if (formatting?.includes("italic"))  {
+        result = `<i>${text.value}</i>`;
+      } else {
+        result = text.value.replace(pattern, "");
+      }
+      if (formatting?.includes("undeline"))  {
+        result = `<u>${text.value}</u>`;
+      } else {
+        result = text.value.replace(pattern, "");
+      }
+
+      
+      return result;
+     
+       
+    }
+  })
+
+  const formattedInput = computed(() => {
+    if (formatted.value) {
+      const inputToValue = toValue(input)
+      return inputToValue.replace(text.value, formatted.value);
+    }
+    return "";
   });
-  
-  return { markedTextResult };
+
+  return { text, rects, formatted, selection, formattedInput };
 }

@@ -1,47 +1,28 @@
 <script setup lang="ts">
-import { computed } from "vue";
-// Types
 import type { Snackbar } from "@/types/Chat";
 
-const props = defineProps<{
+defineProps<{
   isLoading: boolean;
-  isError: boolean;
+  isError?: boolean;
   error: Snackbar | null;
 }>();
 
 const emit = defineEmits<{
   "exit:app": [value: boolean];
   "restore:session": [value: boolean];
-  "update:loading": [value: boolean];
-  "update:error": [value: boolean];
 }>();
 
-const loadingValue = computed({
-  get() {
-    return props.isLoading;
-  },
-  set(value) {
-    emit("update:loading", value);
-  },
-});
-
-const errorValue = computed({
-  get() {
-    return props.isError;
-  },
-  set(value) {
-    emit("update:error", value);
-  },
-});
 </script>
 <template>
-  <v-overlay v-model="loadingValue" v-if="isLoading" class="align-center justify-center">
+  <v-overlay :model-value="isLoading" v-if="isLoading" class="align-center justify-center">
     <v-progress-circular color="primary" indeterminate size="64"></v-progress-circular>
   </v-overlay>
-  <v-overlay v-model="errorValue" contained v-if="error" class="align-center justify-center" persistent>
+  <v-overlay contained :model-value="error.isSnackbar" v-if="error" class="align-center justify-center" persistent>
     <div class="my-4">
-      <p class="font-weight-medium">
-        <v-icon icon="mdi-alert-circle"></v-icon> {{ error.code }}:
+      <p class="font-weight-medium d-inline">
+        <v-icon icon="mdi-alert-circle" class=""></v-icon>
+      <p class="d-inline" v-if="error.title"> {{ error.title }}</p>
+      {{ error.code }}
       </p>
       <p class="font-weight-medium">{{ error.text }}</p>
     </div>

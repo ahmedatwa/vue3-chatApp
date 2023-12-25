@@ -6,7 +6,7 @@ import { useStorageStore } from "@/stores";
 import { instance, _sessionApi } from "@/axios";
 // types
 import type { User, UserSessionData } from "@/types/User";
-import type { Snackbar } from "@/types";
+import type { Snackbar } from "@/types/Chat";
 import socket from "@/client";
 import { nanoid } from "nanoid";
 
@@ -33,7 +33,9 @@ export const useSessionStore = defineStore("sessionStore", () => {
         if (response.data) {
           userSessionData.value = {
             ...response.data,
-            image: import.meta.env.VITE_API_UPLOAD_URL + response.data.image
+            image: response.data.image
+              ? import.meta.env.VITE_API_UPLOAD_URL + response.data.image
+              : "",
           };
           socket.auth = { ...userSessionData.value };
           socket.connect();
@@ -50,6 +52,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
           code: err.code,
           text: err.message,
           type: "error",
+          isSnackbar: true,
         };
       })
       .finally(() => {
@@ -83,6 +86,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
           code: err.code,
           text: err.message,
           type: "error",
+          isSnackbar: true,
         };
       })
       .finally(() => {
@@ -108,6 +112,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
           code: err.code,
           text: err.message,
           type: "error",
+          isSnackbar: true
         };
       })
       .finally(() => {
@@ -151,6 +156,7 @@ export const useSessionStore = defineStore("sessionStore", () => {
           code: err.code,
           text: err.message,
           type: "error",
+          isSnackbar: true
         };
       })
       .finally(() => {

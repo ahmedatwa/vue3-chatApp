@@ -23,9 +23,8 @@ const deleteMessage = (messageID: number | string) => {
 
 watch(isDialog, (value) => {
     emit("update:open", value)
-  })
+})
 </script>
-
 
 <template>
     <v-btn @click.stop="isDialog = !isDialog">
@@ -45,36 +44,24 @@ watch(isDialog, (value) => {
                     <p class="text-body-1">
                         {{ $lang("chat.text.confirm", ["delete this message"]) }}
                     </p>
-                    <v-sheet :border="true" :elevation="3" class="ma-2 p-2" rounded="rounded" color="grey-lighten-">
-                        <ul class="ma-3 list-style-none">
-                            <li>
-                                <span class="font-weight-bold">{{
-                                    message.from === user?._uuid
-                                    ? user.displayName
-                                    : selectedUser?.displayName
-                                }}:
-                                </span>
-                                {{ message.createdAt }}
-                            </li>
-                            <li>{{ message.content }}</li>
-                        </ul>
+                    <v-sheet :border="true" rounded elevation="1" class="pa-4 w-100">
+                        <p class="font-weight-bold">{{ message.from === user?._uuid ? user.displayName :
+                            selectedUser?.displayName }}:
+                            <span class="text-caption">{{ message.createdAt }}</span>
+                        </p>
+                        <div class="mt-3" v-html="message.content"></div>
                     </v-sheet>
                 </v-card-text>
                 <v-card-actions class="w-100 d-inline-block">
-                    <v-btn @click="deleteMessage(message._id)" prepend-icon="mdi-delete-empty-outline" color="red-accent-2"
-                        block variant="flat">
-                        {{ $lang("chat.button.delete") }}</v-btn>
+                    <v-btn @click.prevent="deleteMessage(message._id)" prepend-icon="mdi-delete-empty-outline"
+                        class="red" block>{{ $lang("chat.button.delete") }}</v-btn>
                 </v-card-actions>
             </v-card>
         </v-dialog>
     </v-btn>
 </template>
 <style scoped>
-.list-style-none {
-    list-style-type: none;
-}
-
-.list-style-none li span {
-    color: #3f51b5;
+.red{
+    background-color: #F44336 !important;
 }
 </style>

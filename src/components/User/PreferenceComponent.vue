@@ -2,20 +2,24 @@
 import { shallowRef, inject } from "vue"
 // Types
 import type { UserSettings, UserSessionData } from "@/types/User";
+import type { UploadedFiles } from '@/types/Chat';
 // children 
-import { SettingComponent, ProfileComponent, DownloadComponent } from "@/components/User"
+import { SettingComponent, ProfileComponent, DownloadsComponent } from "@/components/User"
 
 const tab = shallowRef("profile")
 const user = inject<UserSessionData>("user")
 
 defineProps<{
   modelValue: boolean
+  downloadedFiles: UploadedFiles[]
 }>()
 
-const emit = defineEmits<{
+defineEmits<{
   "update:profile": [value: { displayName: string, image: File | null }];
   "update:settings": [value: UserSettings];
   "update:modelValue": [value: boolean]
+  "update:downloads": [value: boolean];
+  "update:downloadFile": [value: UploadedFiles];
 }>();
 
 </script>
@@ -44,7 +48,7 @@ const emit = defineEmits<{
           <setting-component @update:settings="$emit('update:settings', $event)"></setting-component>
         </v-window-item>
         <v-window-item value="download">
-          <download-component />
+          <downloads-component :downloaded-files="downloadedFiles" @update:downloads="$emit('update:downloads', $event)" @update:download-file="$emit('update:downloadFile',  $event)"></downloads-component>
         </v-window-item>
       </v-window>
     </v-card>
