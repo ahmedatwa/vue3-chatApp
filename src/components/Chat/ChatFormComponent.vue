@@ -134,7 +134,7 @@ watchEffect(() => {
       </v-textarea>
 
       <v-sheet class="d-flex">
-        <v-sheet class="me-auto mt-2" cols="10">
+        <v-sheet class="me-auto mt-2 ms-2" cols="10">
           <chat-upload-component v-if="uploadButton" v-model:files="uploadedFiles" @update:files="uploadedFiles = $event"
             @error:upload="error = $event">
           </chat-upload-component>
