@@ -34,6 +34,7 @@ const handleUpload = () => {
 const onChange = (event: Event) => {
   const target = event.target as HTMLInputElement;
   isOpen.value = false;
+  files.value = [];
   emit("error:upload", "")
   if (target.files) {
     for (let i = 0; i < target.files.length; i++) {
@@ -45,7 +46,9 @@ const onChange = (event: Event) => {
       }
       files.value.push(file);
     }
-    emit("update:files", files.value);
+    if(files.value) {
+      emit("update:files", files.value);
+    }
   }
 };
 
@@ -56,7 +59,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <v-btn icon color="teal" @click="handleUpload">
+  <v-btn icon color="teal" @click="handleUpload" density="compact">
     <v-icon :icon="isOpen ? 'mdi-minus-circle' : 'mdi-plus-circle'"></v-icon></v-btn>
   <input class="d-none" ref="inputUpload" type="file" @change="onChange" :accept="uploadSettings.accept"
     :multiple="uploadSettings.multiple" />

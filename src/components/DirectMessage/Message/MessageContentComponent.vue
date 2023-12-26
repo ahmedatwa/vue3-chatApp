@@ -210,13 +210,14 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
         </v-sheet>
       </v-col>
     </v-row>
-    <span ref="lastRow"></span>
+    <span ref="lastRow" class="last-row"></span>
 
   </v-container>
 </template>
 <style scoped>
 .container {
   overflow-y: scroll;
+  overflow-x: hidden;
   min-height: 430px;
   max-height: 450px;
   scroll-snap-type: y mandatory;
@@ -260,5 +261,9 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
   background-color: rgb(var(--v-theme-on-surface-variant));
   height: auto;
   border-radius: 6px;
+}
+.last-row {
+  scroll-snap-align: end;
+  scroll-margin-bottom: 20px;
 }
 </style>

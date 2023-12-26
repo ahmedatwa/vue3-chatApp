@@ -1,15 +1,15 @@
 <script setup lang="ts">
+import { ref, inject } from "vue";
 import { CreateChannelComponent } from "@/components/Channel";
-import type { User } from "@/types/User";
+// Types
 import type { Channels, ChannelForm } from "@/types/Channel";
-import { ref, watch, inject } from "vue";
+import type { User } from "@/types/User";
 
 const drawer = inject<boolean>("drawer")
-const activeElement = ref<number | string | null>(null);
 const listGroups = ref(["users", "channels"])
 
 // Props
-const props = defineProps<{
+defineProps<{
   users: User[];
   channels: Channels[];
   isLoadingChannels: boolean;
@@ -27,16 +27,7 @@ const emit = defineEmits<{
 
 const onSelect = (_id: number | string, key: string, value: User | Channels) => {
   emit("update:selected", _id, key, value);
-  activeElement.value = _id;
 };
-
-watch(
-  () => props.lastActiveElement,
-  (el) => {
-    if (el) {
-      activeElement.value = el
-    }
-  })
 
 </script>
 <template>
@@ -51,25 +42,26 @@ watch(
         <v-skeleton-loader v-if="isLoadingUsers" type="list-item-avatar" v-for="n in users?.length" :key="n"
           :loading="isLoadingUsers"></v-skeleton-loader>
         <!-- skeleton-loader -->
-        <v-list-item v-for="user in users" :key="user._uuid" color="teal-darken-1" v-if="!isLoadingUsers"
-          :active="activeElement === user._uuid" @click="onSelect(user._uuid, 'user', user)" class="list-item">
-          <template #append v-if="user.newMessages && activeElement !== user._uuid">
-            <v-badge :color="user.connected ? 'success' : 'dark'" :content="user.newMessages.total" inline></v-badge>
-          </template>
+        <v-list-item v-for="user in users" :key="user._uuid" color="teal-darken-1" v-if="!isLoadingUsers" :id="user._uuid"
+          :active="lastActiveElement === user._uuid" @click="onSelect(user._uuid, 'user', user)" class="list-item">
           <v-list-item-title>
             <!-- remove User -->
             <v-btn v-if="user._uuid !== _uuid" icon="mdi-close" class="remove-user" size="sm" variant="plain"
               @click.prevent="$emit('removeUser', user)"></v-btn>
-              <v-sheet class="d-flex">
-            <v-badge dot location="bottom end" :color="user.connected ? 'success' : 'grey'" class="ma-1">
-              <v-avatar v-if="user.image" :image="user.image"></v-avatar>
-              <v-avatar color="info" v-else>
-                <v-icon icon="mdi-account-circle"></v-icon>
-              </v-avatar>
-            </v-badge>
-            <p class="ms-1 d-inline my-auto">{{ user.displayName }}</p>
-          </v-sheet>
-            <v-list-item-subtitle v-if="user.newMessages && activeElement !== user._uuid" class="ms-1 mt-1">
+            <v-sheet class="d-flex">
+              <v-badge location="bottom end" :color="user.connected ? 'success' : 'grey'" class="ma-1"
+                :dot="user.newMessages ? false : true">
+                <template #badge>
+                  <span v-if="user.newMessages && lastActiveElement !== user._uuid"> {{ user.newMessages.total }}</span>
+                </template>
+                <v-avatar v-if="user.image" :image="user.image"></v-avatar>
+                <v-avatar color="info" v-else>
+                  <v-icon icon="mdi-account-circle"></v-icon>
+                </v-avatar>
+              </v-badge>
+              <p class="ms-1 d-inline my-auto">{{ user.displayName }}</p>
+            </v-sheet>
+            <v-list-item-subtitle v-if="user.newMessages && lastActiveElement !== user._uuid" class="ms-1 mt-1">
               {{ user.newMessages.lastMessage }}
             </v-list-item-subtitle>
           </v-list-item-title>
@@ -94,7 +86,7 @@ watch(
         </v-skeleton-loader>
         <!-- skeleton-loader -->
         <v-list-item v-for="channel in channels" :key="channel._id" color="teal-darken-1" v-if="!isLoadingChannels"
-          @click="onSelect(channel._channelID, 'channel', channel)" :active="activeElement === channel._channelID"
+          @click="onSelect(channel._channelID, 'channel', channel)" :active="lastActiveElement === channel._channelID"
           :value="channel._channelID">
           <template v-slot:append v-if="channel.newMessages">
             <v-badge color="success" :content="channel.newMessages?.total" inline></v-badge>

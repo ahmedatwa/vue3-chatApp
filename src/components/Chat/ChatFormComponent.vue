@@ -8,7 +8,7 @@ import { useMarkdown } from "@/composables/markdown"
 import { watchEffect } from "vue";
 import { nextTick } from "vue";
 
-const formInputValue = ref("")
+const formInputValue = ref("sdsds ahmed test")
 const uploadedFiles = ref<File[] | null>(null);
 const error = ref("");
 const isEmoji = ref(false);
@@ -86,13 +86,11 @@ watch(formInputValue, (newValue) => {
   emit("update:typing", newValue.length);
 });
 
-
 const updateTenor = () => {
   uploadedFiles.value = null
 }
 
-const { text, formatted, formattedInput } = useMarkdown(formInputValue, formatting)
-console.log(formatted);
+const { text } = useMarkdown(formInputValue, formatting)
 
 watchEffect(() => {
   if (text.value.length) {
@@ -110,7 +108,7 @@ watchEffect(() => {
     <v-card elevation="4" :id="`message-form-wrapper-${id}`">
       <v-slide-x-transition>
         <v-card-text v-if="text" class="pa-1">
-          <p v-html="formattedInput"></p>
+          <p v-html="text"></p>
         </v-card-text>
         <v-card-text v-else-if="uploadedFiles" class="pa-1">
           <div class="d-flex flex-wrap">
@@ -120,8 +118,12 @@ watchEffect(() => {
             </v-chip>
           </div>
         </v-card-text>
-        <v-card-text v-else-if="tenorGif" class="pa-1">
-          <v-img :src="tenorGif.src" width="100" height="100"></v-img>
+        <v-card-text v-else-if="tenorGif" class="pa-1 tenor_wrapper">
+          <v-img :src="tenorGif.src" max-width="100" height="100" cover class="image"></v-img>
+          <div class="middle">
+            <v-btn icon="mdi-close-thick" variant="flat" density="compact" color="red" @click.prevent="tenorGif = null">
+            </v-btn>
+          </div>
         </v-card-text>
       </v-slide-x-transition>
 
@@ -130,28 +132,60 @@ watchEffect(() => {
         v-model="formInputValue" hide-details="auto" :hint="$lang('chat.help.newLine')" :error-messages="error"
         @click:clear="formInputValue = ''" @keyup.enter="handleEnter" clearable autofocus persistent-hint>
       </v-textarea>
-      <v-sheet class="d-flex flex-wrap">
-        <div class="flex-1-0">
+
+      <v-sheet class="d-flex">
+        <v-sheet class="me-auto mt-2" cols="10">
           <chat-upload-component v-if="uploadButton" v-model:files="uploadedFiles" @update:files="uploadedFiles = $event"
             @error:upload="error = $event">
           </chat-upload-component>
           <chat-emoji-component icon-color="orange-darken-2" @update:open="isEmoji = $event"
             @update:selected="formInputValue += $event" offset="40" location="left">
           </chat-emoji-component>
-          <chat-marked-component @update:formatting="formatting = $event"></chat-marked-component>
+          <chat-marked-component v-model:formatting="formatting"></chat-marked-component>
           <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor">
           </chat-tenor-component>
-        </div>
-        <v-btn v-if="submitButton" icon color="teal" :disabled="isDisabled" type="submit" @click="submitForm"
+        </v-sheet>
+        <v-sheet cols="2">
+        <v-btn v-if="submitButton" icon color="teal" :disabled="isDisabled" type="submit" @click.prevent="submitForm"
           variant="text">
           <v-icon icon="mdi-send" size="large"></v-icon>
         </v-btn>
+      </v-sheet>
       </v-sheet>
     </v-card>
   </v-form>
 </template>
 <style scoped>
-.absolute {
+.tenor_wrapper {
+  position: relative;
+  width: 120px;
+}
+
+.image {
+  opacity: 1;
+  display: block;
+  width: 100%;
+  height: auto;
+  transition: .5s ease;
+  backface-visibility: hidden;
+}
+
+.middle {
+  transition: .5s ease;
+  opacity: 0;
   position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  -ms-transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.tenor_wrapper:hover .image {
+  opacity: 0.3;
+}
+
+.tenor_wrapper:hover .middle {
+  opacity: 1;
 }
 </style>

@@ -1,4 +1,8 @@
-import type { MessageThread, MessagePagination, MessageReactions } from "./Chat"
+import type {
+  MessageThread,
+  MessagePagination,
+  MessageReactions,
+} from "./Chat";
 
 interface User {
   _id: number;
@@ -80,11 +84,16 @@ type DBUserMessages = {
   content: UserMessages[];
 };
 
+type LastSelectedEl = {
+  _id: string | number;
+  key: string;
+};
 export type {
   User,
   UserMessages,
   UserSessionData,
   DirectMessageChannels,
   UserSettings,
-  DBUserMessages
+  DBUserMessages,
+  LastSelectedEl,
 };

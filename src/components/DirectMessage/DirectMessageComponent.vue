@@ -71,8 +71,8 @@ const updateThread = (message: UserMessages) => {
 
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" 
-    :id="`direct-message-${user?._uuid}`" :class="selected ? '' : 'd-none'" fluid>
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`direct-message-${user?._uuid}`" :class="selected ? 'd-block' : 'd-none'"
+    fluid>
     <v-row>
       <v-col :id="`direct-${user?._uuid}`">
         <v-card class="mx-auto" id="container" :loading="isLoading.messages">
@@ -96,10 +96,12 @@ const updateThread = (message: UserMessages) => {
           <v-card-actions class="w-100 d-inline-block">
             <chat-form-component :id="user?._uuid" :key="`user-${user?._uuid}`" :text-area-row-height="10"
               :text-area-rows="2" :text-area-label="$lang('chat.input.send')"
-              @update:submit="$emit('update:sendMessage', $event)" upload-button auto-grow>
+              @update:typing="$emit('update:typing', $event)" @update:submit="$emit('update:sendMessage', $event)"
+              upload-button auto-grow>
             </chat-form-component>
             <!-- Typing -->
-            <chat-typing-component :typing="typing.messages"></chat-typing-component>
+            <chat-typing-component :key="`direct-message-${user?._uuid}`"
+              :typing="typing.messages"></chat-typing-component>
           </v-card-actions>
         </v-card>
       </v-col>

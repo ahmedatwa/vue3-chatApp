@@ -6,6 +6,8 @@ import { registerPlugins } from "@/plugins";
 import {en, ar} from "./locales";
 import language from "./plugins/language";
 
+
+
 const pinia = createPinia();
 pinia.use(() => ({ axios }));
 // vue
