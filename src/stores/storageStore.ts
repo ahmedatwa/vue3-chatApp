@@ -1,9 +1,11 @@
 import { defineStore } from "pinia";
-import { computed } from "vue";
-import type { UserSettings } from "@/types/User";
+import { computed, shallowRef } from "vue";
+import type { UserSettings, LastSelectedEl } from "@/types/User";
 import { createDateTime } from "@/helpers";
 
 export const useStorageStore = defineStore("storageStore", () => {
+  const lastSelectedElement = shallowRef<LastSelectedEl | null>(null);
+
   const setStorage = (key: string, data: object | string | []) => {
     if (typeof data === "object") {
       localStorage.setItem(
@@ -32,7 +34,10 @@ export const useStorageStore = defineStore("storageStore", () => {
   });
 
   const getLastSelectedElement = computed(
-    (): { _id: string; comp: string } | null => {
+    (): {
+      current: LastSelectedEl | null;
+      prev: LastSelectedEl | null;
+    } => {
       return getStorage("LSTSELECD");
     }
   );
@@ -44,6 +49,7 @@ export const useStorageStore = defineStore("storageStore", () => {
 
   return {
     getLastSelectedElement,
+    lastSelectedElement,
     userStorageSettings,
     sessionID,
     destroy,

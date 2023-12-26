@@ -32,14 +32,8 @@ const drawer = ref(true);
 provide("drawer", drawer);
 provide("user", sessionStore.userSessionData);
 const activeComponent = shallowRef("");
-const lastSelectedElement = ref<string | number | null>(null);
 const isAlert = ref(false);
 const _theme = useTheme();
-
-
-
-
-
 
 const updateProfile = (event: { displayName: string; image: File | null }) => {
   if (sessionStore.userSessionData?._uuid) {
@@ -67,7 +61,6 @@ const updateProfile = (event: { displayName: string; image: File | null }) => {
     }
   }
 };
-
 
 // Watchers
 //new userStore socket Notification
@@ -100,32 +93,33 @@ watch(
 onMounted(() => {
   if (sessionStore.userSessionData?.settings?.leftOff) {
     const $_ = storageStore.getLastSelectedElement;
-    if ($_) {
-      lastSelectedElement.value = $_._id;
-      activeComponent.value = $_.comp;
-      if ($_.comp === "user") {
+    if ($_ && $_.current) {
+      storageStore.lastSelectedElement = {
+        _id: $_.current?._id,
+        key: $_.current?.key,
+      };
+
+      if ($_.current.key === "user") {
         watchEffect(() => {
           if (directMessageStore.users) {
             const user = directMessageStore.users.find(
-              (el: User) => el._uuid === $_._id
+              (u: User) => u._uuid === $_.current?._id
             );
             if (user) {
               directMessageStore.selectedUser = {
                 ...user,
                 selected: true,
                 newMessages: null,
-                //   messages:
-                //     directMessageStore.messagesPerUser.get(user._uuid) || [],
               };
             }
           }
         });
       }
-      if ($_.comp === "channel") {
+      if ($_.current?.key === "channel") {
         watchEffect(() => {
           if (channelStore.channels) {
             const channel = channelStore.channels.find(
-              (el: Channels) => el._channelID === $_._id
+              (el: Channels) => el._channelID === $_.current?._id
             );
             if (channel) {
               channelStore.selectedChannel = {
@@ -296,13 +290,11 @@ socket.on(
   }
 );
 
-
-
 // Header Component
 const getUserDownloads = () => {
   userStore.getUserFilesDownloads(sessionStore.userSessionData?._uuid);
 };
-const DownloadFile = (file: UploadedFiles) => {  
+const DownloadFile = (file: UploadedFiles) => {
   if (sessionStore.userSessionData?._uuid) {
     userStore.downloadFiles(sessionStore.userSessionData?._uuid, file);
   }
@@ -310,7 +302,6 @@ const DownloadFile = (file: UploadedFiles) => {
 
 const addSelectedChatUser = async (_uuid: string) => {
   const found = directMessageStore.users.find((u) => u._uuid === _uuid);
-
   if (found === undefined) {
     await userStore.updateUserStatus(_uuid, null, true);
     if (userStore.allUsers) {
@@ -383,8 +374,6 @@ const loadMoreMessages = (payload: {
   );
 };
 
-
-
 const mappedUsers = computed(() => {
   return userStore.allUsers.map(({ _uuid, displayName, email, createdAt }) => {
     return {
@@ -416,12 +405,6 @@ const onSelect = (
   key: string,
   value: User | Channels
 ) => {
-  let prev = null;
-  //const $_ = storageStore.getLastSelectedElement;
-  // if ($_) {
-  //   prev = $_.current;
-  // }
-
   if (key === "user") {
     directMessageStore.onSelectUser({ ...(value as User) });
   } else {
@@ -430,9 +413,10 @@ const onSelect = (
   activeComponent.value = key;
 
   storageStore.setStorage("LSTSELECD", {
-    current: { _id, comp: key },
-    prev: prev,
+    current: { _id, key },
+    prev: storageStore.lastSelectedElement,
   });
+  storageStore.lastSelectedElement = { _id, key };
 };
 </script>
 <template>
@@ -446,7 +430,7 @@ const onSelect = (
       :selected-channel="channelStore.selectedChannel"
       :is-loading-channels="channelStore.isLoading.channels"
       :is-loading-users="directMessageStore.isLoading.users"
-      :last-active-element="lastSelectedElement"
+      :last-active-element="storageStore.lastSelectedElement?._id"
       @update:selected="onSelect"
       @create-channel="channelStore.createChannel"
       @remove-user="removeUser"
@@ -475,7 +459,7 @@ const onSelect = (
           :selected="
             channelStore.selectedChannel?._channelID === channel._channelID
           "
-          :class="activeComponent === 'channel' ? '' : 'd-none'"
+          :class="activeComponent === 'channel' ? 'd-block' : 'd-none'"
           :is-loading="channelStore.isLoading"
           :typing="channelStore.typing"
           :is-message-delete="channelStore.isMessageDelete"
@@ -501,7 +485,7 @@ const onSelect = (
           :key="`direct-message-${user._uuid}`"
           :id="`direct-message-${user._uuid}`"
           :user="user"
-          :class="activeComponent === 'user' ? '' : 'd-none'"
+          :class="activeComponent === 'user' ? 'd-block' : 'd-none'"
           :selected="directMessageStore.selectedUser?._uuid === user._uuid"
           :typing="directMessageStore.typing"
           :is-loading="directMessageStore.isLoading"

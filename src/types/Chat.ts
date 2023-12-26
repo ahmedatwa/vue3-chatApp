@@ -73,7 +73,6 @@ interface Typing {
   from: string;
   _channelID?: string;
   displayName: string;
-  isTyping: boolean;
   input: number;
 }
 
@@ -81,7 +80,7 @@ interface SearchUsers {
   _uuid: string | number;
   displayName: string;
   email: string;
-  createdAt: string;
+  createdAt?: string;
 }
 
 interface NewUserForm {

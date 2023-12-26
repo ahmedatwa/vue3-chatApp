@@ -1,12 +1,12 @@
 import { watchEffect, shallowRef, computed, toValue } from "vue";
 import type { Ref } from "vue";
 
-type Format = {
-  italic?: boolean;
-  bold?: boolean;
-  undeline?: boolean;
-};
-type Alignment = "center" | "left" | "right";
+// type Format = {
+//   italic?: boolean;
+//   bold?: boolean;
+//   undeline?: boolean;
+// };
+// type Alignment = "center" | "left" | "right";
 
 export function useMarkdown(input: Ref<string>, format: Ref<string[] | null>) {
   const selection = shallowRef<Selection | null>(null);
@@ -18,8 +18,6 @@ export function useMarkdown(input: Ref<string>, format: Ref<string[] | null>) {
   );
 
   const pattern = /[\<>]/g;
-
-  const data = shallowRef("");
 
   // - unordered list
   // **text** bold
@@ -44,41 +42,45 @@ export function useMarkdown(input: Ref<string>, format: Ref<string[] | null>) {
   }
 
   const text = computed(() => selection.value?.toString() ?? "");
-
-  const formatted = computed(() => {
-    if (format) {
+  let result = shallowRef("")
+  watchEffect(() => { 
+    
       const formatting = toValue(format);
-      let result = ""
-      if (formatting?.includes("bold"))  {
-        result = `<strong>${text.value}</strong>`;
+      
+      if (text.value) {
+      
+      if (formatting?.includes("bold")) {
+        console.log(format.value);
+        result.value = `<strong>${text.value}</strong>`;
       } else {
-        result = text.value.replace(pattern, "");
+        result.value = text.value.replace(pattern, "");
       }
-      if (formatting?.includes("italic"))  {
-        result = `<i>${text.value}</i>`;
+      if (formatting?.includes("italic")) {
+        result.value = `<i>${text.value}</i>`;
       } else {
-        result = text.value.replace(pattern, "");
+        result.value = text.value.replace(pattern, "");
       }
-      if (formatting?.includes("undeline"))  {
-        result = `<u>${text.value}</u>`;
+      if (formatting?.includes("undeline")) {
+        result.value = `<u>${text.value}</u>`;
       } else {
-        result = text.value.replace(pattern, "");
+        result.value = text.value.replace(pattern, "");
       }
 
       
-      return result;
-     
-       
-    }
-  })
 
-  const formattedInput = computed(() => {
-    if (formatted.value) {
-      const inputToValue = toValue(input)
-      return inputToValue.replace(text.value, formatted.value);
+     // return result;
     }
-    return "";
+    
   });
+  console.log(result.value);
+  // const formattedInput = computed(() => {
+  //   selection.value = null;
+  //   if (formatted.value?.length) {
+  //     const inputToValue = toValue(input);
+  //     return inputToValue.replace(text.value, formatted.value);
+  //   }
+  //   return "";
+  // });
 
-  return { text, rects, formatted, selection, formattedInput };
+  return { text, rects, selection };
 }

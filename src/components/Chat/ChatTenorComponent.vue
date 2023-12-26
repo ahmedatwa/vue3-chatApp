@@ -22,7 +22,7 @@ const { result } = useTenor(searchTerm);
 
 </script>
 <template>
-  <v-btn @click.stop="isTenor = !isTenor">
+  <v-btn @click.stop="isTenor = !isTenor" icon density="compact">
     <v-menu :location="location ?? 'top'" width="300" height="300" v-model="isTenor" :close-on-content-click="false"
       @mouseleave="isTenor = false" target="parent">
       <v-list>
@@ -43,7 +43,7 @@ const { result } = useTenor(searchTerm);
         </v-row>
       </v-list>
     </v-menu>
-    <v-icon icon="mdi-file-gif-box" size="large" :color="iconColor ?? 'indigo'"></v-icon>
+    <v-icon icon="mdi-file-gif-box" :color="iconColor ?? 'indigo'"></v-icon>
     <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
   </v-btn>
 </template>

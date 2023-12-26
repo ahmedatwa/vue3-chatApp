@@ -97,21 +97,23 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       })
       .then(async (response) => {
         if (response.statusText === "OK" && response.status === 200) {
-          if (selectedUser.value?.messages)
+          if (selectedUser.value?.messages) {
             selectedUser.value?.messages.push({
               ...response.data,
               files: uploadedFiles.value || null,
               thread: [],
             });
 
-          // update server
-          socket.emit(_directMessageEmits.newMessage, {
-            ...response.data,
-          });
-          isScroll.value = {
-            start: false,
-            end: true,
-          };
+            // update server
+            socket.emit(_directMessageEmits.newMessage, {
+              ...response.data,
+            });
+            isScroll.value = {
+              start: false,
+              end: true,
+            };
+            uploadedFiles.value = null;
+          }
         }
       })
       .catch((error) => {
@@ -509,8 +511,9 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         from: event.from,
         displayName: event.displayName,
         input: event.input,
-        isTyping: true,
       };
+    } else {
+      typing.value.messages = null
     }
   });
 
@@ -520,7 +523,6 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         from: event.from,
         displayName: event.displayName,
         input: event.input,
-        isTyping: true,
       };
     } else {
       typing.value.thread = null;
@@ -557,7 +559,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
               pagination: null,
               messages: [{ ...newMessage, fromSelf }],
               newMessages: {
-                total: UnreadMessagesTotal.count++,
+                total: UnreadMessagesTotal.count+1,
                 lastMessage: newMessage.content,
               },
               createdAt: user.createdAt,
@@ -580,7 +582,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
             if (user._uuid === newMessage.from) {
               user.newMessages = {
-                total: UnreadMessagesTotal.count++,
+                total: UnreadMessagesTotal.count+1,
                 lastMessage: newMessage.content,
               };
               newAlert.value = {
@@ -708,6 +710,6 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     onSelectUser,
     deleteFiles,
     //
-    uploadedFiles
+    uploadedFiles,
   };
 });

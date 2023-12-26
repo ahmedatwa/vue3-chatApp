@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, shallowRef } from "vue";
 import { onMounted, inject, reactive } from "vue";
-// Types
 import { MembersComponent, SettingComponent } from "@/components/Channel";
-import type { ChannelMembers, ChannelSettings } from "@/types/Channel";
-import type { Channels, ChannelForm } from "@/types/Channel";
+// Types
+import type { Channels, ChannelForm, ChannelSettings } from "@/types/Channel";
 import type { UserSessionData } from "@/types/User";
 import type { SearchUsers } from "@/types/Chat"
 
@@ -36,7 +35,7 @@ const emit = defineEmits<{
   createChannel: [value: ChannelForm];
   updateChannel: [value: ChannelForm];
   "update:channelMembers": [
-    { add: ChannelMembers[]; remove: ChannelMembers[] }
+    { add: SearchUsers[]; remove: SearchUsers[] }
   ];  // Settings
   archiveChannel: [value: { _channelID: string; name: string }];
   leaveChannel: [value: { _channelID: string; name: string }];
@@ -132,7 +131,7 @@ const updateChannel = (key: string) => {
               <v-divider></v-divider>
               <v-btn block prepend-icon="mdi-database-plus" color="indigo" @click.prevent="createChannel"
                 :disabled="channelForm.channelName.length < 3" :loading="isLoading">
-                {{ $lang("channel.title") }}</v-btn>
+                {{ $lang("channel.create") }}</v-btn>
             </div>
           </v-form>
           <v-sheet v-if="!create">

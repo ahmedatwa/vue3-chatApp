@@ -4,7 +4,7 @@ import { ChatFormComponent, ChatTypingComponent, MessageThreadComponent } from "
 import { CreateChannelComponent, MessageContentComponent } from "@/components/Channel";
 // types
 import type { SearchUsers, Typing, SendThreadPayload, TenorGifs } from "@/types/Chat";
-import type { Channels, ChannelMembers, ChannelMessages } from "@/types/Channel";
+import type { Channels, ChannelMessages } from "@/types/Channel";
 import type { ChannelForm, ChannelSettings } from "@/types/Channel";
 
 const isScroll = ref(false);
@@ -52,7 +52,7 @@ const emit = defineEmits<{
   ];
   updateChannel: [value: ChannelForm];
   "update:channelMembers": [
-    { add: ChannelMembers[]; remove: ChannelMembers[] }
+    { add: SearchUsers[]; remove: SearchUsers[] }
   ];
   "update:messageReaction": [value: { _id: string | number; emoji: string }];
   "update:threadTyping": [value: number];
@@ -98,7 +98,7 @@ const sendThreadMessage = (message: SendThreadPayload) => {
 }
 </script>
 <template>
-  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`channel-${channel?._channelID}`" :class="selected ? '' : 'd-none'"
+  <v-container class="flex-1-1-100 ma-2 pa-2" :id="`channel-${channel?._channelID}`" :class="selected ? 'd-block' : 'd-none'"
     fluid>
     <v-row>
       <v-col :id="`main-channel-${channel?._channelID}`">
@@ -107,8 +107,10 @@ const sendThreadMessage = (message: SendThreadPayload) => {
             <v-btn append-icon="mdi-menu-down" variant="text">
               {{ channel?.channelName }}
               <create-channel-component :key="`channel-manage${channel?._id}`" :channel="channel"
-                :search-users="searchUsers" :is-loading="isLoading.channels" @update:channel-settings="$emit('updateChannelSettings', $event)
-                  " @archive-channel="$emit('archiveChannel', $event)" @create-channel="$emit('updateChannel', $event)"
+                :search-users="searchUsers" :is-loading="isLoading.channels" 
+                @update:channel-settings="$emit('updateChannelSettings', $event)" 
+                @archive-channel="$emit('archiveChannel', $event)" 
+                @create-channel="$emit('updateChannel', $event)"
                 @leave-channel="$emit('leaveChannel', $event)"
                 @update:channel-members="$emit('update:channelMembers', $event)"
                 @update-channel="$emit('updateChannel', $event)">
@@ -118,7 +120,7 @@ const sendThreadMessage = (message: SendThreadPayload) => {
             <v-btn class="float-right" color="pink" variant="plain">
               <v-icon start icon="mdi-account-group-outline"></v-icon>
               {{ totalChannelMemebers }}
-              <create-channel-component :channel="channel" :is-loading="isLoading.channels"
+              <create-channel-component :channel="channel" :search-users="searchUsers" :is-loading="isLoading.channels"
                 :key="`channel-members${channel?._id}`" @update:channel:members="$emit('update:channelMembers', $event)"
                 members>
               </create-channel-component>
@@ -138,7 +140,8 @@ const sendThreadMessage = (message: SendThreadPayload) => {
               @update:submit="$emit('update:sendMessage', $event)" auto-grow upload-button>
             </chat-form-component>
             <!-- Typing -->
-            <chat-typing-component :typing="typing.channel"></chat-typing-component>
+            <chat-typing-component :key="`channel-${channel?._channelID}`"
+              :typing="typing.channel"></chat-typing-component>
           </v-card-actions>
         </v-card>
       </v-col>

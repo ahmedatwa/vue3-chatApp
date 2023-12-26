@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, inject } from "vue";
 // types
-import { SearchUsers } from "@/types/Chat"
+import type { SearchUsers } from "@/types/Chat"
 import type { UserSessionData } from "@/types/User";
 import type { Channels } from "@/types/Channel";
 
@@ -31,9 +31,16 @@ const emit = defineEmits<{
   ];
 }>();
 
-onMounted(async () => {
+onMounted(() => {
   if (props.channel?.members) {
-    channelMemebers.value = props.channel.members;
+    props.channel.members.forEach((member) => {
+      channelMemebers.value.push({
+        _uuid: member._uuid,
+        displayName: member.displayName,
+        email: member.email,
+        createdAt: member.createdAt
+      })
+    })
   }
 
 });
