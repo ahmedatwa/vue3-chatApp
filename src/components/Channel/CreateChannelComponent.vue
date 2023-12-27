@@ -80,6 +80,13 @@ const updateChannel = (key: string) => {
   }
   emit("updateChannel", channelForm);
 };
+
+const createdBy = computed(() => {
+  if (props.searchUsers && props.channel) {
+    const user = props.searchUsers.find((user) => user._uuid === props.channel?.createdBy)
+    return user?.displayName
+  }
+})
 </script>
 <template>
   <v-dialog v-model="dialog" width="auto" activator="parent" :key="channel?._id">
@@ -136,10 +143,10 @@ const updateChannel = (key: string) => {
           </v-form>
           <v-sheet v-if="!create">
             <v-text-field :label="$lang('channel.managedBy')" disabled prepend-inner-icon="mdi-account-switch"
-              :model-value="currentUser?.displayName">
+            :model-value="createdBy">
             </v-text-field>
-            <v-text-field :label="$lang('channel.create.createdBy')" prepend-inner-icon="mdi-account-key" disabled
-              :model-value="currentUser?.displayName"></v-text-field>
+            <v-text-field :label="$lang('channel.createdBy')" prepend-inner-icon="mdi-account-key" disabled
+            :model-value="createdBy"></v-text-field>
           </v-sheet>
         </v-window-item>
         <!-- Members -->

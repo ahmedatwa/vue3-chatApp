@@ -90,15 +90,15 @@ const updateTenor = () => {
   uploadedFiles.value = null
 }
 
-const { text } = useMarkdown(formInputValue, formatting)
+useMarkdown(formInputValue, formatting)
 
 watchEffect(() => {
-  if (text.value.length) {
-    nextTick(() => {
+  // if (text.value.length) {
+  //   nextTick(() => {
 
 
-    })
-  }
+  //   })
+  // }
 })
 
 </script>
@@ -138,12 +138,15 @@ watchEffect(() => {
           <chat-upload-component v-if="uploadButton" v-model:files="uploadedFiles" @update:files="uploadedFiles = $event"
             @error:upload="error = $event">
           </chat-upload-component>
-          <chat-emoji-component icon-color="orange-darken-2" @update:open="isEmoji = $event"
+          <chat-emoji-component icon size="default" @update:open="isEmoji = $event"
             @update:selected="formInputValue += $event" offset="40" location="left">
           </chat-emoji-component>
-          <chat-marked-component v-model:formatting="formatting"></chat-marked-component>
           <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor">
           </chat-tenor-component>
+          <v-divider :thickness="3" color="info" vertical></v-divider>
+
+          <chat-marked-component v-model:formatting="formatting"></chat-marked-component>
+
         </v-sheet>
         <v-sheet cols="2">
         <v-btn v-if="submitButton" icon color="teal" :disabled="isDisabled" type="submit" @click.prevent="submitForm"
