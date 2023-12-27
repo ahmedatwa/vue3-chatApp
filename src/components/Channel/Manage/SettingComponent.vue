@@ -137,8 +137,9 @@ onMounted(() => {
   <v-divider class="my-2" color="orange"></v-divider>
   <v-sheet>
     {{ $lang("channel.id") }}: {{ channel?._channelID }}
-    <v-btn density="compact" elevation="0" :icon="isCopiedId ? 'mdi-check-all' : 'mdi-content-copy'"
-      @click="copyChannelId" class="ms-3" size="small">
+    <v-btn density="compact" elevation="0" @click="copyChannelId" class="ms-3">
+      <v-icon :icon="isCopiedId ? 'mdi-check-all' : 'mdi-content-copy'" size="small"></v-icon>
+      <v-tooltip activator="parent" location="top">{{ $lang("channel.copyChannelID") }}</v-tooltip>
     </v-btn>
   </v-sheet>
 </template>

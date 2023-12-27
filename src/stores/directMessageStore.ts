@@ -11,8 +11,7 @@ import type { User } from "@/types/User";
 import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
-import DOMPurify from "isomorphic-dompurify";
-import { marked } from "marked";
+import { sanitize } from "@/composables/DOMPurify";
 
 export const useDirectMessageStore = defineStore("directMessageStore", () => {
   // Stores
@@ -26,10 +25,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   const uploadedFiles = ref<UploadedFiles[] | null>(null);
   const newAlert = ref<Snackbar | null>(null);
   const paginationLimit = ref(10);
-  const DOMPurifySettings = shallowRef({
-    ALLOWED_TAGS: ["strong", "ul", "li", "a", "blockquote", "h2", "img"],
-    ALLOWED_ATTR: ["href", "target", "src", "height", "width"],
-  });
+
   const typing = ref<Record<"messages" | "thread", Typing | null>>({
     messages: null,
     thread: null,
@@ -66,13 +62,6 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     files?: File[] | TenorGifs | null;
   }) => {
     isScroll.value = null;
-    const renderer = {
-      link(href: string, title: string | null | undefined, text: string) {
-        return `<a target="blank" href="${href}" title="${title}">${text}</a>`;
-      },
-    };
-
-    marked.use({ renderer });
 
     if (selectedUser.value?._channelID === null) {
       await addChannelsMember(getRandom(30));
@@ -84,10 +73,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
     await instance
       .post(_directMessageApi.sendMessage, {
-        content: DOMPurify.sanitize(
-          marked.parse(message.content) as string,
-          DOMPurifySettings.value
-        ),
+        content: sanitize(message.content),
         editContent: "",
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
@@ -135,7 +121,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     await instance
       .post(_directMessageApi.sendThreadMessage, {
         _messageID: message._messageID,
-        content: DOMPurify.sanitize(message.content, DOMPurifySettings.value),
+        content: sanitize(message.content),
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
         files: uploadedFiles.value,
@@ -513,7 +499,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
         input: event.input,
       };
     } else {
-      typing.value.messages = null
+      typing.value.messages = null;
     }
   });
 
@@ -559,7 +545,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
               pagination: null,
               messages: [{ ...newMessage, fromSelf }],
               newMessages: {
-                total: UnreadMessagesTotal.count+1,
+                total: UnreadMessagesTotal.count + 1,
                 lastMessage: newMessage.content,
               },
               createdAt: user.createdAt,
@@ -582,7 +568,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
             if (user._uuid === newMessage.from) {
               user.newMessages = {
-                total: UnreadMessagesTotal.count+1,
+                total: UnreadMessagesTotal.count + 1,
                 lastMessage: newMessage.content,
               };
               newAlert.value = {

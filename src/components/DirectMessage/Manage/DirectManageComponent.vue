@@ -6,15 +6,15 @@ import type { UserSessionData } from "@/types/User";
 
 const isEditing = ref(false)
 const isCopied = ref(false)
+const dialog = ref(false)
+
 // Props
 const props = defineProps<{
-  modelValue: boolean;
   currentUser: UserSessionData | undefined
 }>();
 
 // emits
 const emit = defineEmits<{
-  "update:modelValue": [value: boolean]
 }>();
 
 const copyChannelID = () => {
@@ -24,23 +24,33 @@ const copyChannelID = () => {
 
 </script>
 <template>
-  <v-dialog width="500" :model-value="modelValue" @update:model-value="$emit('update:modelValue', $event)">
+  <v-btn @click.stop="dialog = !dialog" append-icon="mdi-menu-down" variant="text">
+    <template #prepend>
+      <v-avatar :image="currentUser?.image" v-if="currentUser?.image" size="25"></v-avatar>
+      <v-avatar color="info" v-else size="25">
+        <v-icon icon="mdi-account-circle"></v-icon>
+      </v-avatar>
+    </template>
+    {{ currentUser?.displayName }}
+  </v-btn>
+  <v-dialog width="500" v-model="dialog">
     <v-card>
       <v-card-title>
         <v-badge dot location="bottom end" :color="currentUser?.connected ? 'success' : 'grey'" class="ma-1">
-          <v-avatar :image="currentUser?.image" v-if="currentUser?.image" size="10"></v-avatar>
-          <v-avatar color="success" v-else size="25">
+          <v-avatar :image="currentUser?.image" v-if="currentUser?.image" size="25"></v-avatar>
+          <v-avatar color="info" v-else size="25">
             <v-icon icon="mdi-account-circle"></v-icon>
           </v-avatar>
         </v-badge>
         {{ currentUser?.displayName }}
-        <v-icon class="float-right" color="red" icon="mdi-close-circle-outline"
-          @click="$emit('update:modelValue', false)"></v-icon>
+        <v-icon class="float-right" color="red" icon="mdi-close-circle-outline" @click="dialog = false"></v-icon>
       </v-card-title>
+      <v-divider :thickness="3" color="info"></v-divider>
       <v-card-text>
         <v-sheet :border="true" class="ma-2 pa-2" rounded>
           <p>{{ $lang('directMessages.textTopic') }}</p>
-          <v-textarea clearable :label="$lang('directMessages.textAddTopic')" :readonly="!isEditing">
+          <v-textarea clearable :label="$lang('directMessages.textAddTopic')" :readonly="!isEditing" rows="1"
+          row-height="15">
             <template v-slot:append>
               <v-slide-x-reverse-transition mode="out-in">
                 <v-icon :key="`icon-${isEditing}`" :color="isEditing ? 'success' : 'info'"
@@ -62,8 +72,9 @@ const copyChannelID = () => {
       <v-card-actions class="pa-2 ma-2">
         <v-sheet>
           {{ $lang("directMessages.textChannelID", [currentUser?._uuid]) }}
-          <v-btn density="compact" elevation="0" :icon="isCopied ? 'mdi-check-all' : 'mdi-content-copy'"
-            @click="copyChannelID" class="ms-3" size="small">
+          <v-btn density="compact" elevation="0" @click="copyChannelID" class="ms-3" icon>
+            <v-icon :icon="isCopied ? 'mdi-check-all' : 'mdi-content-copy'" size="small"></v-icon>
+            <v-tooltip activator="parent" location="top">{{ $lang("directMessages.copyChannelID") }}</v-tooltip>
           </v-btn>
         </v-sheet>
       </v-card-actions>

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch, inject } from "vue";
-import PreferenceComponent from "@/components/User/PreferenceComponent.vue"
 import { SearchComponent } from "@/components/Common"
+import { DownloadsComponent, ProfileComponent, SettingComponent } from "@/components/User";
 
 // types
 import type { UserSessionData, UserSettings } from "@/types/User";
@@ -14,7 +14,6 @@ const drawer = inject<boolean>("drawer")
 const user = inject<UserSessionData>("user")
 const isOffline = ref(false);
 const lang = inject(langKey)
-const isPrefDialog = ref(false)
 
 defineProps<{
   searchUsers: SearchUsers[]
@@ -90,20 +89,24 @@ watch(isOffline, (newStatus) => {
             </v-badge>
             <p class="mr-1 mt-1">{{ user?.displayName }}</p>
           </v-list-item>
-          <v-divider></v-divider>
           <v-list-item @click="isOffline = !isOffline" key="status">
             <v-list-item-title>
               <v-icon icon="mdi-account-badge" :color="isOffline === false ? 'success' : ''"></v-icon>
               {{ $lang('header.offline', [isOffline ? 'active' : 'away']) }}
             </v-list-item-title>
           </v-list-item>
-          <v-divider></v-divider>
-          <v-list-item key="preference" value="preference" @click="isPrefDialog = !isPrefDialog">
-            <v-list-item-title><v-icon icon="mdi-cog"></v-icon>
-              {{ $lang('header.preferences') }}
-            </v-list-item-title>
+          <v-divider :thickness="2"></v-divider>
+          <v-list-item key="profile" value="profile">
+              <profile-component :user="user" @update:profile="$emit('update:profile', $event)"></profile-component>
           </v-list-item>
-          <v-divider></v-divider>
+          <v-list-item key="preference" value="preference">
+           <setting-component :user="user" @update:settings="$emit('update:setting', $event)"></setting-component>
+          </v-list-item>
+          <v-divider :thickness="2"></v-divider>
+          <v-list-item key="downloads" value="downloads">
+              <downloads-component :downloaded-files="downloadedFiles" @update:downloads="$emit('update:downloads', $event)" @update:download-file="$emit('update:downloadFile',  $event)"></downloads-component>
+          </v-list-item>
+          <v-divider :thickness="2"></v-divider>
           <v-list-item @click.stop="logout" key="logout">
             <v-list-item-title><v-icon icon="mdi-logout"></v-icon> {{ $lang('header.signOut') }}
             </v-list-item-title>
@@ -111,11 +114,5 @@ watch(isOffline, (newStatus) => {
         </v-list>
       </v-menu>
     </v-app-bar>
-    <preference-component v-model:model-value="isPrefDialog" :user="user" :downloaded-files="downloadedFiles"
-      @update:profile="$emit('update:profile', $event)" @update:downloads="$emit('update:downloads', $event)"
-      @update:settings="$emit('update:setting', $event)"
-      @update:download-file="$emit('update:downloadFile', $event)">
-    </preference-component>
-
   </v-container>
 </template>

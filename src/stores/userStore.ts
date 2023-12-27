@@ -27,8 +27,8 @@ export const useUserStore = defineStore("userStore", () => {
               _uuid: user._uuid,
               _channelID: user._channelID || null,
               displayName: user.displayName,
-              firstName: user.firstName,
-              lastName: user.lastName,
+              firstName: capitalize(user.firstName),
+              lastName: capitalize(user.lastName),
               image: user.image.length
                 ? import.meta.env.VITE_API_UPLOAD_URL + user.image
                 : "",
