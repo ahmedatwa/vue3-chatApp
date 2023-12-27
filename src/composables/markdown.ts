@@ -9,6 +9,7 @@ import type { Ref } from "vue";
 // type Alignment = "center" | "left" | "right";
 
 export function useMarkdown(input: Ref<string>, format: Ref<string[] | null>) {
+
   const selection = shallowRef<Selection | null>(null);
   const ranges = computed<Range[]>(() =>
     selection.value ? getRangesFromSelection(selection.value) : []
@@ -17,6 +18,10 @@ export function useMarkdown(input: Ref<string>, format: Ref<string[] | null>) {
     ranges.value.map((range) => range.getBoundingClientRect())
   );
 
+  if(selection.value === null) {
+    return;
+  }
+  
   const pattern = /[\<>]/g;
 
   // - unordered list

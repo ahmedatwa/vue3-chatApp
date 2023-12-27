@@ -1,12 +1,7 @@
 import { shallowRef } from "vue";
 import type { App } from "vue";
-import {
-  Locales,
-  Options,
-  langKey,
-  SetLocale,
-  Translate,
-} from "@/types/Symbols.ts";
+import { Locales, Options } from "@/types/Symbols.ts";
+import { langKey, SetLocale, Translate } from "@/types/Symbols.ts";
 
 const defaultLocale = shallowRef("en");
 const storageLocale = localStorage.getItem("locale");
@@ -43,9 +38,11 @@ const getNestedValue = (
   path: string,
   replacement?: any[]
 ): string => {
-  const result = path.split(".").reduce((o: any, i: string): string | undefined => {
-    if (o) return o[i as keyof typeof o];
-  }, obj);
+  const result = path
+    .split(".")
+    .reduce((o: any, i: string): string | undefined => {
+      if (o) return o[i as keyof typeof o];
+    }, obj);
 
   if (result === undefined) {
     return path;
@@ -80,7 +77,10 @@ const l = {
       }
     }
 
-    const translate: Translate = (line: string, replacement?: any[]): string => {
+    const translate: Translate = (
+      line: string,
+      replacement?: any[]
+    ): string => {
       return getObjectValueByPath(
         options.locales[defaultLocale.value].strings,
         line,

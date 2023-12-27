@@ -2,13 +2,14 @@
 import { ref, provide, inject } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 import { MessageThreadComponent } from "@/components/Chat";
-import { MessageContentComponent } from "@/components/DirectMessage";
+import { MessageContentComponent, DirectManageComponent } from "@/components/DirectMessage";
 // types
 import type { User, UserMessages, UserSessionData } from "@/types/User";
 import type { Typing, SendThreadPayload, TenorGifs } from "@/types/Chat";
 import type { UploadedFiles, MessageReactions } from "@/types/Chat";
 
 const currentUser = inject<UserSessionData>("user");
+const isManageDialog = ref(false)
 // thread
 const isThread = ref(false);
 const threadMessage = ref<UserMessages | null>(null)
@@ -77,13 +78,19 @@ const updateThread = (message: UserMessages) => {
       <v-col :id="`direct-${user?._uuid}`">
         <v-card class="mx-auto" id="container" :loading="isLoading.messages">
           <v-card-title>
-            <v-sheet class="d-inline">
-              <v-avatar :image="user?.image" v-if="user?.image"></v-avatar>
-              <v-avatar color="info" v-else>
+           
+            <v-btn  @click.stop="isManageDialog = !isManageDialog" append-icon="mdi-menu-down">
+              <template #prepend>
+              <v-avatar :image="user?.image" v-if="user?.image" size="10"></v-avatar>
+              <v-avatar color="info" v-else size="25">
                 <v-icon icon="mdi-account-circle"></v-icon>
               </v-avatar>
-              <p class="ms-2 d-inline">{{ user?.displayName }}</p>
-            </v-sheet>
+            </template>
+            
+           {{ user?.displayName }}
+              
+              <direct-manage-component v-model:model-value="isManageDialog" :current-user="currentUser" @update:model-value="isManageDialog = $event"></direct-manage-component>
+            </v-btn>
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
           <message-content-component :key="`direct-${user?._uuid}`" :selected-user="user" :is-loading="isLoading"

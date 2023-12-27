@@ -5,8 +5,8 @@ export default {
     aboutTab: "About",
     membersTab: "Members",
     settingsTab: "Settings",
-    managedBy: "Channel Managed By",
-    createdBy: "Channel Created By",
+    managedBy: "Managed By",
+    createdBy: "Created By",
     addMembers: "Add Members",
     mute: "Mute Notificationn for all Messages",
     archive: "Archive for everyone",
@@ -19,7 +19,7 @@ export default {
       send: "Message #{0}",
       name: "Channel Name",
       description: "Channel Description",
-      topic: "Channel Topic",  
+      topic: "Channel Topic",
     },
     help: {
       name: "only '_|#|&' allowed min 3 characters",
@@ -38,6 +38,11 @@ export default {
 
   directMessages: {
     title: "Direct Messages",
+    textTopic: "Topic",
+    textAddTopic: "Add a topic",
+    textFiles: "Files",
+    textChannelID: "Channel ID: {0}",
+    textTime: "{0} local time"
   },
 
   //
@@ -58,6 +63,7 @@ export default {
       emoji: "Find another reaction",
       confirm: "Are you sure you want to {0}? This can't be undone.",
       downloaded: "Downloaded: ",
+      searchTenor: "Search Tenor..."
     },
     help: {
       newLine: "Shift + Return to add new line",

@@ -95,7 +95,7 @@ const createDateTime = (
   });
 };
 
-const formatTimeShort = (time: string) => {
+const formatTimeShort = (time?: string) => {
   const t = time ? new Date(time) : Date.now();
   return new Intl.DateTimeFormat("en", {
     timeStyle: "short",

@@ -54,8 +54,8 @@ const onSelect = (_id: number | string, key: string, value: User | Channels) => 
                 <template #badge>
                   <span v-if="user.newMessages && lastActiveElement !== user._uuid"> {{ user.newMessages.total }}</span>
                 </template>
-                <v-avatar v-if="user.image" :image="user.image"></v-avatar>
-                <v-avatar color="info" v-else>
+                <v-avatar v-if="user.image" :image="user.image" size="30"></v-avatar>
+                <v-avatar color="info" size="30" v-else>
                   <v-icon icon="mdi-account-circle"></v-icon>
                 </v-avatar>
               </v-badge>

@@ -47,6 +47,7 @@ const leaveChannel = () => {
     });
   }
 };
+
 const copyChannelId = () => {
   if (props.channel) writeClipboard(props.channel._channelID);
   isCopiedId.value = true;

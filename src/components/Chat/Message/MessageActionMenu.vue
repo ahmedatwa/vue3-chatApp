@@ -118,15 +118,15 @@ onUnmounted(() => {
         <v-slide-x-reverse-transition>
             <v-btn-toggle divided density="comfortable" variant="elevated" v-if="actionMenu" class="border">
                 <v-btn @click="messageReaction(message._id, '😂')">
-                    <h2>😂</h2>
+                    <h3>😂</h3>
                     <v-tooltip activator="parent" location="top">joy</v-tooltip>
                 </v-btn>
                 <v-btn @click="messageReaction(message._id, '😆')">
-                    <h2>😆</h2>
+                    <h3>😆</h3>
                     <v-tooltip activator="parent" location="top">laughing</v-tooltip>
                 </v-btn>
                 <chat-emoji-component @update:open="isEmoji = $event" :tooltip="$lang('chat.text.emoji')"
-                    @update:selected="messageReaction(message._id, $event)"></chat-emoji-component>
+                    @update:selected="messageReaction(message._id, $event)" size="large"></chat-emoji-component>
                 <v-btn @click.stop="startThread((isThread = true), message)">
                     <v-icon icon="mdi-message-reply-text" size="large"></v-icon>
                     <v-tooltip activator="parent" location="top">{{

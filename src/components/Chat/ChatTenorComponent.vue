@@ -27,8 +27,8 @@ const { result } = useTenor(searchTerm);
       @mouseleave="isTenor = false" target="parent">
       <v-list>
         <v-sheet class="ma-2">
-          <v-text-field label="Search" v-model="searchTerm" autofocus clearable density="comfortable"
-            hide-details></v-text-field>
+          <v-text-field :label="$lang('chat.text.searchTenor')" v-model="searchTerm" autofocus clearable
+            density="comfortable" hide-details></v-text-field>
         </v-sheet>
         <v-row class="pa-2">
           <v-col v-for="item in result" :key="item.id" class="d-flex child-flex" cols="4">

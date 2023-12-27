@@ -73,8 +73,8 @@ watch(isOffline, (newStatus) => {
         <template v-slot:activator="{ props }">
           <v-list-item v-bind:="props" value="avatar">
             <v-badge dot location="bottom end" :color="user?.connected ? 'success' : 'grey'" class="ma-1">
-              <v-avatar v-if="user?.image" :image="user.image"></v-avatar>
-              <v-avatar color="info" v-else>
+              <v-avatar v-if="user?.image" :image="user.image" size="30"></v-avatar>
+              <v-avatar color="info" size="30" v-else>
                 <v-icon icon="mdi-account-circle"></v-icon>
               </v-avatar>
             </v-badge>

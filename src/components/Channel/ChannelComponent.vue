@@ -106,7 +106,7 @@ const sendThreadMessage = (message: SendThreadPayload) => {
           <v-card-title>
             <v-btn append-icon="mdi-menu-down" variant="text">
               {{ channel?.channelName }}
-              <create-channel-component :key="`channel-manage${channel?._id}`" :channel="channel"
+              <create-channel-component :key="`channel-manage-${channel?._id}`" :channel="channel"
                 :search-users="searchUsers" :is-loading="isLoading.channels" 
                 @update:channel-settings="$emit('updateChannelSettings', $event)" 
                 @archive-channel="$emit('archiveChannel', $event)" 
@@ -121,7 +121,7 @@ const sendThreadMessage = (message: SendThreadPayload) => {
               <v-icon start icon="mdi-account-group-outline"></v-icon>
               {{ totalChannelMemebers }}
               <create-channel-component :channel="channel" :search-users="searchUsers" :is-loading="isLoading.channels"
-                :key="`channel-members${channel?._id}`" @update:channel:members="$emit('update:channelMembers', $event)"
+                :key="`channel-members-${channel?._id}`" @update:channel:members="$emit('update:channelMembers', $event)"
                 members>
               </create-channel-component>
             </v-btn>
