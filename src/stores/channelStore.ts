@@ -4,9 +4,10 @@ import { reactive, shallowRef, watchEffect } from "vue";
 import { instance, _channelApi } from "@/axios";
 import { useSessionStore } from "@/stores";
 import { nanoid } from "nanoid";
-import { esc, remove, createDateTime, capitalize } from "@/helpers";
+import { remove, createDateTime, capitalize } from "@/helpers";
 // types
-import type { Snackbar, UploadedFiles, Typing, SendThreadPayload } from "@/types/Chat";
+import type { Snackbar, UploadedFiles, Typing } from "@/types/Chat";
+import type { SendThreadPayload, TenorGifs } from "@/types/Chat";
 import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel";
 import type { ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket
@@ -14,6 +15,7 @@ import socket, { _channelEmits, _channelListener } from "@/client";
 import type { NewThreadMessage, AddMembers } from "@/types/Sockets";
 import type { NewChannel, JoinChannel } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
+import { sanitize } from "@/composables/DOMPurify";
 
 export const useChannelStore = defineStore("channelStore", () => {
   const sessionStore = useSessionStore();
@@ -27,7 +29,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const isMessageEdit = shallowRef(false);
   const isMessageDelete = shallowRef(false);
   const channels = ref<Channels[]>([]);
-  const uploadedFiles = ref<UploadedFiles[]>([]);
+  const uploadedFiles = ref<UploadedFiles[] | null>(null);
   const typing = ref<Record<"channel" | "thread", Typing | null>>({
     channel: null,
     thread: null,
@@ -37,6 +39,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const selectedChannel = ref<Channels | null>(null);
   const filterSearchInput = ref("");
   const paginationLimit = ref(10);
+  const isScroll = shallowRef<{ start: boolean; end: boolean } | null>(null);
 
   // Filter Channels
   const filteredChannels = computed(() => {
@@ -59,31 +62,40 @@ export const useChannelStore = defineStore("channelStore", () => {
 
   const sendMessage = async (message: {
     content: string;
-    files?: File[] | null;
+    files?: File[] | TenorGifs | null;
   }) => {
-    if (message.files?.length) {
+    isScroll.value = null;
+
+    if (message.files) {
       await uploadFiles(message.files);
     }
+
     await instance
       .post(_channelApi.addChannelMessage, {
         _channelID: selectedChannel.value?._channelID,
         from: sessionStore.userSessionData?._uuid,
         fromName: sessionStore.userSessionData?.displayName,
-        content: esc(message.content),
-        files: uploadedFiles.value,
+        content: sanitize(message.content),
+        files: uploadedFiles.value?.map((file) => file._id),
         createdAt: createDateTime(),
       })
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
-          if (selectedChannel.value?.messages)
+          if (selectedChannel.value?.messages) {
             selectedChannel.value.messages.push({
               ...response.data,
+              files: uploadedFiles.value || null,
               thread: [],
             });
-          // update server
-          socket.emit(_channelEmits.newMessage, {
-            ...response.data,
-          });
+            socket.emit(_channelEmits.newMessage, {
+              ...response.data,
+            });
+            isScroll.value = {
+              start: false,
+              end: true,
+            };
+            uploadedFiles.value = null;
+          }
         }
       })
       .catch((error) => {
@@ -111,7 +123,7 @@ export const useChannelStore = defineStore("channelStore", () => {
         toName: payload.toName,
         _channelID: payload._channelID,
         _messageID: payload._messageID,
-        content: esc(payload.content),
+        content: sanitize(payload.content),
         createdAt: createDateTime(),
       })
       .then((response) => {
@@ -194,12 +206,14 @@ export const useChannelStore = defineStore("channelStore", () => {
               channel.pagination = {
                 limit: $_limit,
                 offset: $_offset,
+                total: channel.totalMessages,
               };
             }
             selectedChannel.value.messagesDistributed = true;
             selectedChannel.value.pagination = {
               limit: $_limit,
               offset: $_offset,
+              total: selectedChannel.value.totalMessages,
             };
           }
         }
@@ -553,7 +567,10 @@ export const useChannelStore = defineStore("channelStore", () => {
       });
   };
 
-  const updateMessageReaction = (event: { _id: string | number; emoji: string }) => {
+  const updateMessageReaction = (event: {
+    _id: string | number;
+    emoji: string;
+  }) => {
     instance
       .post(_channelApi.updateMessageReaction, {
         _messageID: event._id,
@@ -566,15 +583,14 @@ export const useChannelStore = defineStore("channelStore", () => {
         if (response.status === 200) {
           const found = selectedChannel.value?.messages?.find(
             (message) => message._id === event._id
-          ); 
-          console.log(found);
-          
+          );
+
           if (found) {
-            const emoji = found.reactions?.find(
+            const emojiIndex = found.reactions?.findIndex(
               (emoji) => emoji.emoji === event.emoji
             );
-            if (emoji) {
-              emoji.total++;
+            if (emojiIndex) {
+              found.reactions?.splice(emojiIndex, 1);
             } else {
               found.reactions?.push({ ...response.data, total: 1 });
             }
@@ -590,11 +606,19 @@ export const useChannelStore = defineStore("channelStore", () => {
       });
   };
 
-  const uploadFiles = async (files: File[]) => {
+  const uploadFiles = async (files: File[] | TenorGifs) => {
     uploadedFiles.value = [];
-    isLoading.channels = true;
+    isLoading.messages = true;
     let formData = new FormData();
-    files.forEach((file) => formData.append("files[]", file));
+    if (Array.isArray(files)) {
+      files.forEach((file) => formData.append("files[]", file));
+    } else {
+      for (const key in files as TenorGifs) {
+        const element = files[key as keyof typeof files];
+        formData.append(key, element as string);
+      }
+    }
+
     formData.append("_channelID", selectedChannel.value?._channelID as string);
     formData.append("_uuid", sessionStore.userSessionData?._uuid as string);
     await instance
@@ -612,7 +636,7 @@ export const useChannelStore = defineStore("channelStore", () => {
         };
       })
       .finally(() => {
-        isLoading.channels = false;
+        isLoading.messages = false;
       });
   };
 
@@ -842,7 +866,6 @@ export const useChannelStore = defineStore("channelStore", () => {
         from: event.from,
         input: event.input,
         displayName: event.displayName,
-        isTyping: true
       };
     } else {
       typing.value.channel = null;
@@ -864,7 +887,6 @@ export const useChannelStore = defineStore("channelStore", () => {
         from: event.from,
         displayName: event.displayName,
         input: event.input,
-        isTyping: true
       };
     } else {
       typing.value.thread = null;

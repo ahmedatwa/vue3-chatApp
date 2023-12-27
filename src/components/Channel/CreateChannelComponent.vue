@@ -89,21 +89,22 @@ const createdBy = computed(() => {
 })
 </script>
 <template>
-  <v-dialog v-model="dialog" width="auto" activator="parent" :key="channel?._id">
-    <v-card width="450" class="ma-4" style="overflow: initial; z-index: initial" :loading="isLoading">
+  <v-dialog v-model="dialog" width="auto" activator="parent" :key="channel?._id" scrollable>
+    <v-card width="420" class="mx-auto" :loading="isLoading">
       <v-card-title>
         {{ dialogTitle }}
         <v-icon class="float-right" @click="dialog = false" icon="mdi-close-circle-outline" color="error"></v-icon>
       </v-card-title>
       <v-divider :thickness="3" color="error" class="mb-3"></v-divider>
-      <v-tabs v-model="channelTab" color="deep-purple-accent-4" align-tabs="center">
+      <v-tabs v-model="channelTab" color="deep-purple-accent-4" align-tabs="center" class="overflow-visible">
         <v-tab key="about" value="about">{{ $lang("channel.aboutTab") }}</v-tab>
         <v-tab key="members" value="members" v-if="channel?.createdBy === currentUser?._uuid">
           {{ $lang("channel.membersTab") }}</v-tab>
         <v-tab key="settings" value="settings" v-if="!create">
           {{ $lang("channel.settingsTab") }}</v-tab>
       </v-tabs>
-      <v-window v-model="channelTab" class="ma-4">
+      <v-card-text>
+      <v-window v-model="channelTab" class="ma-1">
         <!-- About -->
         <v-window-item value="about" key="about">
           <v-form class="ma-2" name="create-room">
@@ -161,6 +162,7 @@ const createdBy = computed(() => {
             @update:channel-settings="$emit('update:channelSettings', $event)"></setting-component>
         </v-window-item>
       </v-window>
+      </v-card-text>
     </v-card>
   </v-dialog>
 </template>

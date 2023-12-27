@@ -12,6 +12,7 @@ export default {
     archive: "Archive for everyone",
     copyNames: "Copy Member Names",
     copyAddresses: "Copy Member Email Addresses",
+    copyChannelID: "Copy Channel ID",
     id: "Channel ID",
     leave: "Leave channel",
     join: "{0} has joined room {1}",
@@ -42,7 +43,8 @@ export default {
     textAddTopic: "Add a topic",
     textFiles: "Files",
     textChannelID: "Channel ID: {0}",
-    textTime: "{0} local time"
+    textTime: "{0} local time",
+    copyChannelID: "Copy Channel ID",
   },
 
   //
@@ -67,6 +69,7 @@ export default {
     },
     help: {
       newLine: "Shift + Return to add new line",
+
     },
     button: {
       loadMore: "Load More",
@@ -100,20 +103,14 @@ export default {
     offline: "Set yourself as {0}",
     signOut: "Sign out",
     searchLabel: "Search...",
-  },
-
-  preference: {
-    userProfile: "Profile",
-    userSettings: "Settings",
-    userDownloads: "Downloads",
+    textEmptyDownloads: "Keep track of your downloads. Files you downloaded to your computed will appear here.",
     success: "Success: You have updated {0}",
     error: "Warning: Error has occured.",
     input: {
       userConnNotification: "Mute Connection Notifications",
       toggleDark: "Toggle Dark",
       leftOff: "Continue where you left off",
-      firstName: "First Name",
-      lastName: "Last Name",
+      fullName: "Full Name",
       displayName: "Display Name",
       email: "Email",
     },
@@ -122,4 +119,13 @@ export default {
       saveProfile: "Save Profile",
     },
   },
+
+  // preference: {
+  //   userProfile: "Profile",
+  //   userSettings: "Settings",
+  //   userDownloads: "Downloads",
+    
+    
+    
+  // },
 };

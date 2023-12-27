@@ -85,25 +85,27 @@ const removeMember = (index: number, member: SearchUsers) => {
 </script>
 
 <template>
-  <v-combobox placeholder="Search Users" :items="searchUsers" item-title="displayName" prepend-inner-icon="mdi-magnify"
-    id="add-channel-users" density="comfortable" variant="solo" v-model="selectedMembers" label="Select" autofocus
-    :loading="isLoading" :error-messages="isError ? $lang('channel.error.memberExists') : ''">
-    <template #append>
-      <v-btn icon="mdi-plus-circle" variant="plain" color="indigo" @click.prevent="addMemebers"
-        :disabled="selectedMembers === null"></v-btn>
-    </template>
-  </v-combobox>
-  <div rounded="rounded" class="mx-auto members-list p-2 rounded" height="20" width="auto">
-    <ul>
-      <v-slide-x-transition tag="li" group>
-        <li v-for="(member, index) in channelMemebers" :key="member._uuid">
-          <v-btn color="red" :disabled="member._uuid === currentUser?._uuid" icon="mdi-close" variant="text"
-            @click="removeMember(index, member)" :key="member._uuid"></v-btn>
-          {{ member.displayName }}
-        </li>
+  <v-card width="auto">
+    <v-combobox placeholder="Search Users" :items="searchUsers" item-title="displayName" prepend-inner-icon="mdi-magnify"
+      id="add-channel-users" density="comfortable" variant="solo" v-model="selectedMembers" label="Select" autofocus
+      :loading="isLoading" :error-messages="isError ? $lang('channel.error.memberExists') : ''" clearable>
+      <template #append>
+        <v-btn icon="mdi-plus-circle" variant="text" color="indigo" @click.prevent="addMemebers"
+          :disabled="selectedMembers === null"></v-btn>
+      </template>
+    </v-combobox>
+    <v-list>
+      <v-slide-x-transition tag="v-list" group>
+        <v-list-item v-for="(member, index) in channelMemebers" :key="member._uuid">
+          <template #prepend>
+            <v-btn color="red" :disabled="member._uuid === currentUser?._uuid" icon="mdi-close" variant="text"
+              @click="removeMember(index, member)" :key="member._uuid"></v-btn>
+          </template>
+          <v-list-item-title>{{ member.displayName }}</v-list-item-title>
+        </v-list-item>
       </v-slide-x-transition>
-    </ul>
-  </div>
-  <v-btn color="indigo" @click.prevent="save" :disabled="isSaveDisabled" :loading="isLoading"
-    prepend-icon="mdi-content-save-check" class="mt-4" block>{{ $lang("chat.button.save") }}</v-btn>
+    </v-list> 
+      <v-btn color="indigo" @click.prevent="save" :disabled="isSaveDisabled" :loading="isLoading"
+        prepend-icon="mdi-content-save-check" class="mt-4" block>{{ $lang("chat.button.save") }}</v-btn>
+  </v-card>
 </template>

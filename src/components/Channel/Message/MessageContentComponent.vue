@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, ref, nextTick } from "vue";
-import { inject, watchEffect, watch } from "vue";
+import { inject, watchEffect } from "vue";
 import { MessageActionMenu, MessageThreadChipComponent } from "@/components/Chat";
-import { MessageReactionComponent } from "@/components/Chat";
+import { MessageReactionComponent, MessageFilesComponent } from "@/components/Chat";
 // types
 import type { ChannelMessages, Channels } from "@/types/Channel";
-import type { MessagePagination, Typing } from "@/types/Chat";
+import type { MessagePagination, Typing, UploadedFiles } from "@/types/Chat";
 import type { User } from "@/types/User";
 import { formatTimeShort, formatDateLong } from "@/helpers";
 
@@ -21,13 +21,13 @@ const pagination = ref<MessagePagination>({
 const props = defineProps<{
   channel: Channels | null;
   isDelete?: boolean;
-  isScroll?: boolean;
   isLoading: {
     messages: boolean;
     thread: boolean;
     channels: boolean;
   };
   threadTyping: Typing | null;
+  isScroll: { start: boolean; end: boolean } | null
 }>();
 
 // emits
@@ -49,6 +49,8 @@ const emit = defineEmits<{
   "update:threadMessages": [value: ChannelMessages];
   "update:scroll": [value: boolean];
   "update:messageReaction": [value: { _id: string | number; emoji: string }];
+  "update:deleteFile": [value: { fileID: string | number, messageID: string | number }];
+  "update:downdloadFile": [value: UploadedFiles];
 }>();
 
 // group messages by date
@@ -75,7 +77,6 @@ const loadMoreMessages = () => {
       pagination.value.offset,
       true
     );
-    scroll(true)
   }
 };
 
@@ -92,26 +93,32 @@ watchEffect(() => {
 const lastRow = ref<HTMLDivElement | null>(null);
 const firstRow = ref<HTMLDivElement | null>(null);
 
-watch(
-  () => props.isScroll,
-  (value) => {
-    if (value) {
-      scroll(false);
-      emit("update:scroll", false);
+watchEffect(() => {
+  if (props.channel?.messages?.length) {
+    if (props.isScroll) {
+      scroll(props.isScroll);
     }
   }
-);
+});
 
-const scroll = (top: boolean) => {
-  watchEffect(() => {
-    if (props.channel?.messages?.length) {
-      nextTick(() => {
-        (top)
-          ? firstRow.value?.scrollIntoView(true)
-          : lastRow.value?.scrollIntoView(true);
+const scroll = (direction: { start: boolean, end: boolean }) => {
+  if (direction.start) {
+    nextTick(() => {
+      firstRow.value?.scrollIntoView({
+        behavior: "instant",
+        block: "nearest",
+        inline: "end"
       });
-    }
-  });
+    });
+  } else if (direction.end) {
+    nextTick(() => {
+      lastRow.value?.scrollIntoView({
+        behavior: "instant",
+        block: "nearest",
+        inline: "start"
+      });
+    });
+  }
 };
 
 const actionMenu = ref(false);
@@ -154,8 +161,13 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
               {{ message.fromName }}:
             </span>
             <span v-if="message.editContent" class="text-caption me-1">
-              {{ $lang("chat.text.edited") }} {{ message.content }} </span>
-            <span class="text-left" v-else>{{ message.content }}</span>
+              {{ $lang("chat.text.edited") }}  <p v-html="message.content" class="d-inline"></p> </span>
+            <span class="text-left" v-else> <p v-html="message.content" class="d-inline"></p>
+              <message-files-component v-if="message.files" :files="message.files" :message-id="message._id"
+                @update:delete-file="$emit('update:deleteFile', $event)"
+                @update:downdload-file="$emit('update:downdloadFile', $event)">
+              </message-files-component>
+            </span>
             <!-- reactions -->
             <message-reaction-component v-if="message.reactions" :key="`reaction-${message._id}`"
               :message-id="message._id" :reactions="message.reactions"
@@ -172,7 +184,7 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
         </v-sheet>
       </v-col>
     </v-row>
-    <span ref="lastRow"></span>
+    <span ref="lastRow" class="last-row"></span>
   </v-container>
 </template>
 <style scoped>
