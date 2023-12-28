@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useTenor } from "@/composables/tenor";
+import { shallowRef } from "vue";
+// Types
 import type { TenorGifs } from "@/types/Chat";
+import { useTenor } from "@/composables/useTenor"
 
-const isTenor = ref(false)
-const searchTerm = ref("");
-//const items = ref<{ id: string; src: string }[] | null>(null)
+const isTenor = shallowRef(false)
+const searchTerm = shallowRef("");
+const { data, error } = useTenor(isTenor, searchTerm)
+
 defineProps<{
   modelValue: TenorGifs | null;
   tooltip?: string;
@@ -18,20 +20,23 @@ defineEmits<{
   "update:modelValue": [value: TenorGifs]
 }>()
 
-const { result } = useTenor(searchTerm);
-
 </script>
 <template>
-  <v-btn @click.stop="isTenor = !isTenor" icon density="compact">
+  <v-btn @click="isTenor = !isTenor" icon density="compact">
     <v-menu :location="location ?? 'top'" width="300" height="300" v-model="isTenor" :close-on-content-click="false"
       @mouseleave="isTenor = false" target="parent">
       <v-list>
-        <v-sheet class="ma-2">
+        <v-sheet class="ma-1">
           <v-text-field :label="$lang('chat.text.searchTenor')" v-model="searchTerm" autofocus clearable
             density="comfortable" hide-details></v-text-field>
         </v-sheet>
-        <v-row class="pa-2">
-          <v-col v-for="item in result" :key="item.id" class="d-flex child-flex" cols="4">
+        <v-row class="pa-2" v-if="error">
+          <v-col>
+            <v-sheet class="d-flex align-center ma-2 pa-2 text-red">{{ error }}</v-sheet>
+          </v-col>
+        </v-row>
+        <v-row class="pa-2" v-else-if="data">
+          <v-col v-for="item in data" :key="item.id" class="d-flex child-flex" cols="4">
             <v-img :src="item.src" :key="item.id" aspect-ratio="1" cover @click.stop="$emit('update:modelValue', item)">
               <template v-slot:placeholder>
                 <v-row class="fill-height ma-0" align="center" justify="center">
@@ -39,6 +44,13 @@ const { result } = useTenor(searchTerm);
                 </v-row>
               </template>
             </v-img>
+          </v-col>
+        </v-row>
+        <v-row class="pa-2" v-else>
+          <v-col>
+            <v-sheet class="d-flex justify-center mx-auto">
+              <v-progress-circular indeterminate :size="56"></v-progress-circular>
+            </v-sheet>
           </v-col>
         </v-row>
       </v-list>

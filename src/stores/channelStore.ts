@@ -15,7 +15,7 @@ import socket, { _channelEmits, _channelListener } from "@/client";
 import type { NewThreadMessage, AddMembers } from "@/types/Sockets";
 import type { NewChannel, JoinChannel } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
-import { sanitize } from "@/composables/DOMPurify";
+import { useDOMPurify } from "@/composables/useDOMPurify";
 
 export const useChannelStore = defineStore("channelStore", () => {
   const sessionStore = useSessionStore();
@@ -70,12 +70,19 @@ export const useChannelStore = defineStore("channelStore", () => {
       await uploadFiles(message.files);
     }
 
+    const { purifiedData } = useDOMPurify(message.content);
+
+    // Avoid empty DB Records
+    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+      return;
+    }
+
     await instance
       .post(_channelApi.addChannelMessage, {
         _channelID: selectedChannel.value?._channelID,
         from: sessionStore.userSessionData?._uuid,
         fromName: sessionStore.userSessionData?.displayName,
-        content: sanitize(message.content),
+        content: purifiedData.value,
         files: uploadedFiles.value?.map((file) => file._id),
         createdAt: createDateTime(),
       })
@@ -115,6 +122,13 @@ export const useChannelStore = defineStore("channelStore", () => {
     if (payload.files?.length) {
       await uploadFiles(payload.files);
     }
+    const { purifiedData } = useDOMPurify(payload.content);
+
+    // Avoid empty DB Records
+    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+      return;
+    }
+
     await instance
       .post(_channelApi.addChannelMessageThread, {
         from: sessionStore.userSessionData?._uuid,
@@ -123,7 +137,7 @@ export const useChannelStore = defineStore("channelStore", () => {
         toName: payload.toName,
         _channelID: payload._channelID,
         _messageID: payload._messageID,
-        content: sanitize(payload.content),
+        content: purifiedData.value,
         createdAt: createDateTime(),
       })
       .then((response) => {
@@ -182,9 +196,19 @@ export const useChannelStore = defineStore("channelStore", () => {
       .then((response) => {
         if (response.statusText === "OK" && response.status === 200) {
           if (selectedChannel.value) {
-            unshift
-              ? selectedChannel.value.messages?.unshift(...response.data)
-              : selectedChannel.value.messages?.push(...response.data);
+            if (unshift) {
+              selectedChannel.value.messages?.unshift(...response.data);
+              isScroll.value = {
+                start: true,
+                end: false,
+              };
+            } else {
+              selectedChannel.value.messages?.push(...response.data);
+              isScroll.value = {
+                start: false,
+                end: true,
+              };
+            }
 
             const ceil = Math.ceil(offset - paginationLimit.value);
             let $_offset = ceil;
@@ -916,6 +940,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     filterSearchInput,
     isMessageDelete,
     paginationLimit,
+    isScroll,
     getChannelMembers,
     getChannels,
     channelTheadTyping,

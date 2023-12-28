@@ -90,6 +90,7 @@ export default {
     },
     error: {
       upload: "Warning: Max Upload File Size Exceeds 100kb. filename {0}",
+      download: "Error: File can't be downloaded."
     },
     rules: {
       required: "Field is required min 3 characters",

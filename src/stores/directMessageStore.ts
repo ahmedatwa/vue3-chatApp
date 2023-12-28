@@ -11,7 +11,7 @@ import type { User } from "@/types/User";
 import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
-import { sanitize } from "@/composables/DOMPurify";
+import { useDOMPurify } from "@/composables/useDOMPurify";
 
 export const useDirectMessageStore = defineStore("directMessageStore", () => {
   // Stores
@@ -62,7 +62,6 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     files?: File[] | TenorGifs | null;
   }) => {
     isScroll.value = null;
-
     if (selectedUser.value?._channelID === null) {
       await addChannelsMember(getRandom(30));
     }
@@ -70,10 +69,16 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     if (message.files) {
       await uploadFiles(message.files);
     }
+    const { purifiedData } = useDOMPurify(message.content);
+
+    // Avoid empty DB Records
+    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+      return;
+    }
 
     await instance
       .post(_directMessageApi.sendMessage, {
-        content: sanitize(message.content),
+        content: purifiedData.value,
         editContent: "",
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
@@ -114,14 +119,20 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   };
 
   const sendThreadMessage = async (message: SendThreadPayload) => {
+    const { purifiedData } = useDOMPurify(message.content);
+
     if (message.files?.length) {
       await uploadFiles(message.files);
+    }
+    // Avoid empty DB Records
+    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+      return;
     }
 
     await instance
       .post(_directMessageApi.sendThreadMessage, {
         _messageID: message._messageID,
-        content: sanitize(message.content),
+        content: purifiedData.value,
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
         files: uploadedFiles.value,

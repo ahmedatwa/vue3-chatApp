@@ -18,7 +18,7 @@ export const _userApi = {
   updateUserSettings: "/updateUserSettings",
   updateUserStatus: "/updateUserStatus",
   getUserFilesDownloads: "/getUserFilesDownloads",
-  downloadFile: "/directmessages/downloadFile",
+  downloadFile: "/downloadFile",
 };
 // Channels
 export const _channelApi = {

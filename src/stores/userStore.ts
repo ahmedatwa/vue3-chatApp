@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref, inject } from "vue";
+import { ref, inject, computed } from "vue";
 import { instance, _userApi } from "@/axios";
 import { nanoid } from "nanoid";
 import { capitalize, createDateTime } from "@/helpers";
@@ -103,6 +103,17 @@ export const useUserStore = defineStore("userStore", () => {
       });
   };
 
+  const mappedUsers = computed(() => {
+    return allUsers.value.map(({ _uuid, displayName, email, createdAt }) => {
+      return {
+        _uuid,
+        displayName,
+        email,
+        createdAt,
+      };
+    });
+  });
+
   const getUser = async (_uuid: string | string[]) => {
     isLoading.value = true;
     try {
@@ -202,9 +213,8 @@ export const useUserStore = defineStore("userStore", () => {
               path: file.path,
               createdAt: file.createdAt,
               url: import.meta.env.VITE_API_ROOT_URL + file.path,
-            })
-          })
-         
+            });
+          });
         }
       });
   };
@@ -218,9 +228,12 @@ export const useUserStore = defineStore("userStore", () => {
           fileID: file._id,
           _uuid,
         },
-        // responseType: "blob",
+        responseType: "blob",
+        method: "cors",
       })
       .then((response) => {
+        console.log(response);
+
         const blob = new Blob([response.data], { type: file.type });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -230,7 +243,7 @@ export const useUserStore = defineStore("userStore", () => {
       })
       .catch((error) => {
         newAlert.value = {
-          title: $lang?.getLine("error.upload"),
+          title: $lang?.getLine("chat.error.download"),
           text: error.code + " " + error.message,
           type: "error",
         };
@@ -240,6 +253,7 @@ export const useUserStore = defineStore("userStore", () => {
     newAlert,
     allUsers,
     downloadedFiles,
+    mappedUsers,
     updateUserStatus,
     updateUserSettings,
     downloadFiles,

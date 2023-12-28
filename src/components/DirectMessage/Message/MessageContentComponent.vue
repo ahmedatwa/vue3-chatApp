@@ -211,7 +211,6 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
       </v-col>
     </v-row>
     <span ref="lastRow" class="last-row"></span>
-
   </v-container>
 </template>
 <style scoped>
