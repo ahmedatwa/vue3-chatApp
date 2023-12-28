@@ -97,14 +97,16 @@ watch(isOffline, (newStatus) => {
           </v-list-item>
           <v-divider :thickness="2"></v-divider>
           <v-list-item key="profile" value="profile">
-              <profile-component :user="user" @update:profile="$emit('update:profile', $event)"></profile-component>
+            <profile-component :user="user" @update:profile="$emit('update:profile', $event)"></profile-component>
           </v-list-item>
           <v-list-item key="preference" value="preference">
-           <setting-component :user="user" @update:settings="$emit('update:setting', $event)"></setting-component>
+            <setting-component :user="user" @update:settings="$emit('update:setting', $event)"></setting-component>
           </v-list-item>
           <v-divider :thickness="2"></v-divider>
           <v-list-item key="downloads" value="downloads">
-              <downloads-component :downloaded-files="downloadedFiles" @update:downloads="$emit('update:downloads', $event)" @update:download-file="$emit('update:downloadFile',  $event)"></downloads-component>
+            <downloads-component :downloaded-files="downloadedFiles"
+              @update:downloads="$emit('update:downloads', $event)"
+              @update:download-file="$emit('update:downloadFile', $event)"></downloads-component>
           </v-list-item>
           <v-divider :thickness="2"></v-divider>
           <v-list-item @click.stop="logout" key="logout">

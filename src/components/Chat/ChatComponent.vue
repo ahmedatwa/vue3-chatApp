@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, onUnmounted, onMounted, watch } from "vue";
-import { shallowRef, watchEffect, provide, computed } from "vue";
+import { ref, onUnmounted, onMounted } from "vue";
+import { shallowRef, provide, watch } from "vue";
 // stores
 import { useUserStore, useStorageStore, useSessionStore } from "@/stores";
 import { useChannelStore, useDirectMessageStore } from "@/stores";
@@ -91,48 +91,13 @@ watch(
 );
 
 onMounted(() => {
-  if (sessionStore.userSessionData?.settings?.leftOff) {
-    const $_ = storageStore.getLastSelectedElement;
-    if ($_ && $_.current) {
+  const $_ = storageStore.getLastSelectedElement;
+  if ($_) {
+    if ($_.current) {
       storageStore.lastSelectedElement = {
-        _id: $_.current?._id,
-        key: $_.current?.key,
+        _id: $_.current._id,
+        key: $_.current.key,
       };
-
-      if ($_.current.key === "user") {
-        watchEffect(() => {
-          if (directMessageStore.users) {
-            const user = directMessageStore.users.find(
-              (u: User) => u._uuid === $_.current?._id
-            );
-            if (user) {
-              directMessageStore.selectedUser = {
-                ...user,
-                selected: true,
-                newMessages: null,
-              };
-            }
-          }
-        });
-      }
-      if ($_.current?.key === "channel") {
-        watchEffect(() => {
-          if (channelStore.channels) {
-            const channel = channelStore.channels.find(
-              (el: Channels) => el._channelID === $_.current?._id
-            );
-            if (channel) {
-              channelStore.selectedChannel = {
-                ...channel,
-                selected: true,
-                newMessages: null,
-                messagesDistributed: false,
-                membersDistributed: false,
-              };
-            }
-          }
-        });
-      }
     }
   }
 
@@ -163,7 +128,6 @@ onUnmounted(() => {
 });
 
 // Sockets
-
 socket.on("connect", () => {
   socket.on("session", async (session: User) => {
     const [directMessagesChannels, channels] = await Promise.all([
@@ -277,6 +241,38 @@ socket.on("connect", () => {
         socket.emit("channels", mapChannels);
       }
     }
+
+    // set where left off
+    if (sessionStore.userSessionData?.settings?.leftOff) {
+      if (storageStore.lastSelectedElement) {
+        if (storageStore.lastSelectedElement.key === "user") {
+          const user = directMessageStore.users.find(
+            (u) => u._uuid === storageStore.lastSelectedElement?._id
+          );
+          if (user) {
+            directMessageStore.selectedUser = {
+              ...user,
+              selected: true,
+              newMessages: null,
+            };
+          }
+        } else {
+          const channel = channelStore.channels.find(
+            (c) => c._channelID === storageStore.lastSelectedElement?._id
+          );
+          if (channel) {
+            channelStore.selectedChannel = {
+              ...channel,
+              selected: true,
+              newMessages: null,
+              messagesDistributed: false,
+              membersDistributed: false,
+            };
+          }
+        }
+      }
+    }
+    // ****
   });
 });
 
@@ -374,19 +370,7 @@ const loadMoreMessages = (payload: {
   );
 };
 
-const mappedUsers = computed(() => {
-  return userStore.allUsers.map(({ _uuid, displayName, email, createdAt }) => {
-    return {
-      _uuid,
-      displayName,
-      email,
-      createdAt,
-    };
-  });
-});
-
 // Drawer Component
-
 const removeUser = async (user: User) => {
   const index = directMessageStore.users.findIndex(
     (u) => u._uuid === user._uuid
@@ -438,7 +422,7 @@ const onSelect = (
 
     <header-component
       :key="sessionStore.userSessionData?._uuid"
-      :search-users="mappedUsers"
+      :search-users="userStore.mappedUsers"
       :downloaded-files="userStore.downloadedFiles"
       @update:search-value="addSelectedChatUser"
       @logout="sessionStore.updateSession"
@@ -456,11 +440,14 @@ const onSelect = (
           :id="`channel-${channel._channelID}`"
           :key="channel._channelID"
           :channel="channel"
-          :selected="storageStore.lastSelectedElement?._id === channel._channelID"
+          :selected="
+            storageStore.lastSelectedElement?._id === channel._channelID
+          "
           :is-loading="channelStore.isLoading"
+          :is-scroll="channelStore.isScroll"
           :typing="channelStore.typing"
           :is-message-delete="channelStore.isMessageDelete"
-          :search-users="mappedUsers"
+          :search-users="userStore.mappedUsers"
           @load-more-messages="loadMoreChannelMessages"
           @send:thread-message="channelStore.sendMessageThread"
           @update-channel-settings="channelStore.updateChannelSettings"

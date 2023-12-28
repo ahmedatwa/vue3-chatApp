@@ -4,15 +4,21 @@ import { ChatUploadComponent, ChatMarkedComponent } from "@/components/Chat";
 import { ChatEmojiComponent, ChatTenorComponent } from "@/components/Chat";
 import type { TenorGifs } from "@/types/Chat";
 
-import { useMarkdown } from "@/composables/markdown"
+import { useMarkdown } from "@/composables/useMarkdown"
 import { watchEffect } from "vue";
-import { nextTick } from "vue";
+
 
 const formInputValue = ref("sdsds ahmed test")
 const uploadedFiles = ref<File[] | null>(null);
 const error = ref("");
 const isEmoji = ref(false);
-const formatting = ref<string[] | null>(null);
+
+const formatting = ref<{ key: string, value: boolean } | null>(null);
+// const bold = ref(false)
+// const italic = ref(false)
+// const underline = ref(false)
+
+
 const txtareaRef = ref<HTMLInputElement>();
 const tenorGif = ref<TenorGifs | null>(null)
 
@@ -90,7 +96,8 @@ const updateTenor = () => {
   uploadedFiles.value = null
 }
 
-useMarkdown(formInputValue, formatting)
+const {result, text } = useMarkdown(formInputValue, formatting)
+
 
 watchEffect(() => {
   // if (text.value.length) {
@@ -108,6 +115,7 @@ watchEffect(() => {
     <v-card elevation="4" :id="`message-form-wrapper-${id}`">
       <v-slide-x-transition>
         <v-card-text v-if="text" class="pa-1">
+          <p v-html="result"></p>
           <p v-html="text"></p>
         </v-card-text>
         <v-card-text v-else-if="uploadedFiles" class="pa-1">
@@ -145,15 +153,15 @@ watchEffect(() => {
           </chat-tenor-component>
           <v-divider :thickness="3" color="info" vertical></v-divider>
 
-          <chat-marked-component v-model:formatting="formatting"></chat-marked-component>
+          <chat-marked-component @update:format="formatting = $event" :key="`chat-marked-${id}`"></chat-marked-component>
 
         </v-sheet>
         <v-sheet cols="2">
-        <v-btn v-if="submitButton" icon color="teal" :disabled="isDisabled" type="submit" @click.prevent="submitForm"
-          variant="text">
-          <v-icon icon="mdi-send" size="large"></v-icon>
-        </v-btn>
-      </v-sheet>
+          <v-btn v-if="submitButton" icon color="teal" :disabled="isDisabled" type="submit" @click.prevent="submitForm"
+            variant="text">
+            <v-icon icon="mdi-send" size="large"></v-icon>
+          </v-btn>
+        </v-sheet>
       </v-sheet>
     </v-card>
   </v-form>

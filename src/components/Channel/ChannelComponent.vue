@@ -7,7 +7,6 @@ import type { SearchUsers, Typing, SendThreadPayload, TenorGifs } from "@/types/
 import type { Channels, ChannelMessages } from "@/types/Channel";
 import type { ChannelForm, ChannelSettings } from "@/types/Channel";
 
-const isScroll = ref(false);
 
 // Props
 const props = defineProps<{
@@ -21,6 +20,7 @@ const props = defineProps<{
   };
   isMessageDelete?: boolean;
   selected: boolean
+  isScroll: { start: boolean; end: boolean } | null
 }>();
 
 // emits
@@ -128,9 +128,9 @@ const sendThreadMessage = (message: SendThreadPayload) => {
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
           <message-content-component :key="`channel-${channel?._channelID}`" :thread-typing="typing.thread"
-            :is-loading="isLoading" :channel="channel" :is-delete="isMessageDelete" :is-scroll="isScroll"
+            :is-loading="isLoading" :channel="channel" :is-delete="isMessageDelete"
             @load-more-messages="loadMoreMessages" @delete-message="$emit('deleteMessage', $event)"
-            @edit-message="$emit('editMessage', $event)" @update:scroll="isScroll = $event"
+            @edit-message="$emit('editMessage', $event)" :is-scroll="isScroll"
             @update:thread-messages="startThread" @update:message-reaction="$emit('update:messageReaction', $event)">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">

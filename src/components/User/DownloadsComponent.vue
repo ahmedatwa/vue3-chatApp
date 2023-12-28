@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { shallowRef, onMounted, watchEffect } from 'vue';
+import { shallowRef, watchEffect } from 'vue';
 // Types
 import type { UploadedFiles } from '@/types/Chat';
 
@@ -13,12 +13,14 @@ const props = defineProps<{
 const emit = defineEmits<{
     "update:downloads": [value: boolean];
     "update:downloadFile": [value: UploadedFiles];
+    "update:clearDownloads": [value: boolean]
 }>()
 
-onMounted(() => {
-    emit("update:downloads", true)
+watchEffect(() => {
+    if (dialog.value) {
+        emit("update:downloads", true)
+    }
 })
-
 watchEffect(() => {
     if (props.downloadedFiles.length) {
         setTimeout(() => {
@@ -30,12 +32,17 @@ watchEffect(() => {
 </script>
 <template>
     <v-sheet @click.stop="dialog = !dialog">
-         {{ $lang('header.downloads') }}
+        {{ $lang('header.downloads') }}
     </v-sheet>
     <v-dialog width="500" v-model="dialog">
         <v-card>
             <v-card-title>
                 <v-icon icon="mdi-download-circle-outline"></v-icon> {{ $lang('header.downloads') }}
+                <v-btn variant="flat" @click.stop="$emit('update:clearDownloads', true)">
+                    <v-icon icon="mdi-vacuum" color="red"> </v-icon>
+                    <v-tooltip activator="parent" location="top">Clear</v-tooltip>
+
+                </v-btn>
                 <v-icon icon="mdi-close-circle-outline" color="red" class="float-right" @click="dialog = !dialog"></v-icon>
             </v-card-title>
             <v-divider :thickness="3" color="info"></v-divider>
@@ -52,7 +59,7 @@ watchEffect(() => {
                                     {{ file.createdAt }}</v-list-item-subtitle>
                             </div>
                             <div class="ms-auto">
-                                <v-btn icon="mdi-cloud-download" color="red" variant="text"
+                                <v-btn icon="mdi-cloud-download" variant="text"
                                     @click="$emit('update:downloadFile', file)"></v-btn>
                             </div>
                         </v-sheet>
