@@ -296,6 +296,10 @@ const DownloadFile = (file: UploadedFiles) => {
   }
 };
 
+const clearDownloads = () => {
+  if (sessionStore.userSessionData?._uuid)
+    userStore.clearDownloads(sessionStore.userSessionData?._uuid);
+};
 const addSelectedChatUser = async (_uuid: string) => {
   const found = directMessageStore.users.find((u) => u._uuid === _uuid);
   if (found === undefined) {
@@ -431,6 +435,7 @@ const onSelect = (
       @update:profile="updateProfile"
       @update:downloads="getUserDownloads"
       @update:download-file="DownloadFile"
+      @update:clear-downloads="clearDownloads"
     ></header-component>
 
     <v-main>

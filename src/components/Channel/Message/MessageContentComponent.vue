@@ -2,14 +2,14 @@
 import { computed, ref, nextTick } from "vue";
 import { inject, watchEffect } from "vue";
 import { MessageActionMenu, MessageThreadChipComponent } from "@/components/Chat";
-import { MessageReactionComponent, MessageFilesComponent } from "@/components/Chat";
+import { MessageContentBodyComponent } from "@/components/Chat";
 // types
 import type { ChannelMessages, Channels } from "@/types/Channel";
 import type { MessagePagination, Typing, UploadedFiles } from "@/types/Chat";
-import type { User } from "@/types/User";
-import { formatTimeShort, formatDateLong } from "@/helpers";
+import type { UserSessionData } from "@/types/User";
+import { formatDateLong } from "@/helpers";
 
-const currentUser = inject<User>("user");
+const currentUser = inject<UserSessionData>("user");
 const isLoadMore = ref(true)
 const pagination = ref<MessagePagination>({
   offset: 0,
@@ -148,32 +148,18 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
       <v-col v-for="message in channelMessage" :key="message._id" cols="12" :id="`col-${message._id}`"
         @mouseover="showActionMenu(true, message._id)" class="ma-1 pa-2 column__wrapper">
         <v-sheet :key="`message-wrapper-${message._id}`" class="transparent">
+          <!-- Thread Chip -->
           <message-thread-chip-component v-if="message.thread" :key="`channel-thread-chip-${message._id}`"
             :message="(message as ChannelMessages)"
             @update:thread-messages="$emit('update:threadMessages', $event as ChannelMessages)">
           </message-thread-chip-component>
-          <v-sheet class="transparent d-inline" :id="`message-content-wrapper-${message._id}`">
-            {{ formatTimeShort(message.createdAt) }}
-            <span class="font-weight-bold text-teal" v-if="message.from === currentUser?._uuid">
-              {{ message.fromName }}:
-            </span>
-            <span class="font-weight-bold text-blue" v-else>
-              {{ message.fromName }}:
-            </span>
-            <span v-if="message.editContent" class="text-caption me-1">
-              {{ $lang("chat.text.edited") }}  <p v-html="message.content" class="d-inline"></p> </span>
-            <span class="text-left" v-else> <p v-html="message.content" class="d-inline"></p>
-              <message-files-component v-if="message.files" :files="message.files" :message-id="message._id"
-                @update:delete-file="$emit('update:deleteFile', $event)"
-                @update:downdload-file="$emit('update:downdloadFile', $event)">
-              </message-files-component>
-            </span>
-            <!-- reactions -->
-            <message-reaction-component v-if="message.reactions" :key="`reaction-${message._id}`"
-              :message-id="message._id" :reactions="message.reactions"
-              @update:message-reaction="$emit('update:messageReaction', $event)">
-            </message-reaction-component>
-          </v-sheet>
+          <!-- Body -->
+          <message-content-body-component :key="message._id" :message="message"
+            :current-user="currentUser" @update:delete-file="$emit('update:deleteFile', $event)"
+            @update:downdload-file="$emit('update:downdloadFile', $event)"
+            @update:message-reaction="$emit('update:messageReaction', $event)">
+          </message-content-body-component>
+          <!-- message-action-menu -->
           <message-action-menu v-if="actionMenuID === message._id" :message-value="actionMenuID"
             :key="`action-menu${message._id}`" :message="message" :action-menu="actionMenu"
             @edit-message="$emit('editMessage', $event)" @delete-message="$emit('deleteMessage', $event)"
@@ -233,5 +219,9 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
   background-color: rgb(var(--v-theme-on-surface-variant));
   height: auto;
   border-radius: 6px;
+}
+.last-row {
+  scroll-snap-align: end;
+  scroll-margin-bottom: 20px;
 }
 </style>

@@ -2,6 +2,7 @@ import type {
   MessageThread,
   MessagePagination,
   MessageReactions,
+  UploadedFiles
 } from "./Chat";
 
 interface User {
@@ -45,7 +46,7 @@ type UserMessages = {
   content: string;
   editContent?: string;
   fromSelf?: boolean;
-  files?: File[] | null;
+  files?: UploadedFiles[];
   seen?: boolean;
   last?: boolean;
   thread?: MessageThread[];

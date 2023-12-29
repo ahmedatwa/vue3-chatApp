@@ -2,7 +2,6 @@
 import { ref, onMounted, nextTick } from "vue";
 import { UserSettings, UserSessionData } from "@/types/User"
 
-const dialog = ref(false)
 const isAlert = ref(false)
 
 // Settings
@@ -14,10 +13,12 @@ const settingsForm = ref<UserSettings>({
 
 
 const props = defineProps<{
+  modelValue: boolean;
   user: UserSessionData | undefined;
 }>()
 const emit = defineEmits<{
   "update:settings": [value: UserSettings];
+  "update:modelValue": [value: boolean];
 }>();
 
 const saveSettings = () => {
@@ -37,22 +38,20 @@ onMounted(() => {
 })
 </script>
 <template>
-  <v-sheet @click.stop="dialog = !dialog">
-    {{ $lang('header.preferences') }}
-  </v-sheet>
-  <v-dialog v-model="dialog">
+  <v-dialog :model-value="modelValue">
     <v-card class="mx-auto">
       <v-card-title>
         <v-icon icon="mdi-account-cog-outline"></v-icon> {{ $lang('header.preferences') }}
-        <v-icon icon="mdi-close-circle-outline" color="red" class="float-right" @click="dialog = !dialog"></v-icon>
+        <v-icon icon="mdi-close-circle-outline" color="red" class="float-right"
+          @click="$emit('update:modelValue', false)"></v-icon>
       </v-card-title>
       <v-divider :thickness="3" color="info"></v-divider>
       <v-card-text>
         <v-sheet class="ma-4 px-4">
           <v-alert v-if="isAlert" closable :text="$lang('header.success', ['settings'])" type="success"
             variant="tonal"></v-alert>
-          <v-switch :label="$lang('header.input.toggleDark')" hide-details v-model="settingsForm.theme"
-            true-value="dark" false-value="light" color="success"></v-switch>
+          <v-switch :label="$lang('header.input.toggleDark')" hide-details v-model="settingsForm.theme" true-value="dark"
+            false-value="light" color="success"></v-switch>
           <v-switch :label="$lang('header.input.leftOff')" true-value="1" false-value="0" hide-details
             v-model="settingsForm.leftOff" color="success">
           </v-switch>

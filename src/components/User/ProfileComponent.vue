@@ -3,7 +3,6 @@ import { ref, onMounted, computed } from "vue";
 import type { UserSessionData } from "@/types/User";
 import { capitalize } from "@/helpers";
 
-const dialog = ref(false)
 const previewURL = ref("");
 const profileForm = ref<{ displayName: string; image: File | null }>({
     displayName: "",
@@ -12,10 +11,12 @@ const profileForm = ref<{ displayName: string; image: File | null }>({
 const isAlert = ref(false);
 
 const props = defineProps<{
+    modelValue: boolean;
     user: UserSessionData | undefined;
 }>()
 const emit = defineEmits<{
     "update:profile": [value: { displayName: string; image: File | null }];
+    "update:modelValue": [value: boolean];
 }>();
 
 const saveProfile = () => {
@@ -70,14 +71,12 @@ const fullName = computed(() => {
 })
 </script>
 <template>
-    <v-sheet @click.stop="dialog = !dialog">
-        {{ $lang('header.profile') }}
-    </v-sheet>
-    <v-dialog v-model="dialog">
+    <v-dialog :model-value="modelValue">
         <v-card class="mx-auto" width="400">
             <v-card-title>
-               <v-icon icon="mdi-account-settings"></v-icon> {{ $lang('header.profile') }}
-                <v-icon icon="mdi-close-circle-outline" color="red" class="float-right" @click="dialog = !dialog"></v-icon>
+                <v-icon icon="mdi-account-settings"></v-icon> {{ $lang('header.profile') }}
+                <v-icon icon="mdi-close-circle-outline" color="red" class="float-right"
+                    @click="$emit('update:modelValue', false)"></v-icon>
             </v-card-title>
             <v-divider :thickness="3" color="info"></v-divider>
             <v-card-text>

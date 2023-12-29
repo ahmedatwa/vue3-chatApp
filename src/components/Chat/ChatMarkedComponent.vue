@@ -38,8 +38,15 @@ const emit = defineEmits<{
  
 
 watch(bold, (newB) => {
-  emit("update:format", { key: 'bold', value: newB })
+  emit("update:format", { key: 'strong', value: newB })
+})
 
+watch(italic, (newB) => {
+  emit("update:format", { key: 'i', value: newB })
+})
+
+watch(underline, (newB) => {
+  emit("update:format", { key: 'u', value: newB })
 })
 </script>
 
