@@ -1,3 +1,5 @@
+import type { UploadedFiles } from "./Chat";
+
 interface ChannelMessage {
   _id: number;
   _channelID: string;
@@ -61,7 +63,7 @@ interface NewDirectMessage {
   content: string;
   editContent?: string;
   fromSelf?: boolean;
-  file?: File[] | null;
+  file?: UploadedFiles[];
   seen?: boolean;
   last?: boolean;
   thread?: [];

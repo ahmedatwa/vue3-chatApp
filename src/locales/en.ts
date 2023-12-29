@@ -65,11 +65,10 @@ export default {
       emoji: "Find another reaction",
       confirm: "Are you sure you want to {0}? This can't be undone.",
       downloaded: "Downloaded: ",
-      searchTenor: "Search Tenor..."
+      searchTenor: "Search Tenor...",
     },
     help: {
       newLine: "Shift + Return to add new line",
-
     },
     button: {
       loadMore: "Load More",
@@ -88,9 +87,13 @@ export default {
       delete: "Delete {0}",
       download: "Download {0}",
     },
+    success: {
+      clear: "Success: Downloads have been cleared.",
+      status: "Success: You have changed status.",
+    },
     error: {
       upload: "Warning: Max Upload File Size Exceeds 100kb. filename {0}",
-      download: "Error: File can't be downloaded."
+      download: "Error: File can't be downloaded.",
     },
     rules: {
       required: "Field is required min 3 characters",
@@ -104,7 +107,8 @@ export default {
     offline: "Set yourself as {0}",
     signOut: "Sign out",
     searchLabel: "Search...",
-    textEmptyDownloads: "Keep track of your downloads. Files you downloaded to your computed will appear here.",
+    textEmptyDownloads:
+      "Keep track of your downloads. Files you downloaded to your computed will appear here.",
     success: "Success: You have updated {0}",
     error: "Warning: Error has occured.",
     input: {
@@ -125,8 +129,6 @@ export default {
   //   userProfile: "Profile",
   //   userSettings: "Settings",
   //   userDownloads: "Downloads",
-    
-    
-    
+
   // },
 };

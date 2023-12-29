@@ -26,7 +26,7 @@ export function useMarkdown(
     ranges.value.map((range) => range.getBoundingClientRect())
   );
 
-  // const pattern = /[\<>]/g;
+   const pattern = /<\/?strong>/g;
 
   // - unordered list
   // **text** bold
@@ -53,35 +53,32 @@ export function useMarkdown(
   const text = computed(() => selection.value?.toString() ?? "");
 
   const result = computed(() => {
-    markedText.value = ""
-    input.value.replace(text.value, markedText.value)
+    if(markedText.value)
+   return input.value.replace(text.value, markedText.value)
   });
 
   const markedText = shallowRef("")
 
   const markedResult = (key: string, value: boolean) => {
-   // result.value = "";
-   console.log(value);
-   
 
-      if (key === "bold") {
-        if (value === true) {
-          markedText.value = `<strong>${text.value}</strong>`;
+    if (value) {
+          markedText.value = text.value.replace(text.value, `<${key}>${text.value}</${key}>`);
         } else {
-          markedText.value.replace(/(<([^>]+)>)/gi, "");
-        }
-      }
-      return markedText.value;
+          markedText.value =  markedText.value.replace(new RegExp(`(<\/?${key}>)`, 'ig'), "");
+        }    
+        
+        console.log(markedText.value);
+        
+        return markedText.value
   };
 
   watchEffect(() => {
     if (format.value) {
-      console.log(text.value);
       const style = toValue(format)
       if(style)
       markedResult(style.key, style.value);
     }
   });
 
-  return { text, rects, selection, result };
+  return { text, rects, selection, result, markedText };
 }

@@ -12,7 +12,7 @@ export const useUserStore = defineStore("userStore", () => {
   const isLoading = ref(false);
   const newAlert = ref<Snackbar | null>(null);
   const allUsers = ref<User[]>([]);
-  const downloadedFiles = ref<UploadedFiles[]>([]);
+  const downloadedFiles = ref<UploadedFiles[] | null>(null);
   const $lang = inject(langKey);
 
   const getAllUsers = async () => {
@@ -179,7 +179,13 @@ export const useUserStore = defineStore("userStore", () => {
         visible,
         connected,
       })
-      .then((_response) => {})
+      .then((response) => {
+        if (response.status === 200)
+          newAlert.value = {
+            text: $lang?.getLine("chat.success.status"),
+            type: "success",
+          };
+      })
       .catch((error) => {
         newAlert.value = {
           code: error.code,
@@ -199,22 +205,9 @@ export const useUserStore = defineStore("userStore", () => {
           _uuid,
         },
       })
-      .then((response) => {
-        if (response.status === 200) {
-          response.data.forEach((file: UploadedFiles) => {
-            downloadedFiles.value.push({
-              _id: file._id,
-              _uuid: file._uuid,
-              _channelID: file._channelID,
-              name: file.name,
-              size: file.size,
-              type: file.type,
-              randomName: file.randomName,
-              path: file.path,
-              createdAt: file.createdAt,
-              url: import.meta.env.VITE_API_ROOT_URL + file.path,
-            });
-          });
+      .then((response) => {        
+        if (response.status === 200 && response.statusText === "OK") {
+          if (response.data.length) downloadedFiles.value = response.data;
         }
       });
   };
@@ -229,11 +222,8 @@ export const useUserStore = defineStore("userStore", () => {
           _uuid,
         },
         responseType: "blob",
-        method: "cors",
       })
       .then((response) => {
-        console.log(response);
-
         const blob = new Blob([response.data], { type: file.type });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -249,11 +239,37 @@ export const useUserStore = defineStore("userStore", () => {
         };
       });
   };
+
+  const clearDownloads = async (_uuid: string) => {
+    await instance
+      .post(_userApi.clearDownloads, {
+        _uuid,
+      })
+      .then((response) => {
+        console.log(response);
+        
+        if (response.status === 200) {
+          downloadedFiles.value = null;
+          newAlert.value = {
+            text: $lang?.getLine("chat.success.clear"),
+            type: "success",
+          };
+        }
+      })
+      .catch((error) => {
+        newAlert.value = {
+          title: error.code,
+          text: error.message,
+          type: "error",
+        };
+      });
+  };
   return {
     newAlert,
     allUsers,
     downloadedFiles,
     mappedUsers,
+    clearDownloads,
     updateUserStatus,
     updateUserSettings,
     downloadFiles,

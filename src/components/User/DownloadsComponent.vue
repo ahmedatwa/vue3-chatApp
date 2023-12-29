@@ -1,28 +1,28 @@
 <script setup lang="ts">
-import { shallowRef, watchEffect } from 'vue';
+import { shallowRef, watchEffect, onMounted } from 'vue';
 // Types
 import type { UploadedFiles } from '@/types/Chat';
 
 const isLoading = shallowRef(true)
-const dialog = shallowRef(false)
 
 const props = defineProps<{
-    downloadedFiles: UploadedFiles[]
+    modelValue: boolean;
+    downloadedFiles: UploadedFiles[] | null
 }>()
 
 const emit = defineEmits<{
+    "update:modelValue": [value: boolean];
     "update:downloads": [value: boolean];
     "update:downloadFile": [value: UploadedFiles];
-    "update:clearDownloads": [value: boolean]
+    "update:clearDownloads": [value: boolean];
 }>()
 
-watchEffect(() => {
-    if (dialog.value) {
-        emit("update:downloads", true)
-    }
+onMounted(() => {
+    emit("update:downloads", true)
 })
 watchEffect(() => {
-    if (props.downloadedFiles.length) {
+    if (props.downloadedFiles) {
+        isLoading.value = true
         setTimeout(() => {
             isLoading.value = false
         }, 500);
@@ -31,23 +31,20 @@ watchEffect(() => {
 
 </script>
 <template>
-    <v-sheet @click.stop="dialog = !dialog">
-        {{ $lang('header.downloads') }}
-    </v-sheet>
-    <v-dialog width="500" v-model="dialog">
+    <v-dialog width="500" :model-value="modelValue">
         <v-card>
             <v-card-title>
                 <v-icon icon="mdi-download-circle-outline"></v-icon> {{ $lang('header.downloads') }}
-                <v-btn variant="flat" @click.stop="$emit('update:clearDownloads', true)">
+                <v-btn variant="flat" @click.stop="$emit('update:clearDownloads', true)" v-if="downloadedFiles !== null">
                     <v-icon icon="mdi-vacuum" color="red"> </v-icon>
                     <v-tooltip activator="parent" location="top">Clear</v-tooltip>
-
                 </v-btn>
-                <v-icon icon="mdi-close-circle-outline" color="red" class="float-right" @click="dialog = !dialog"></v-icon>
+                <v-icon icon="mdi-close-circle-outline" color="red" class="float-right"
+                    @click="$emit('update:modelValue', false)"></v-icon>
             </v-card-title>
             <v-divider :thickness="3" color="info"></v-divider>
             <v-card-text>
-                <v-sheet class="text-center ma-2 pa-4" v-if="!downloadedFiles.length">
+                <v-sheet class="text-center ma-2 pa-4" v-if="downloadedFiles === null">
                     {{ $lang('header.textEmptyDownloads') }}
                 </v-sheet>
                 <v-list lines="one" height="300" v-else>

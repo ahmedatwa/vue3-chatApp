@@ -15,7 +15,7 @@ import socket, { _channelEmits, _channelListener } from "@/client";
 import type { NewThreadMessage, AddMembers } from "@/types/Sockets";
 import type { NewChannel, JoinChannel } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
-import { useDOMPurify } from "@/composables/useDOMPurify";
+import { sanitize } from "@/composables/useDOMPurify";
 
 export const useChannelStore = defineStore("channelStore", () => {
   const sessionStore = useSessionStore();
@@ -70,10 +70,8 @@ export const useChannelStore = defineStore("channelStore", () => {
       await uploadFiles(message.files);
     }
 
-    const { purifiedData } = useDOMPurify(message.content);
-
     // Avoid empty DB Records
-    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+    if (uploadedFiles.value === null && message.content.length < 1) {
       return;
     }
 
@@ -82,7 +80,7 @@ export const useChannelStore = defineStore("channelStore", () => {
         _channelID: selectedChannel.value?._channelID,
         from: sessionStore.userSessionData?._uuid,
         fromName: sessionStore.userSessionData?.displayName,
-        content: purifiedData.value,
+        content: sanitize(message.content),
         files: uploadedFiles.value?.map((file) => file._id),
         createdAt: createDateTime(),
       })
@@ -116,16 +114,15 @@ export const useChannelStore = defineStore("channelStore", () => {
       });
   };
 
-  const sendMessageThread = async (payload: SendThreadPayload) => {
+  const sendMessageThread = async (message: SendThreadPayload) => {
     isLoading.thread = true;
     // save Files
-    if (payload.files?.length) {
-      await uploadFiles(payload.files);
+    if (message.files?.length) {
+      await uploadFiles(message.files);
     }
-    const { purifiedData } = useDOMPurify(payload.content);
 
     // Avoid empty DB Records
-    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+    if (uploadedFiles.value === null && message.content.length < 1) {
       return;
     }
 
@@ -133,18 +130,18 @@ export const useChannelStore = defineStore("channelStore", () => {
       .post(_channelApi.addChannelMessageThread, {
         from: sessionStore.userSessionData?._uuid,
         fromName: sessionStore.userSessionData?.displayName,
-        to: payload.to,
-        toName: payload.toName,
-        _channelID: payload._channelID,
-        _messageID: payload._messageID,
-        content: purifiedData.value,
+        to: message.to,
+        toName: message.toName,
+        _channelID: message._channelID,
+        _messageID: message._messageID,
+        content: sanitize(message.content),
         createdAt: createDateTime(),
       })
       .then((response) => {
         if (response.data) {
           if (selectedChannel.value?.messages) {
             const _message = selectedChannel.value?.messages.find(
-              (o) => o._id === payload._messageID
+              (o) => o._id === message._messageID
             );
             if (_message) {
               _message.thread.push(response.data);
@@ -156,8 +153,8 @@ export const useChannelStore = defineStore("channelStore", () => {
               _channelID: response.data._channelID,
               from: response.data.from,
               fromName: response.data.fromName,
-              to: payload.to,
-              toName: payload.toName,
+              to: message.to,
+              toName: message.toName,
               content: response.data.content,
               createdAt: response.data.createdAt,
             });
@@ -435,7 +432,7 @@ export const useChannelStore = defineStore("channelStore", () => {
     if (selectedChannel.value?.messages) {
       isMessageDelete.value = true;
       await instance
-        .post(_channelApi.deleteChannelMessage, { _messageID })
+        .post(_channelApi.deleteChannelMessage, { _id: _messageID })
         .then((response) => {
           if (response.statusText === "OK" && response.status === 200) {
             if (selectedChannel.value?.messages) {
@@ -463,7 +460,7 @@ export const useChannelStore = defineStore("channelStore", () => {
 
   // checked editChannelMessage
   const editChannelMessage = async (message: {
-    _messageId: string | number;
+    _messageID: string | number;
     editContent: string;
     content: string;
     updatedAt: string;
@@ -472,7 +469,10 @@ export const useChannelStore = defineStore("channelStore", () => {
       isMessageEdit.value = true;
       await instance
         .post(_channelApi.updateChannelMessage, {
-          ...message,
+          _id: message._messageID,
+          content: sanitize(message.content),
+          editContent: sanitize(message.editContent),
+          updatedAt: message.updatedAt,
         })
         .catch((error) => {
           newAlert.value = {

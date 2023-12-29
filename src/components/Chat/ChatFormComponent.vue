@@ -5,7 +5,6 @@ import { ChatEmojiComponent, ChatTenorComponent } from "@/components/Chat";
 import type { TenorGifs } from "@/types/Chat";
 
 import { useMarkdown } from "@/composables/useMarkdown"
-import { watchEffect } from "vue";
 
 
 const formInputValue = ref("sdsds ahmed test")
@@ -98,16 +97,6 @@ const updateTenor = () => {
 
 const {result, text } = useMarkdown(formInputValue, formatting)
 
-
-watchEffect(() => {
-  // if (text.value.length) {
-  //   nextTick(() => {
-
-
-  //   })
-  // }
-})
-
 </script>
 
 <template>
@@ -115,8 +104,9 @@ watchEffect(() => {
     <v-card elevation="4" :id="`message-form-wrapper-${id}`">
       <v-slide-x-transition>
         <v-card-text v-if="text" class="pa-1">
-          <p v-html="result"></p>
-          <p v-html="text"></p>
+          result: <p v-html="result"></p>
+         selected:  <p v-html="text"></p>
+          
         </v-card-text>
         <v-card-text v-else-if="uploadedFiles" class="pa-1">
           <div class="d-flex flex-wrap">

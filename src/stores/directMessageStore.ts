@@ -11,7 +11,7 @@ import type { User } from "@/types/User";
 import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
-import { useDOMPurify } from "@/composables/useDOMPurify";
+import { sanitize } from "@/composables/useDOMPurify";
 
 export const useDirectMessageStore = defineStore("directMessageStore", () => {
   // Stores
@@ -69,17 +69,15 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     if (message.files) {
       await uploadFiles(message.files);
     }
-    const { purifiedData } = useDOMPurify(message.content);
 
     // Avoid empty DB Records
-    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+    if (uploadedFiles.value === null && message.content.length < 1) {
       return;
     }
-
+    
     await instance
       .post(_directMessageApi.sendMessage, {
-        content: purifiedData.value,
-        editContent: "",
+        content: sanitize(message.content),
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
         _channelID: selectedUser.value?._channelID,
@@ -119,20 +117,18 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   };
 
   const sendThreadMessage = async (message: SendThreadPayload) => {
-    const { purifiedData } = useDOMPurify(message.content);
-
     if (message.files?.length) {
       await uploadFiles(message.files);
     }
     // Avoid empty DB Records
-    if (uploadedFiles.value === null && purifiedData.value.length < 1) {
+    if (uploadedFiles.value === null && message.content.length < 1) {
       return;
     }
 
     await instance
       .post(_directMessageApi.sendThreadMessage, {
         _messageID: message._messageID,
-        content: purifiedData.value,
+        content: sanitize(message.content),
         from: sessionStore.userSessionData?._uuid,
         to: selectedUser.value?._uuid,
         files: uploadedFiles.value,
@@ -296,7 +292,10 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
       isLoading.messages = true;
       await instance
         .post(_directMessageApi.updateMessage, {
-          ...message,
+          _id: message._messageID,
+          content: sanitize(message.content),
+          editContent: sanitize(message.editContent),
+          updatedAt: message.updatedAt,
         })
         .catch((error) => {
           newAlert.value = {
@@ -315,7 +314,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     if (selectedUser.value?.messages) {
       isLoading.messages = true;
       await instance
-        .post(_directMessageApi.deleteMessage, { _messageID })
+        .post(_directMessageApi.deleteMessage, { _id: _messageID })
         .then((response) => {
           if (response.statusText === "OK" && response.status === 200) {
             if (selectedUser.value?.messages) {

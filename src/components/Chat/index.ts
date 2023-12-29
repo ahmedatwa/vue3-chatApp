@@ -14,6 +14,7 @@ import MessageDeleteComponent from "./Message/MessageDeleteComponent.vue";
 import MessageEditComponent from "./Message/MessageEditComponent.vue";
 import MessageThreadComponent from "./Message/MessageThreadComponent.vue";
 import MessageFilesComponent from "./Message/MessageFilesComponent.vue";
+import MessageContentBodyComponent from "./Message/MessageContentBodyComponent.vue";
 
 export {
   ChatComponent,
@@ -29,5 +30,6 @@ export {
   MessageDeleteComponent,
   MessageThreadComponent,
   MessageFilesComponent,
-  ChatTenorComponent
+  ChatTenorComponent,
+  MessageContentBodyComponent,
 };
