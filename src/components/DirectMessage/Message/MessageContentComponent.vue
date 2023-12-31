@@ -2,7 +2,7 @@
 import { ref, computed, inject } from "vue";
 import { watchEffect, nextTick } from "vue";
 import { formatDateLong } from "@/helpers";
-import { MessageActionMenu, MessageThreadChipComponent } from "@/components/Chat";
+import { MessageActionMenuComponent, MessageThreadChipComponent } from "@/components/Chat";
 import { MessageContentBodyComponent } from "@/components/Chat";
 // types
 import type { User, UserMessages, UserSessionData } from "@/types/User";
@@ -109,11 +109,13 @@ watchEffect(() => {
 });
 
 watchEffect(() => {
-  if (props.selectedUser?.messages?.length) {
+ // if (props.selectedUser?.messages?.length) {
     if (props.isScroll) {
+      console.log(props.isScroll);
+      
       scroll(props.isScroll);
     }
-  }
+ // }
 });
 
 
@@ -139,10 +141,7 @@ const scroll = (direction: { start: boolean, end: boolean }) => {
 
 const loadMoreDisabled = computed(() => {
   if (props.selectedUser?.messages)
-    if (pagination.value.total === props.selectedUser?.messages?.length) {
-      return false
-    }
-  return true
+   return pagination.value.total > props.selectedUser?.messages?.length ? true : false
 })
 
 const showActionMenu = (visible: boolean, id: string | number | null) => {
@@ -179,13 +178,13 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
             @update:message-reaction="$emit('update:messageReaction', $event)">
           </message-content-body-component>
           <!-- message-action-menu -->
-          <message-action-menu v-if="actionMenuID === message._id" :message-value="actionMenuID"
+          <message-action-menu-component v-if="actionMenuID === message._id" :message-value="actionMenuID"
             :key="`action-menu${message._id}`" :selected-user="selectedUser" :message="message" :action-menu="actionMenu"
             @edit-message="$emit('editMessage', $event)" @delete-message="$emit('deleteMessage', $event)"
             @update:action-menu="actionMenu = $event" @update:message-value="actionMenuID = $event"
             @update:thread-messages="$emit('update:threadMessages', $event as UserMessages)"
             @update:messageReaction="$emit('update:messageReaction', $event)">
-          </message-action-menu>
+          </message-action-menu-component>
         </v-sheet>
       </v-col>
     </v-row>

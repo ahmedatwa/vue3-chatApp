@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref } from "vue"
+import { ref, onMounted } from "vue"
 import { formatTimeShort, writeClipboard } from "@/helpers"
 // types
 import type { UserSessionData } from "@/types/User";
 
-const isEditing = ref(false)
 const isCopied = ref(false)
 const dialog = ref(false)
+const topic = ref("")
 
 // Props
 const props = defineProps<{
@@ -15,12 +15,17 @@ const props = defineProps<{
 
 // emits
 const emit = defineEmits<{
+  "update:userSettings": [value: { key: string, value: string }]
 }>();
 
 const copyChannelID = () => {
   if (props.currentUser) writeClipboard(props.currentUser._uuid);
   isCopied.value = true;
 };
+
+onMounted(() => {
+  if (props.currentUser?.topic) topic.value = props.currentUser.topic
+})
 
 </script>
 <template>
@@ -49,16 +54,10 @@ const copyChannelID = () => {
       <v-card-text>
         <v-sheet :border="true" class="ma-2 pa-2" rounded>
           <p>{{ $lang('directMessages.textTopic') }}</p>
-          <v-textarea clearable :label="$lang('directMessages.textAddTopic')" :readonly="!isEditing" rows="1"
-          row-height="15">
-            <template v-slot:append>
-              <v-slide-x-reverse-transition mode="out-in">
-                <v-icon :key="`icon-${isEditing}`" :color="isEditing ? 'success' : 'info'"
-                  :icon="isEditing ? 'mdi-check-outline' : 'mdi-circle-edit-outline'"
-                  @click="isEditing = !isEditing"></v-icon>
-              </v-slide-x-reverse-transition>
-            </template>
-          </v-textarea>
+          <v-text-field v-model="topic" clearable :label="$lang('directMessages.textAddTopic')"
+            append-icon="mdi-content-save-edit-outline"
+            @click:append="$emit('update:userSettings', { key: 'topic', value: topic })">
+          </v-text-field>
         </v-sheet>
         <v-sheet :border="true" class="ma-2 pa-2" rounded>
           <p class="my-2"><v-icon icon="mdi-clock-time-four-outline"></v-icon>

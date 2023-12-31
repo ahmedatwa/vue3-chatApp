@@ -7,7 +7,11 @@ import { nanoid } from "nanoid";
 import { remove, createDateTime, capitalize } from "@/helpers";
 // types
 import type { Snackbar, UploadedFiles, Typing } from "@/types/Chat";
-import type { SendThreadPayload, TenorGifs } from "@/types/Chat";
+import type {
+  SendThreadPayload,
+  TenorGifs,
+  MessageReactions,
+} from "@/types/Chat";
 import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel";
 import type { ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket
@@ -117,7 +121,7 @@ export const useChannelStore = defineStore("channelStore", () => {
   const sendMessageThread = async (message: SendThreadPayload) => {
     isLoading.thread = true;
     // save Files
-    if (message.files?.length) {
+    if (message.files) {
       await uploadFiles(message.files);
     }
 
@@ -591,32 +595,32 @@ export const useChannelStore = defineStore("channelStore", () => {
       });
   };
 
-  const updateMessageReaction = (event: {
-    _id: string | number;
-    emoji: string;
-  }) => {
+  const updateMessageReaction = (reaction: MessageReactions) => {
     instance
       .post(_channelApi.updateMessageReaction, {
-        _messageID: event._id,
-        _channelID: selectedChannel.value?._channelID,
-        _uuid: sessionStore.userSessionData?._uuid,
-        displayName: sessionStore.userSessionData?.displayName,
-        emoji: event.emoji,
+        ...reaction,
       })
       .then((response) => {
-        if (response.status === 200) {
-          const found = selectedChannel.value?.messages?.find(
-            (message) => message._id === event._id
-          );
-
-          if (found) {
-            const emojiIndex = found.reactions?.findIndex(
-              (emoji) => emoji.emoji === event.emoji
+        if (response.status === 200 && response.statusText === "OK") {
+          if (selectedChannel.value) {
+            const message = selectedChannel.value.messages.find(
+              (message) => message._id === reaction._messageID
             );
-            if (emojiIndex) {
-              found.reactions?.splice(emojiIndex, 1);
-            } else {
-              found.reactions?.push({ ...response.data, total: 1 });
+            if (message?.reactions) {
+              if (message.reactions?.length > 0) {
+                const index = message.reactions?.findIndex(
+                  (emoji) => emoji._uuid === reaction._uuid
+                );
+
+                if (index > -1) {
+                  message.reactions?.splice(index, 1);
+                }
+              } else {
+                message.reactions?.push({
+                  ...response.data,
+                  total: 1,
+                });
+              }
             }
           }
         }
@@ -678,7 +682,6 @@ export const useChannelStore = defineStore("channelStore", () => {
     _uuid: string;
     setting: ChannelSettings;
   }) => {
-    isLoading.channels = true;
     instance
       .post(_channelApi.addChannelSettings, {
         ...settings,
@@ -686,8 +689,7 @@ export const useChannelStore = defineStore("channelStore", () => {
       .then((response) => {
         if (response.statusText === "Created") {
           newAlert.value = {
-            title: $lang?.getLine("channel.success.updated"),
-            text: "",
+            text: $lang?.getLine("channel.success.updated"),
             type: "success",
           };
         }
@@ -699,9 +701,6 @@ export const useChannelStore = defineStore("channelStore", () => {
           type: "error",
         };
       })
-      .finally(() => {
-        isLoading.channels = false;
-      });
   };
 
   // Channel Selected

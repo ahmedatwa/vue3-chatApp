@@ -167,17 +167,18 @@ export const useUserStore = defineStore("userStore", () => {
       });
   };
 
-  const updateUserStatus = async (
+  const updateUser = async (
     _uuid: string | number,
-    connected: boolean | null,
-    visible: boolean | null
+    data: {
+      key: string;
+      value: boolean | string;
+    }
   ) => {
     isLoading.value = true;
     await instance
-      .post(_userApi.updateUserStatus, {
+      .post(_userApi.updateUser, {
         _uuid,
-        visible,
-        connected,
+        data,
       })
       .then((response) => {
         if (response.status === 200)
@@ -205,7 +206,7 @@ export const useUserStore = defineStore("userStore", () => {
           _uuid,
         },
       })
-      .then((response) => {        
+      .then((response) => {
         if (response.status === 200 && response.statusText === "OK") {
           if (response.data.length) downloadedFiles.value = response.data;
         }
@@ -247,7 +248,7 @@ export const useUserStore = defineStore("userStore", () => {
       })
       .then((response) => {
         console.log(response);
-        
+
         if (response.status === 200) {
           downloadedFiles.value = null;
           newAlert.value = {
@@ -270,7 +271,7 @@ export const useUserStore = defineStore("userStore", () => {
     downloadedFiles,
     mappedUsers,
     clearDownloads,
-    updateUserStatus,
+    updateUser,
     updateUserSettings,
     downloadFiles,
     getUser,

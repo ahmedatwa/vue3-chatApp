@@ -2,15 +2,20 @@
 import { ref, computed, watch } from "vue";
 import { ChatUploadComponent, ChatMarkedComponent } from "@/components/Chat";
 import { ChatEmojiComponent, ChatTenorComponent } from "@/components/Chat";
+import RecorderComponent from "./Message/RecorderComponent.vue";
 import type { TenorGifs } from "@/types/Chat";
 
 import { useMarkdown } from "@/composables/useMarkdown"
+import { watchEffect } from "vue";
 
 
 const formInputValue = ref("sdsds ahmed test")
 const uploadedFiles = ref<File[] | null>(null);
 const error = ref("");
 const isEmoji = ref(false);
+const isAudioRecording = ref(false)
+const audioSrc = ref()
+const audioType = ref("")
 
 const formatting = ref<{ key: string, value: boolean } | null>(null);
 // const bold = ref(false)
@@ -95,7 +100,15 @@ const updateTenor = () => {
   uploadedFiles.value = null
 }
 
-const {result, text } = useMarkdown(formInputValue, formatting)
+watchEffect(() => {
+
+})
+
+const { result, text } = useMarkdown(formInputValue, formatting)
+
+// if(result.value) {
+//   formInputValue.value = result.value
+// }
 
 </script>
 
@@ -103,10 +116,10 @@ const {result, text } = useMarkdown(formInputValue, formatting)
   <v-form :id="`chat-input-${id}`" :key="`chat-input-${id}`" @submit.prevent="submitForm">
     <v-card elevation="4" :id="`message-form-wrapper-${id}`">
       <v-slide-x-transition>
-        <v-card-text v-if="text" class="pa-1">
-          result: <p v-html="result"></p>
-         selected:  <p v-html="text"></p>
-          
+        <v-card-text v-if="text" class="pa-1 w-100">
+          result: <p class="d-inline" v-html="result"></p><br />
+          selected: <p class="d-inline" v-html="text"></p>
+
         </v-card-text>
         <v-card-text v-else-if="uploadedFiles" class="pa-1">
           <div class="d-flex flex-wrap">
@@ -122,6 +135,11 @@ const {result, text } = useMarkdown(formInputValue, formatting)
             <v-btn icon="mdi-close-thick" variant="flat" density="compact" color="red" @click.prevent="tenorGif = null">
             </v-btn>
           </div>
+        </v-card-text>
+        <v-card-text v-else-if="isAudioRecording">
+          <v-chip size="x-large" closable @click:close="isAudioRecording = false">
+            <audio controls :src="audioSrc" :type="audioType"></audio>
+          </v-chip>
         </v-card-text>
       </v-slide-x-transition>
 
@@ -139,10 +157,12 @@ const {result, text } = useMarkdown(formInputValue, formatting)
           <chat-emoji-component icon size="default" @update:open="isEmoji = $event"
             @update:selected="formInputValue += $event" offset="40" location="left">
           </chat-emoji-component>
-          <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor">
+          <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor"
+            offset="0" location="right">
           </chat-tenor-component>
           <v-divider :thickness="3" color="info" vertical></v-divider>
-
+          <recorder-component @update:recording-start="isAudioRecording = $event"
+            @update:recording-src="audioSrc = $event" @update:recording-type="audioType = $event"></recorder-component>
           <chat-marked-component @update:format="formatting = $event" :key="`chat-marked-${id}`"></chat-marked-component>
 
         </v-sheet>

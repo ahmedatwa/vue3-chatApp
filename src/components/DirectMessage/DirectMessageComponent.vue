@@ -51,6 +51,7 @@ const emit = defineEmits<{
   "update:formatting": [value: string[]];
   "update:alignment": [value: string];
   "update:selectedTxt": [value: string];
+  "update:userSettings": [value: { key: string, value: string }]
 }>();
 
 const updateMessageReaction = (event: { _id: string | number; emoji: string }) => {
@@ -79,7 +80,8 @@ const updateThread = (message: UserMessages) => {
         <v-card class="mx-auto" id="container" :loading="isLoading.messages">
           <v-card-title>
             <direct-manage-component :current-user="currentUser"
-              ></direct-manage-component>
+              @update:user-settings="$emit('update:userSettings', $event)">
+            </direct-manage-component>
           </v-card-title>
           <v-divider :thickness="3" color="success"></v-divider>
           <message-content-component :key="`direct-${user?._uuid}`" :selected-user="user" :is-loading="isLoading"

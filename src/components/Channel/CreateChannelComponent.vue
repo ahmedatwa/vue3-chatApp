@@ -124,7 +124,7 @@ const createdBy = computed(() => {
               </template>
             </v-text-field>
             <v-textarea :label="$lang('channel.input.description')" v-model="channelForm.channelDescription" clearable
-              prepend-inner-icon="mdi-information-outline" auto-grow>
+              prepend-inner-icon="mdi-information-outline" rows="2" row-height="20" auto-grow>
               <template v-slot:append v-if="!create">
                 <v-slide-x-reverse-transition mode="out-in">
                   <v-btn icon variant="text" :key="`desc-${isEditDesc}`"

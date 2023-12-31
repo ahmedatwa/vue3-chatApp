@@ -26,7 +26,7 @@ export function useMarkdown(
     ranges.value.map((range) => range.getBoundingClientRect())
   );
 
-   const pattern = /<\/?strong>/g;
+  const pattern = /<\/?strong>/g;
 
   // - unordered list
   // **text** bold
@@ -43,7 +43,7 @@ export function useMarkdown(
 
   function onSelectionChange() {
     selection.value = null; // trigger computed update
-    if(window) selection.value = window.getSelection();
+    if (window) selection.value = window.getSelection();
   }
 
   if (window) {
@@ -51,32 +51,27 @@ export function useMarkdown(
   }
 
   const text = computed(() => selection.value?.toString() ?? "");
-
-  const result = computed(() => {
-    if(markedText.value)
-   return input.value.replace(text.value, markedText.value)
-  });
-
-  const markedText = shallowRef("")
+  const result = computed(() => markedText.value);
+  const markedText = shallowRef("");
 
   const markedResult = (key: string, value: boolean) => {
-
-    if (value) {
-          markedText.value = text.value.replace(text.value, `<${key}>${text.value}</${key}>`);
-        } else {
-          markedText.value =  markedText.value.replace(new RegExp(`(<\/?${key}>)`, 'ig'), "");
-        }    
-        
-        console.log(markedText.value);
-        
-        return markedText.value
+ 
+    markedText.value = text.value
+    console.log( markedText.value);
+    
+    
+    return "**" + text.value + "**";
+    
+      // markedText.value = text.replace(new RegExp(`(<\/?${key}>)`, "ig"), "");
+    
+      
   };
 
   watchEffect(() => {
     if (format.value) {
-      const style = toValue(format)
-      if(style)
-      markedResult(style.key, style.value);
+      const style = toValue(format);
+      
+      if (style) markedResult(style.key, style.value);
     }
   });
 

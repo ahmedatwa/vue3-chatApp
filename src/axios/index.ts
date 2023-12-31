@@ -16,7 +16,7 @@ export const _userApi = {
   createUser: "/createUser",
   getUser: "/getUser",
   updateUserSettings: "/updateUserSettings",
-  updateUserStatus: "/updateUserStatus",
+  updateUser: "/updateUser",
   getUserFilesDownloads: "/getUserFilesDownloads",
   downloadFile: "/downloadFile",
   clearDownloads: "/clearDownloads"

@@ -31,17 +31,17 @@ watch(isDialog, (value) => {
         <v-icon icon="mdi-delete-forever" color="red" size="large"></v-icon>
         <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
         <v-dialog v-model="isDialog" :id="`edit-message${message._id}`" transition="dialog-bottom-transition"
-            class="mx-auto" width="450" height="300">
+            class="mx-auto" width="auto" height="300">
             <v-card>
                 <v-card-title>
-                    <v-icon icon="mdi-circle-edit-outline"></v-icon>
+                    <v-icon icon="mdi-delete-empty-outline"></v-icon>
                     {{ $lang("chat.text.deleteMessage") }}
                     <v-icon class="float-right" icon="mdi-close-circle-outline" @click="isDialog = false"
                         color="error"></v-icon>
                 </v-card-title>
                 <v-divider :thickness="3" color="success"></v-divider>
                 <v-card-text>
-                    <p class="text-body-1">
+                    <p class="text-body-1 mb-3">
                         {{ $lang("chat.text.confirm", ["delete this message"]) }}
                     </p>
                     <v-sheet :border="true" rounded elevation="1" class="pa-4 w-100">

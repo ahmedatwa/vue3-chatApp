@@ -303,7 +303,7 @@ const clearDownloads = () => {
 const addSelectedChatUser = async (_uuid: string) => {
   const found = directMessageStore.users.find((u) => u._uuid === _uuid);
   if (found === undefined) {
-    await userStore.updateUserStatus(_uuid, null, true);
+    await userStore.updateUser(_uuid, { key: "visible", value: true });
     if (userStore.allUsers) {
       userStore.allUsers.forEach((user: User) => {
         if (user._uuid === _uuid) {
@@ -316,7 +316,20 @@ const addSelectedChatUser = async (_uuid: string) => {
     }
   } else {
     found.visible = true;
-    await userStore.updateUserStatus(_uuid, null, true);
+    await userStore.updateUser(_uuid, { key: "visible", value: true });
+  }
+};
+
+const removeUser = async (user: User) => {
+  const index = directMessageStore.users.findIndex(
+    (u) => u._uuid === user._uuid
+  );
+  if (index) {
+    directMessageStore.users.splice(index, 1);
+    directMessageStore.selectedUser = null;
+  }
+  if (sessionStore.userSessionData) {
+    userStore.updateUser(user._uuid, { key: "visible", value: false });
   }
 };
 
@@ -351,6 +364,12 @@ const updateSettings = (setting: UserSettings) => {
   }
 };
 
+const updateUser = ($event: { key: string; value: string | boolean }) => {  
+  if (sessionStore.userSessionData?._uuid)
+    userStore.updateUser(sessionStore.userSessionData?._uuid, {
+      ...$event,
+    });
+};
 // Channel Loading More
 const loadMoreChannelMessages = (
   _channelID: string | number,
@@ -375,18 +394,6 @@ const loadMoreMessages = (payload: {
 };
 
 // Drawer Component
-const removeUser = async (user: User) => {
-  const index = directMessageStore.users.findIndex(
-    (u) => u._uuid === user._uuid
-  );
-  if (index) {
-    directMessageStore.users.splice(index, 1);
-    directMessageStore.selectedUser = null;
-  }
-  if (sessionStore.userSessionData) {
-    userStore.updateUserStatus(user._uuid, true, false);
-  }
-};
 
 const onSelect = (
   _id: string | number,
@@ -488,6 +495,7 @@ const onSelect = (
           @update:thread-typing="directMessageStore.userTheadTyping"
           @update:delete-file="directMessageStore.deleteFiles"
           @update:downdload-file="DownloadFile"
+          @update:user-settings="updateUser"
         ></direct-message-component>
       </v-container>
     </v-main>

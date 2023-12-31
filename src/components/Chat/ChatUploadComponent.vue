@@ -59,8 +59,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <v-btn icon color="teal" @click="handleUpload" density="compact">
-    <v-icon :icon="isOpen ? 'mdi-minus-circle' : 'mdi-plus-circle'"></v-icon></v-btn>
+  <v-btn :icon="isOpen ? 'mdi-minus-circle' : 'mdi-plus-circle'" color="teal" @click="handleUpload"></v-btn>
   <input class="d-none" ref="inputUpload" type="file" @change="onChange" :accept="uploadSettings.accept"
     :multiple="uploadSettings.multiple" />
 </template>
