@@ -4,7 +4,7 @@ import type { TenorGifs } from "@/types/Chat";
 import { instance } from "@/axios";
 
 export function useTenor(isTenor: Ref<boolean>, searchTerm: Ref<string>) {
-  const apikey = "AIzaSyBiPvrUICvcFDCopwpeFBEu62ocYdX2feE";
+  const apikey = ""; //AIzaSyBiPvrUICvcFDCopwpeFBEu62ocYdX2feE
   const clientkey = "Tenor";
   const lmt = 12;
   const apiURL = shallowRef("https://tenor.googleapis.com/v2/search");
