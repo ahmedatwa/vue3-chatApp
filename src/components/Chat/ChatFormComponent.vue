@@ -14,6 +14,8 @@ const uploadedFiles = ref<File[] | null>(null);
 const error = ref("");
 const isEmoji = ref(false);
 const isAudioRecording = ref(false)
+const audioSrc = ref()
+const audioType = ref("")
 
 const formatting = ref<{ key: string, value: boolean } | null>(null);
 // const bold = ref(false)
@@ -126,8 +128,8 @@ const { result, text } = useMarkdown(formInputValue, formatting)
               {{ file.name }}
             </v-chip>
           </div>
-        </v-card-text> 
-       <v-card-text v-else-if="tenorGif" class="pa-1 tenor_wrapper">
+        </v-card-text>
+        <v-card-text v-else-if="tenorGif" class="pa-1 tenor_wrapper">
           <v-img :src="tenorGif.src" max-width="100" height="100" cover class="image"></v-img>
           <div class="middle">
             <v-btn icon="mdi-close-thick" variant="flat" density="compact" color="red" @click.prevent="tenorGif = null">
@@ -135,11 +137,12 @@ const { result, text } = useMarkdown(formInputValue, formatting)
           </div>
         </v-card-text>
         <v-card-text v-else-if="isAudioRecording">
-          <audio controls ref="audioElement" src="" type="">
-        </audio>
+          <v-chip size="x-large" closable @click:close="isAudioRecording = false">
+          <audio controls :src="audioSrc" :type="audioType"></audio>
+        </v-chip >
         </v-card-text>
       </v-slide-x-transition>
-      
+
       <v-textarea ref="txtareaRef" :name="`input-message-${id}`" id="input-message" :label="textAreaLabel"
         :rows="textAreaRows" :row-height="textAreaRowHeight" :auto-grow="autoGrow" :no-resize="noResize"
         v-model="formInputValue" hide-details="auto" :hint="$lang('chat.help.newLine')" :error-messages="error"
@@ -157,7 +160,8 @@ const { result, text } = useMarkdown(formInputValue, formatting)
           <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor">
           </chat-tenor-component>
           <v-divider :thickness="3" color="info" vertical></v-divider>
-          <recorder-component @update:recording-start="isAudioRecording = $event"></recorder-component>
+          <recorder-component @update:recording-start="isAudioRecording = $event" @update:recording-src="audioSrc = $event"
+            @update:recording-type="audioType = $event"></recorder-component>
           <chat-marked-component @update:format="formatting = $event" :key="`chat-marked-${id}`"></chat-marked-component>
 
         </v-sheet>

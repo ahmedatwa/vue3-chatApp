@@ -7,8 +7,11 @@ const streamBeingCaptured = shallowRef<MediaStream | null>(null)
 const audioElement = shallowRef()
 const isAudioStart = shallowRef(false)
 
+
 const emit = defineEmits<{
     "update:recordingStart": [value: boolean]
+    "update:recordingSrc": [value: string | ArrayBuffer | null | undefined]
+    "update:recordingType": [value: string]
 }>();
 
 const start = async () => {
@@ -60,7 +63,6 @@ const startAudioRecording = () => {
         .then(() => {
             isAudioStart.value = true
             emit("update:recordingStart", isAudioStart.value)
-            console.log("Recording Audio...")
         })
         .catch(error => { //on error
             if (error.message.includes("mediaDevices API or getUserMedia method is not supported in this browser.")) {
@@ -73,7 +75,7 @@ const startAudioRecording = () => {
 const StopAudioRecording = () => {
     stop().then((audioAsblob) => {
         isAudioStart.value = false
-        emit("update:recordingStart", isAudioStart.value)
+       // emit("update:recordingStart", isAudioStart.value)
         playAudio(audioAsblob);
     }).catch(error => {
         switch (error.name) {
@@ -92,8 +94,10 @@ const playAudio = (recorderAudioAsBlob: any) => {
     let reader = new FileReader();
     reader.onload = (e) => {
         let base64URL = e.target?.result;
-        audioElement.value.src = base64URL
-        audioElement.value.type = recorderAudioAsBlob.type
+        emit("update:recordingSrc", base64URL)
+        emit("update:recordingType", recorderAudioAsBlob.type)
+       // audioElement.value.src = base64URL
+       // audioElement.value.type = 
         audioElement.value?.load();
         audioElement.value?.play();
     };
