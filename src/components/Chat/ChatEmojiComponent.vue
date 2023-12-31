@@ -13,8 +13,8 @@ defineProps<{
   tooltip?: string;
   color?: string;
   size?: string;
-  offset?: string | number | number[];
-  location?: any;
+  offset: string | number | number[];
+  location: any;
 }>()
 
 const emit = defineEmits<{
@@ -28,13 +28,13 @@ watch(isEmoji, (value) => {
 
 </script>
 <template>
-  <v-btn @click.stop="isEmoji = !isEmoji" :icon="icon" density="compact">
-    <v-menu v-model="isEmoji" :close-on-content-click="false" target="parent" @mouseleave="isEmoji = false"
+  <v-btn @click.stop="isEmoji = !isEmoji" :icon="icon">
+    <v-icon icon="mdi-emoticon-happy-outline" :color="color" :size="size"></v-icon>
+    <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
+  <v-menu v-model="isEmoji" :close-on-content-click="false" target="parent" @mouseleave="isEmoji = false"
       :offset="offset" :location="location">
       <emoji-picker :native="true" :hide-search="hideSearch" @mouseleave="$emit('update:open', false)"
         :theme="theme.global.name.value" @select="$emit('update:selected', $event.i)"></emoji-picker>
     </v-menu>
-    <v-icon icon="mdi-emoticon-happy-outline" :color="color" :size="size"></v-icon>
-    <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
   </v-btn>
 </template>

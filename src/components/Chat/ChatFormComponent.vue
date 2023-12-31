@@ -138,8 +138,8 @@ const { result, text } = useMarkdown(formInputValue, formatting)
         </v-card-text>
         <v-card-text v-else-if="isAudioRecording">
           <v-chip size="x-large" closable @click:close="isAudioRecording = false">
-          <audio controls :src="audioSrc" :type="audioType"></audio>
-        </v-chip >
+            <audio controls :src="audioSrc" :type="audioType"></audio>
+          </v-chip>
         </v-card-text>
       </v-slide-x-transition>
 
@@ -157,11 +157,12 @@ const { result, text } = useMarkdown(formInputValue, formatting)
           <chat-emoji-component icon size="default" @update:open="isEmoji = $event"
             @update:selected="formInputValue += $event" offset="40" location="left">
           </chat-emoji-component>
-          <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor">
+          <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor"
+            offset="0" location="right">
           </chat-tenor-component>
           <v-divider :thickness="3" color="info" vertical></v-divider>
-          <recorder-component @update:recording-start="isAudioRecording = $event" @update:recording-src="audioSrc = $event"
-            @update:recording-type="audioType = $event"></recorder-component>
+          <recorder-component @update:recording-start="isAudioRecording = $event"
+            @update:recording-src="audioSrc = $event" @update:recording-type="audioType = $event"></recorder-component>
           <chat-marked-component @update:format="formatting = $event" :key="`chat-marked-${id}`"></chat-marked-component>
 
         </v-sheet>

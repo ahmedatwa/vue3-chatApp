@@ -126,7 +126,8 @@ onUnmounted(() => {
                     <v-tooltip activator="parent" location="top">laughing</v-tooltip>
                 </v-btn>
                 <chat-emoji-component @update:open="isEmoji = $event" :tooltip="$lang('chat.text.emoji')"
-                    @update:selected="messageReaction(message._id, $event)" size="large"></chat-emoji-component>
+                    @update:selected="messageReaction(message._id, $event)" size="large" location="top"
+                    offset="0"></chat-emoji-component>
                 <v-btn @click.stop="startThread((isThread = true), message)">
                     <v-icon icon="mdi-message-reply-text" size="large"></v-icon>
                     <v-tooltip activator="parent" location="top">{{

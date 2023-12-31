@@ -12,8 +12,8 @@ defineProps<{
   modelValue: TenorGifs | null;
   tooltip?: string;
   iconColor?: string;
-  offset?: string | number | number[];
-  location?: any;
+  offset: string | number | number[];
+  location: any;
 }>()
 
 defineEmits<{
@@ -22,9 +22,12 @@ defineEmits<{
 
 </script>
 <template>
-  <v-btn @click="isTenor = !isTenor" icon density="compact">
-    <v-menu :location="location ?? 'top'" width="300" height="300" v-model="isTenor" :close-on-content-click="false"
-      @mouseleave="isTenor = false" target="parent">
+  <v-btn @click="isTenor = !isTenor" id="menu-activator">
+    <v-icon icon="mdi-file-gif-box" :color="iconColor ?? 'indigo'"></v-icon>
+    <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
+
+    <v-menu :location="location" width="300" height="300" target="parent" close-on-content-click
+      @mouseleave="isTenor = false" :offset="offset" v-model="isTenor">
       <v-list>
         <v-sheet class="ma-1">
           <v-text-field :label="$lang('chat.text.searchTenor')" v-model="searchTerm" autofocus clearable
@@ -55,7 +58,5 @@ defineEmits<{
         </v-row>
       </v-list>
     </v-menu>
-    <v-icon icon="mdi-file-gif-box" :color="iconColor ?? 'indigo'"></v-icon>
-    <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
   </v-btn>
 </template>
