@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, nextTick } from "vue";
 import { inject, watchEffect } from "vue";
-import { MessageActionMenu, MessageThreadChipComponent } from "@/components/Chat";
+import { MessageActionMenuComponent, MessageThreadChipComponent } from "@/components/Chat";
 import { MessageContentBodyComponent } from "@/components/Chat";
 // types
 import type { ChannelMessages, Channels } from "@/types/Channel";
@@ -160,13 +160,13 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
             @update:message-reaction="$emit('update:messageReaction', $event)">
           </message-content-body-component>
           <!-- message-action-menu -->
-          <message-action-menu v-if="actionMenuID === message._id" :message-value="actionMenuID"
+          <message-action-menu-component v-if="actionMenuID === message._id" :message-value="actionMenuID"
             :key="`action-menu${message._id}`" :message="message" :action-menu="actionMenu"
             @edit-message="$emit('editMessage', $event)" @delete-message="$emit('deleteMessage', $event)"
             @update:action-menu="actionMenu = $event"
             @update:thread-messages="$emit('update:threadMessages', $event as ChannelMessages)"
             @update:messageReaction="$emit('update:messageReaction', $event)">
-          </message-action-menu>
+          </message-action-menu-component>
         </v-sheet>
       </v-col>
     </v-row>

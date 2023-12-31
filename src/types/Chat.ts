@@ -40,6 +40,7 @@ type TenorGifs = {
   type: string;
   src: string;
 };
+
 type MessageThread = {
   _id?: number;
   _messageID: number;
@@ -57,7 +58,7 @@ interface SendThreadPayload {
   _messageID: number | string;
   _channelID: string | number | null;
   content: string;
-  files?: File[] | null;
+  files?: File[] | TenorGifs | null;
   to?: string | null;
   toName?: string | null;
   createdAt?: string;
