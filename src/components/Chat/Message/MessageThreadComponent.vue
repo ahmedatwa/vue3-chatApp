@@ -1,16 +1,14 @@
 <script setup lang="ts">
-import { ref, watch, inject, computed } from "vue";
+import { ref, inject, computed } from "vue";
 import { watchEffect, nextTick } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 //types 
 import type { User, UserMessages } from "@/types/User";
 import type { ChannelMessages } from "@/types/Channel"
-import type { Typing, SendThreadPayload } from "@/types/Chat";
+import type { Typing, SendThreadPayload, TenorGifs } from "@/types/Chat";
 
 const currentUser = inject<User>("user");
 const isThread = inject<boolean>("isThread");
-const formInputValue = ref("");
-const uploadFiles = ref<File[] | null>(null);
 const lastRef = ref<HTMLDivElement | null>(null)
 
 const props = defineProps<{
@@ -28,37 +26,26 @@ const emit = defineEmits<{
 }>();
 
 
-const updatethreadMessageEmoji = (emoji: string) => {
-  formInputValue.value += emoji;
-};
-
-const sendThreadMessage = () => {
-  if (formInputValue.value.length || uploadFiles.value !== null) {
+const sendThreadMessage = ($event: { content: string, files: File[] | TenorGifs | null }) => {
+  if ($event.content.length || $event.files !== null) {
 
     if (props.message) {
       let toName = null
       if ("fromName" in props.message) {
         toName = props.message?.fromName
       }
-      
+
       emit("send:threadMessage", {
         _messageID: props.message?._id,
         _channelID: props.selectedUser?._channelID ? props.selectedUser?._channelID : null,
         to: props.message?.from,
         toName: toName,
-        content: formInputValue.value,
-        files: uploadFiles.value,
+        content: $event.content,
+        files: $event.files,
       });
-      formInputValue.value = "";
-      uploadFiles.value = [];
     }
   }
 };
-
-watch(formInputValue, (threadM) => {
-  emit("update:threadTyping", threadM.length);
-});
-
 
 watchEffect(() => {
   if (props.message?.thread?.length) {
@@ -103,10 +90,10 @@ const cssVars = computed(() => {
         </div>
       </v-card-text>
       <v-card-actions class="w-100 d-inline-block">
-        <chat-form-component :id="`chat-form${message?._id}`" :key="`chat-form-${message?._id}`"
-          v-model:input-value="formInputValue" v-model:files="uploadFiles" :text-area-row-height="5" :text-area-rows="2"
-          :text-area-label="$lang('chat.input.reply')" @update:emoji="updatethreadMessageEmoji"
-          @update:submit="sendThreadMessage" upload-button auto-grow>
+        <chat-form-component :id="`form-thread-${message?._id}`" :key="`chat-form-thread-${message?._id}`"
+          :text-area-row-height="5" :text-area-rows="2" :text-area-label="$lang('chat.input.reply')"
+          @update:submit="sendThreadMessage" @update:typing="$emit('update:threadTyping', $event)" upload-button
+          auto-grow>
         </chat-form-component>
         <chat-typing-component v-show="typing" :typing="typing"></chat-typing-component>
       </v-card-actions>

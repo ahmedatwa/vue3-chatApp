@@ -1,9 +1,5 @@
-import type {
-  MessageThread,
-  MessagePagination,
-  MessageReactions,
-  UploadedFiles
-} from "./Chat";
+import type { MessageThread, MessagePagination } from "./Chat";
+import type { MessageReactions, UploadedFiles } from "./Chat";
 
 interface User {
   _id: number;
@@ -64,6 +60,7 @@ interface UserSessionData {
   firstName: string;
   lastName: string;
   displayName: string;
+  topic?: string;
   email: string;
   image: string;
   connected: boolean;

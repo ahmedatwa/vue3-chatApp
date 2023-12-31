@@ -109,11 +109,13 @@ watchEffect(() => {
 });
 
 watchEffect(() => {
-  if (props.selectedUser?.messages?.length) {
+ // if (props.selectedUser?.messages?.length) {
     if (props.isScroll) {
+      console.log(props.isScroll);
+      
       scroll(props.isScroll);
     }
-  }
+ // }
 });
 
 
@@ -139,10 +141,7 @@ const scroll = (direction: { start: boolean, end: boolean }) => {
 
 const loadMoreDisabled = computed(() => {
   if (props.selectedUser?.messages)
-    if (pagination.value.total === props.selectedUser?.messages?.length) {
-      return false
-    }
-  return true
+   return pagination.value.total > props.selectedUser?.messages?.length ? true : false
 })
 
 const showActionMenu = (visible: boolean, id: string | number | null) => {

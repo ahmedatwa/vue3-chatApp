@@ -64,13 +64,13 @@ watch(isOffline, (newStatus) => {
         <v-menu activator="parent">
           <v-list>
             <v-list-item v-for="locale in lang?.locales" :key="locale.key" :value="locale.value"
-              @click.stop="lang?.setLocale(locale.key)">
+              @click="lang?.setLocale(locale.key)">
               <v-list-item-title>{{ locale.value }}</v-list-item-title>
             </v-list-item>
           </v-list>
         </v-menu>
       </v-btn>
-      <v-menu transition="slide-y-transition" close-on-content-click>
+      <v-menu transition="slide-y-transition" offset="10" close-on-content-click>
         <template v-slot:activator="{ props }">
           <v-list-item v-bind:="props" value="avatar">
             <v-badge dot location="bottom end" :color="user?.connected ? 'success' : 'grey'" class="ma-1">

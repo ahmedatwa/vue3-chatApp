@@ -74,7 +74,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     if (uploadedFiles.value === null && message.content.length < 1) {
       return;
     }
-    
+
     await instance
       .post(_directMessageApi.sendMessage, {
         content: sanitize(message.content),
