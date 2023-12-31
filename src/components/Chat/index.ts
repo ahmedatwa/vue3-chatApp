@@ -7,7 +7,7 @@ import ChatMarkedComponent from "./ChatMarkedComponent.vue";
 import ChatEmojiComponent from "./ChatEmojiComponent.vue";
 import ChatTenorComponent from "./ChatTenorComponent.vue";
 // Message
-import MessageActionMenu from "./Message/MessageActionMenu.vue";
+import MessageActionMenuComponent from "./Message/MessageActionMenuComponent.vue";
 import MessageThreadChipComponent from "./Message/MessageThreadChipComponent.vue";
 import MessageReactionComponent from "./Message/MessageReactionComponent.vue";
 import MessageDeleteComponent from "./Message/MessageDeleteComponent.vue";
@@ -15,6 +15,7 @@ import MessageEditComponent from "./Message/MessageEditComponent.vue";
 import MessageThreadComponent from "./Message/MessageThreadComponent.vue";
 import MessageFilesComponent from "./Message/MessageFilesComponent.vue";
 import MessageContentBodyComponent from "./Message/MessageContentBodyComponent.vue";
+import MessageRecorderComponent from "./Message/MessageRecorderComponent.vue";
 
 export {
   ChatComponent,
@@ -22,7 +23,7 @@ export {
   ChatUploadComponent,
   ChatTypingComponent,
   ChatMarkedComponent,
-  MessageActionMenu,
+  MessageActionMenuComponent,
   MessageThreadChipComponent,
   MessageReactionComponent,
   ChatEmojiComponent,
@@ -32,4 +33,5 @@ export {
   MessageFilesComponent,
   ChatTenorComponent,
   MessageContentBodyComponent,
+  MessageRecorderComponent
 };
