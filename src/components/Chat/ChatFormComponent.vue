@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { ChatUploadComponent, ChatMarkedComponent } from "@/components/Chat";
-import { ChatEmojiComponent, ChatTenorComponent, MessageRecorderComponent } from "@/components/Chat";
+import { ChatEmojiComponent, ChatTenorComponent } from "@/components/Chat";
 import RecorderComponent from "./Message/RecorderComponent.vue";
 import type { TenorGifs } from "@/types/Chat";
 
 import { useMarkdown } from "@/composables/useMarkdown"
+import { watchEffect } from "vue";
 
 
 const formInputValue = ref("sdsds ahmed test")
@@ -160,7 +161,8 @@ const { result, text } = useMarkdown(formInputValue, formatting)
             offset="0" location="right">
           </chat-tenor-component>
           <v-divider :thickness="3" color="info" vertical></v-divider>
-
+          <recorder-component @update:recording-start="isAudioRecording = $event"
+            @update:recording-src="audioSrc = $event" @update:recording-type="audioType = $event"></recorder-component>
           <chat-marked-component @update:format="formatting = $event" :key="`chat-marked-${id}`"></chat-marked-component>
 
         </v-sheet>
