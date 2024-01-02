@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject, onMounted } from "vue";
+import { ref, computed, inject } from "vue";
 import { watchEffect, nextTick } from "vue";
 import { formatDateLong } from "@/helpers";
 import { MessageActionMenuComponent, MessageThreadChipComponent } from "@/components/Chat";
@@ -15,7 +15,7 @@ const pagination = ref<MessagePagination>({
   limit: 0,
 });
 const isLoadMore = ref(false);
-const lastRow = ref<HTMLDivElement | null>(null);
+const lastRow = ref<HTMLDivElement>();
 const firstRow = ref<HTMLDivElement | null>(null);
 const actionMenu = ref(false);
 const actionMenuID = ref<string | number | null>(null);
@@ -113,37 +113,6 @@ watchEffect(() => {
     scroll(props.isScroll);
 });
 
-
-// Start
-const rootEl = ref<any>()
-const setScrollAmount = (amount: number) => {
-
-  // const property = props.direction === 'vertical' ? 'scrollTop' : 'scrollLeft'
-  //rootEl.value.target.$el.scrollTop = amount
-}
-
-const getScrollSize = () => {
-  console.log(rootEl.value);
-
-  return rootEl.value
-}
-
-const getContainerSize = () => {
-  //const property = props.direction === 'vertical' ? 'clientHeight' : 'clientWidth'
-  return rootEl.value.clientHeight
-}
-watchEffect(() => {
-  if (props.selectedUser?.messages?.length)
-    if (rootEl.value) {
-      setScrollAmount(getScrollSize())
-
-    }
-
-
-})
-
-
-
 const scroll = (direction: { start: boolean, end: boolean }) => {
   if (direction.start) {
     nextTick(() => {
@@ -176,15 +145,15 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
 
 </script>
 <template>
-  <v-container class="container" :key="selectedUser?._uuid">
+  <v-container class="container" :key="selectedUser?._uuid" ref="rootEl">
     <v-sheet :align="'center'" justify="center" class="my-2" :key="selectedUser?._uuid">
       <v-btn :loading="isLoading.messages" v-if="loadMoreDisabled" variant="plain" prepend-icon="mdi-refresh"
         @click="loadMoreMessages" color="success">
         {{ $lang("chat.button.loadMore") }}
       </v-btn>
     </v-sheet>
-    <span ref="firstRow"></span>
-    <v-row no-gutters v-for="(userMessage, index) in userMessages" :key="index" ref="rootEl">
+    <row ref="firstRow" class="v-row v-row--no-gutters first-row"></row>
+    <v-row no-gutters v-for="(userMessage, index) in userMessages" :key="index">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
       </v-col>
@@ -213,7 +182,7 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
         </v-sheet>
       </v-col>
     </v-row>
-    <span ref="lastRow" class="last-row"></span>
+    <row ref="lastRow" class="v-row v-row--no-gutters last-row"></row>
   </v-container>
 </template>
 <style scoped>

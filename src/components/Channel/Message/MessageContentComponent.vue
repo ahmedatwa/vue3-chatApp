@@ -139,8 +139,7 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
         </v-btn>
       </v-slide-y-transition>
     </v-sheet>
-    <span ref="firstRow"></span>
-
+    <row ref="firstRow" class="v-row v-row--no-gutters first-row"></row>
     <v-row no-gutters v-for="(channelMessage, index) in channelMessages" :key="index" v-if="!isLoading.messages">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
@@ -170,7 +169,7 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
         </v-sheet>
       </v-col>
     </v-row>
-    <span ref="lastRow" class="last-row"></span>
+    <row ref="lastRow" class="v-row v-row--no-gutters last-row"></row>
   </v-container>
 </template>
 <style scoped>
