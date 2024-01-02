@@ -33,15 +33,6 @@ type AddMembers = {
   createdAt: string;
 };
 
-// interface AddMembers {
-//   channelName: string;
-//   createdAt: string;
-//   displayName: string;
-//   email: string;
-//   from: string;
-//   to: string
-// }
-
 interface NewChannel {
   _channelID: string;
   name: string;

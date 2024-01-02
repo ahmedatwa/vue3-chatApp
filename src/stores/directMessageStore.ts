@@ -5,10 +5,10 @@ import { useSessionStore, useUserStore } from "@/stores";
 import { instance, _directMessageApi } from "@/axios";
 import { createDateTime, getRandom } from "@/helpers";
 // types
-import type { Snackbar, UploadedFiles, MessageReactions } from "@/types/Chat";
-import type { SendThreadPayload, Typing, TenorGifs } from "@/types/Chat";
-import type { User } from "@/types/User";
-import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets";
+import type { Snackbar, UploadedFiles, MessageReactions } from "@/types/Chat.d.ts";
+import type { SendThreadPayload, Typing, TenorGifs } from "@/types/Chat.d.ts";
+import type { User } from "@/types/User.d.ts";
+import type { NewDirectMessage, NewDirectThreadMessage } from "@/types/Sockets.d.ts";
 import { langKey } from "@/types/Symbols";
 import socket, { _directMessageEmits, _directMessageListener } from "@/client";
 import { sanitize } from "@/composables/useDOMPurify";
