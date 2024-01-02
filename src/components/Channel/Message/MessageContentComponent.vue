@@ -221,7 +221,6 @@ const showActionMenu = (visible: boolean, id?: ChannelMessages) => {
 }
 
 .last-row {
-  scroll-snap-align: end;
   scroll-margin-bottom: 20px;
 }
 </style>

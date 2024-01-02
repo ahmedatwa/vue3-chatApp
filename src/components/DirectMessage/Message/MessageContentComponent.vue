@@ -235,7 +235,6 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
 }
 
 .last-row {
-  scroll-snap-align: end;
   scroll-margin-bottom: 20px;
 }
 </style>
