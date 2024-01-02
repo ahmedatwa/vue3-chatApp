@@ -39,7 +39,6 @@ defineEmits<{
       <p class="font-weight-bold text-blue d-inline" v-else>
         {{ selectedUser?.displayName }}: </p>
     </v-sheet>
-
     <!-- Edited Content -->
     <div :key="`message-edited-${message._id}`" v-if="message.editContent" class="d-inline transparent">
       <span class="text-caption me-1">{{ $lang("chat.text.edited") }}</span>
