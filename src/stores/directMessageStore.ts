@@ -117,7 +117,8 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   };
 
   const sendThreadMessage = async (message: SendThreadPayload) => {
-    if (message.files?.length) {
+   
+    if (message.files) {
       await uploadFiles(message.files);
     }
     // Avoid empty DB Records
@@ -632,7 +633,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   );
 
   socket.on(_directMessageListener.connected, async (user) => {
-    await userStore.updateUserStatus(user._uuid, true, null);
+    await userStore.updateUser(user._uuid, {key: 'connected', value: true});
     users.value.forEach((u) => {
       if (u._uuid === user._uuid) {
         u.connected = true;
@@ -651,7 +652,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
   });
 
   socket.on(_directMessageListener.disconnect, async (_uuid) => {
-    await userStore.updateUserStatus(_uuid, false, null);
+    await userStore.updateUser(_uuid, {key:"connected", value: false});
     users.value.forEach((user: User) => {
       if (user._uuid === _uuid) {
         user.connected = false;
@@ -666,7 +667,7 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
 
   // Disconnection
   socket.on(_directMessageListener.userDisconnected, async (_uuid) => {
-    await userStore.updateUserStatus(_uuid, false, null);
+    await userStore.updateUser(_uuid, {key: "connected", value: false});
     users.value.forEach((user) => {
       if (user._uuid === _uuid) {
         user.connected = false;

@@ -48,11 +48,12 @@ socket.io.on("reconnect_failed", () => {
 });
 
 socket.io.on("reconnect", () => {
-  socketError.value = {
-    isSnackbar: false,
-    text: '',
-    type: ''
-  }
+  location.reload()
+  // socketError.value = {
+  //   isSnackbar: false,
+  //   text: '',
+  //   type: ''
+  // }
 });
 
 // Channel

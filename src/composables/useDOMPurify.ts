@@ -3,8 +3,8 @@ import { marked } from "marked";
 import DOMPurify from "isomorphic-dompurify";
 
 const DOMPurifySettings = shallowRef({
-  ALLOWED_TAGS: ["strong", "ul", "li", "a", "blockquote", "h2", "img"],
-  ALLOWED_ATTR: ["href", "target", "src", "height", "width"],
+  ALLOWED_TAGS: ["strong", "ul", "li", "a", "blockquote", "h2", "img", "u", "i", "pre"],
+  ALLOWED_ATTR: ["href", "target", "src", "height", "width", "class"],
 });
 
 const renderer = {

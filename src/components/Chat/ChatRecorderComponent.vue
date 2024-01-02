@@ -6,12 +6,17 @@ const mediaRecorder = shallowRef<MediaRecorder | null>(null)
 const streamBeingCaptured = shallowRef<MediaStream | null>(null)
 const audioElement = shallowRef()
 const isAudioStart = shallowRef(false)
+const file = shallowRef<File | null>(null)
 
+defineProps<{
+    file: File | null;
+}>()
 
 const emit = defineEmits<{
     "update:recordingStart": [value: boolean]
     "update:recordingSrc": [value: string | ArrayBuffer | null | undefined]
     "update:recordingType": [value: string]
+    "update:file": [value: File | null]
 }>();
 
 const start = async () => {
@@ -39,6 +44,8 @@ const stop = () => {
         let mimeType = mediaRecorder.value?.mimeType;
         mediaRecorder.value?.addEventListener("stop", () => {
             let audioBlob = new Blob(audioBlobs.value, { type: mimeType });
+            
+
             resolve(audioBlob);
         });
 
@@ -75,6 +82,7 @@ const startAudioRecording = () => {
 const StopAudioRecording = () => {
     stop().then((audioAsblob) => {
         isAudioStart.value = false
+        // file.value = new File(audioAsblob, 'my-file.webm');
        // emit("update:recordingStart", isAudioStart.value)
         playAudio(audioAsblob);
     }).catch(error => {
@@ -96,6 +104,8 @@ const playAudio = (recorderAudioAsBlob: any) => {
         let base64URL = e.target?.result;
         emit("update:recordingSrc", base64URL)
         emit("update:recordingType", recorderAudioAsBlob.type)
+        file.value = new File([recorderAudioAsBlob], 'audio.wav', {type:"audio/wav"});
+        emit("update:file", file.value)
        // audioElement.value.src = base64URL
        // audioElement.value.type = 
         audioElement.value?.load();

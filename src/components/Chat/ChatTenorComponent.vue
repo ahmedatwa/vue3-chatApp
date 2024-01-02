@@ -25,14 +25,14 @@ defineEmits<{
   <v-btn @click="isTenor = !isTenor" id="menu-activator">
     <v-icon icon="mdi-file-gif-box" :color="iconColor ?? 'indigo'"></v-icon>
     <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
-
     <v-menu :location="location" width="300" height="300" target="parent" close-on-content-click
-      @mouseleave="isTenor = false" :offset="offset" v-model="isTenor">
+      @mouseleave="isTenor = false" :offset="offset" v-model="isTenor" class="">
       <v-list>
         <v-sheet class="ma-1">
           <v-text-field :label="$lang('chat.text.searchTenor')" v-model="searchTerm" autofocus clearable
             density="comfortable" hide-details></v-text-field>
         </v-sheet>
+        <v-container>
         <v-row class="pa-2" v-if="error">
           <v-col>
             <v-sheet class="d-flex align-center ma-2 pa-2 text-red">{{ error }}</v-sheet>
@@ -56,6 +56,7 @@ defineEmits<{
             </v-sheet>
           </v-col>
         </v-row>
+      </v-container>
       </v-list>
     </v-menu>
   </v-btn>

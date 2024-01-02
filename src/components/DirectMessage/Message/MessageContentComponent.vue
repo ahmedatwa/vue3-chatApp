@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, inject } from "vue";
+import { ref, computed, inject, onMounted } from "vue";
 import { watchEffect, nextTick } from "vue";
 import { formatDateLong } from "@/helpers";
 import { MessageActionMenuComponent, MessageThreadChipComponent } from "@/components/Chat";
@@ -109,14 +109,39 @@ watchEffect(() => {
 });
 
 watchEffect(() => {
- // if (props.selectedUser?.messages?.length) {
-    if (props.isScroll) {
-      console.log(props.isScroll);
-      
-      scroll(props.isScroll);
-    }
- // }
+  if (props.isScroll)
+    scroll(props.isScroll);
 });
+
+
+// Start
+const rootEl = ref<any>()
+const setScrollAmount = (amount: number) => {
+
+  // const property = props.direction === 'vertical' ? 'scrollTop' : 'scrollLeft'
+  //rootEl.value.target.$el.scrollTop = amount
+}
+
+const getScrollSize = () => {
+  console.log(rootEl.value);
+
+  return rootEl.value
+}
+
+const getContainerSize = () => {
+  //const property = props.direction === 'vertical' ? 'clientHeight' : 'clientWidth'
+  return rootEl.value.clientHeight
+}
+watchEffect(() => {
+  if (props.selectedUser?.messages?.length)
+    if (rootEl.value) {
+      setScrollAmount(getScrollSize())
+
+    }
+
+
+})
+
 
 
 const scroll = (direction: { start: boolean, end: boolean }) => {
@@ -141,7 +166,7 @@ const scroll = (direction: { start: boolean, end: boolean }) => {
 
 const loadMoreDisabled = computed(() => {
   if (props.selectedUser?.messages)
-   return pagination.value.total > props.selectedUser?.messages?.length ? true : false
+    return pagination.value.total > props.selectedUser?.messages?.length ? true : false
 })
 
 const showActionMenu = (visible: boolean, id: string | number | null) => {
@@ -159,7 +184,7 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
       </v-btn>
     </v-sheet>
     <span ref="firstRow"></span>
-    <v-row no-gutters v-for="(userMessage, index) in userMessages" :key="index">
+    <v-row no-gutters v-for="(userMessage, index) in userMessages" :key="index" ref="rootEl">
       <v-col class="text-center text-divider" cols="12" :id="`id-${index}`">
         {{ formatDateLong(index) }}
       </v-col>

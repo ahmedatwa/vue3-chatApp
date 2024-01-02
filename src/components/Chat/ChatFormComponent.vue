@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
 import { ChatUploadComponent, ChatMarkedComponent } from "@/components/Chat";
-import { ChatEmojiComponent, ChatTenorComponent } from "@/components/Chat";
-import RecorderComponent from "./Message/RecorderComponent.vue";
+import { ChatEmojiComponent, ChatTenorComponent, ChatRecorderComponent } from "@/components/Chat";
 import type { TenorGifs } from "@/types/Chat";
-
 import { useMarkdown } from "@/composables/useMarkdown"
-import { watchEffect } from "vue";
 
 
 const formInputValue = ref("sdsds ahmed test")
@@ -16,14 +13,9 @@ const isEmoji = ref(false);
 const isAudioRecording = ref(false)
 const audioSrc = ref()
 const audioType = ref("")
+const audioFile = ref<File | null>(null)
 
-const formatting = ref<{ key: string, value: boolean } | null>(null);
-// const bold = ref(false)
-// const italic = ref(false)
-// const underline = ref(false)
-
-
-const txtareaRef = ref<HTMLInputElement>();
+const txtareaRef = ref<HTMLTextAreaElement>();
 const tenorGif = ref<TenorGifs | null>(null)
 
 interface Props {
@@ -77,12 +69,13 @@ const isDisabled = computed((): boolean => {
 const submitForm = () => {
   if (formInputValue.value || uploadedFiles.value !== null || tenorGif.value !== null) {
     emit("update:submit", {
-      content: formInputValue.value,
+      content: markedText.value ?? formInputValue.value,
       files: uploadedFiles.value || tenorGif.value
     })
     uploadedFiles.value = null;
     tenorGif.value = null;
     formInputValue.value = ""
+    selected.value = ""
   }
 };
 
@@ -96,19 +89,15 @@ watch(formInputValue, (newValue) => {
   emit("update:typing", newValue.length);
 });
 
+watch(audioFile, (newF) => {
+  if (newF) uploadedFiles.value?.push(newF)
+})
+
 const updateTenor = () => {
   uploadedFiles.value = null
 }
 
-watchEffect(() => {
-
-})
-
-const { result, text } = useMarkdown(formInputValue, formatting)
-
-// if(result.value) {
-//   formInputValue.value = result.value
-// }
+const { markedText, selected, getSelected, appleStyleTag, appleListStyle, applyLink, clearFormatting } = useMarkdown(txtareaRef, formInputValue)
 
 </script>
 
@@ -116,10 +105,8 @@ const { result, text } = useMarkdown(formInputValue, formatting)
   <v-form :id="`chat-input-${id}`" :key="`chat-input-${id}`" @submit.prevent="submitForm">
     <v-card elevation="4" :id="`message-form-wrapper-${id}`">
       <v-slide-x-transition>
-        <v-card-text v-if="text" class="pa-1 w-100">
-          result: <p class="d-inline" v-html="result"></p><br />
-          selected: <p class="d-inline" v-html="text"></p>
-
+        <v-card-text v-if="markedText" class="pa-1">
+          selected: <p class="d-inline" v-html="markedText"></p>
         </v-card-text>
         <v-card-text v-else-if="uploadedFiles" class="pa-1">
           <div class="d-flex flex-wrap">
@@ -137,7 +124,7 @@ const { result, text } = useMarkdown(formInputValue, formatting)
           </div>
         </v-card-text>
         <v-card-text v-else-if="isAudioRecording">
-          <v-chip size="x-large" closable @click:close="isAudioRecording = false">
+          <v-chip size="x-large" class="transparent" closable @click:close="isAudioRecording = false">
             <audio controls :src="audioSrc" :type="audioType"></audio>
           </v-chip>
         </v-card-text>
@@ -146,7 +133,8 @@ const { result, text } = useMarkdown(formInputValue, formatting)
       <v-textarea ref="txtareaRef" :name="`input-message-${id}`" id="input-message" :label="textAreaLabel"
         :rows="textAreaRows" :row-height="textAreaRowHeight" :auto-grow="autoGrow" :no-resize="noResize"
         v-model="formInputValue" hide-details="auto" :hint="$lang('chat.help.newLine')" :error-messages="error"
-        @click:clear="formInputValue = ''" @keyup.enter="handleEnter" clearable autofocus persistent-hint>
+        @click:clear="formInputValue = ''" @keyup.enter="handleEnter" clearable autofocus persistent-hint
+        @mouseup="getSelected">
       </v-textarea>
 
       <v-sheet class="d-flex">
@@ -157,13 +145,18 @@ const { result, text } = useMarkdown(formInputValue, formatting)
           <chat-emoji-component icon size="default" @update:open="isEmoji = $event"
             @update:selected="formInputValue += $event" offset="40" location="left">
           </chat-emoji-component>
-          <chat-tenor-component v-if="tenorButton" v-model:model-value="tenorGif" @update:model-value="updateTenor"
-            offset="0" location="right">
+          <chat-tenor-component :key="`chat-tenor-${id}`" v-if="tenorButton" v-model:model-value="tenorGif"
+            @update:model-value="updateTenor" offset="0" location="right">
           </chat-tenor-component>
           <v-divider :thickness="3" color="info" vertical></v-divider>
-          <recorder-component @update:recording-start="isAudioRecording = $event"
-            @update:recording-src="audioSrc = $event" @update:recording-type="audioType = $event"></recorder-component>
-          <chat-marked-component @update:format="formatting = $event" :key="`chat-marked-${id}`"></chat-marked-component>
+          <chat-recorder-component :key="`chat-recorder-${id}`" v-model:file="audioFile"
+            @update:recording-start="isAudioRecording = $event" @update:recording-src="audioSrc = $event"
+            @update:recording-type="audioType = $event">
+          </chat-recorder-component>
+          <chat-marked-component :key="`chat-marked-${id}`" @update:bold="appleStyleTag('strong', $event)"
+            @update:italic="appleStyleTag('i', $event)" @update:undeline="appleStyleTag('u', $event)"
+            @update:list="appleListStyle($event)" @update:link="applyLink" @clear:formatting="clearFormatting">
+          </chat-marked-component>
 
         </v-sheet>
         <v-sheet cols="2">

@@ -1,79 +1,69 @@
-import { watchEffect, shallowRef, computed, toValue } from "vue";
+import { shallowRef, computed, toValue } from "vue";
 import type { Ref } from "vue";
 
-// type Format = {
-//   italic: boolean;
-//   bold: boolean;
-//   undeline: boolean;
-// };
-// type Alignment = "center" | "left" | "right";
+export function useMarkdown(selector: Ref, input: Ref<string>) {
+  const selected = shallowRef("");
+  const text = shallowRef("");
 
-export function useMarkdown(
-  input: Ref<string>,
-  format: Ref<{ key: string; value: boolean } | null>
-) {
-  // const formats = shallowRef<{
-  //   key: string;
-  //   value: boolean;
-  // } | null>(null);
-  const selection = shallowRef<Selection | null>(null);
-
-  const ranges = computed<Range[]>(() =>
-    selection.value ? getRangesFromSelection(selection.value) : []
-  );
-
-  const rects = computed(() =>
-    ranges.value.map((range) => range.getBoundingClientRect())
-  );
-
-  const pattern = /<\/?strong>/g;
-
-  // - unordered list
-  // **text** bold
-  // [text](link)
-  // ---- h2
-  // > blockquote
-
-  function getRangesFromSelection(selection: Selection) {
-    const rangeCount = selection.rangeCount ?? 0;
-    return Array.from({ length: rangeCount }, (_, i) =>
-      selection.getRangeAt(i)
-    );
-  }
-
-  function onSelectionChange() {
-    selection.value = null; // trigger computed update
-    if (window) selection.value = window.getSelection();
-  }
-
-  if (window) {
-    window.document.addEventListener("selectionchange", onSelectionChange);
-  }
-
-  const text = computed(() => selection.value?.toString() ?? "");
-  const result = computed(() => markedText.value);
-  const markedText = shallowRef("");
-
-  const markedResult = (key: string, value: boolean) => {
- 
-    markedText.value = text.value
-    console.log( markedText.value);
-    
-    
-    return "**" + text.value + "**";
-    
-      // markedText.value = text.replace(new RegExp(`(<\/?${key}>)`, "ig"), "");
-    
-      
-  };
-
-  watchEffect(() => {
-    if (format.value) {
-      const style = toValue(format);
-      
-      if (style) markedResult(style.key, style.value);
+  const markedText = computed(() => {
+    if (selected.value) {
+      return input.value.replace(text.value, selected.value) ?? "";
     }
   });
 
-  return { text, rects, selection, result, markedText };
+  const appleStyleTag = (tag: string, value: boolean) => {
+    if (selected.value)
+      if (value) {
+        if (!selected.value?.match(`<${tag}>`)) {
+          selected.value = `<${tag}> ${selected.value} </${tag}>`;
+        }
+      } else {
+        const regex = new RegExp(`<\/?${tag}>`, "gi");
+        selected.value = selected.value?.replace(regex, "");
+      }
+  };
+
+  const appleListStyle = (value: boolean) => {
+    if (selected.value)
+      if (!selected.value?.match("ul")) {
+        selected.value = "<ul class='ms-4'><li>" + selected.value + "</li></ul>"
+      } else {
+        const regex = new RegExp(`<\/?ul>`, "gi");
+        const regexLi = new RegExp(`<\/?li>`, "gi");
+        selected.value = selected.value.replace(regex, "").replace(regexLi, "");
+      }
+  };
+
+  const applyLink = (href: string) => {
+    if (selected.value)
+      if (!selected.value?.match("<a")) {
+        selected.value = `<a href="${href}" target="_blank">${selected.value}</a>`;
+      } else {
+        const regex = new RegExp(`<\/?a>`, "gi");
+        selected.value = selected.value.replace(regex, "");
+      }
+  };
+
+  const getSelected = () => {
+    selected.value = "";
+    text.value = "";
+
+    const selectorToValue = toValue(selector);
+    const start = selectorToValue.selectionStart;
+    const finish = selectorToValue.selectionEnd;
+    selected.value = selectorToValue.value.substring(start, finish);
+    text.value = selected.value;
+  };
+
+  const clearFormatting = () => {};
+
+  return {
+    markedText,
+    selected,
+    getSelected,
+    appleStyleTag,
+    appleListStyle,
+    applyLink,
+    clearFormatting,
+  };
 }
