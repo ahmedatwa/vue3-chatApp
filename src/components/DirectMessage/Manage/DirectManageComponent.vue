@@ -38,8 +38,8 @@ onMounted(() => {
     </template>
     {{ currentUser?.displayName }}
   </v-btn>
-  <v-dialog width="500" v-model="dialog">
-    <v-card>
+  <v-dialog width="400" v-model="dialog" >
+    <v-card >
       <v-card-title>
         <v-badge dot location="bottom end" :color="currentUser?.connected ? 'success' : 'grey'" class="ma-1">
           <v-avatar :image="currentUser?.image" v-if="currentUser?.image" size="25"></v-avatar>

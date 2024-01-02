@@ -592,6 +592,10 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
           }
         });
       }
+      isScroll.value = {
+        start: false,
+        end: true,
+      };
     }
   );
 
