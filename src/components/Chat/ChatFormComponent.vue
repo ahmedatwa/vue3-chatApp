@@ -69,7 +69,8 @@ const isDisabled = computed((): boolean => {
 const submitForm = () => {
   if (formInputValue.value || uploadedFiles.value !== null || tenorGif.value !== null) {
     emit("update:submit", {
-      content: markedText.value ?? formInputValue.value,
+      content: markedText.value ? markedText.value : formInputValue.value,
+      //content: formInputValue.value,
       files: uploadedFiles.value || tenorGif.value
     })
     uploadedFiles.value = null;
@@ -81,6 +82,7 @@ const submitForm = () => {
 
 const handleEnter = (event: KeyboardEvent) => {
   if (event.key === "Enter" && !event.shiftKey) {
+    formInputValue.value.trim();
     submitForm();
   }
 };
@@ -143,7 +145,7 @@ const { markedText, selected, getSelected, appleStyleTag, appleListStyle, applyL
             @error:upload="error = $event">
           </chat-upload-component>
           <chat-emoji-component icon size="default" @update:open="isEmoji = $event"
-            @update:selected="formInputValue += $event" offset="40" location="left">
+            @update:selected="formInputValue += ' ' + $event" offset="40" location="left">
           </chat-emoji-component>
           <chat-tenor-component :key="`chat-tenor-${id}`" v-if="tenorButton" v-model:model-value="tenorGif"
             @update:model-value="updateTenor" offset="0" location="right">
@@ -155,7 +157,7 @@ const { markedText, selected, getSelected, appleStyleTag, appleListStyle, applyL
           </chat-recorder-component>
           <chat-marked-component :key="`chat-marked-${id}`" @update:bold="appleStyleTag('strong', $event)"
             @update:italic="appleStyleTag('i', $event)" @update:undeline="appleStyleTag('u', $event)"
-            @update:list="appleListStyle($event)" @update:link="applyLink" @clear:formatting="clearFormatting">
+            @update:list="appleListStyle" @update:link="applyLink" @clear:formatting="clearFormatting">
           </chat-marked-component>
 
         </v-sheet>

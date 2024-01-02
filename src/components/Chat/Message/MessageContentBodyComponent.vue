@@ -47,7 +47,7 @@ defineEmits<{
     </div>
     <!-- Main Message Body -->
     <div class="text-left d-inline transparent" v-else>
-      <p class="d-inline" v-html="message.content"></p>
+      <p class="d-inline ms-1" v-html="message.content"></p>
       <message-files-component v-if="message.files" :files="message.files" :message-id="message._id"
         @update:delete-file="$emit('update:deleteFile', $event)"
         @update:downdload-file="$emit('update:downdloadFile', $event)">

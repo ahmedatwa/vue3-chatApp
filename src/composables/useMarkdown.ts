@@ -2,7 +2,7 @@ import { shallowRef, computed, toValue } from "vue";
 import type { Ref } from "vue";
 
 export function useMarkdown(selector: Ref, input: Ref<string>) {
-  const selected = shallowRef("");
+  const selected = shallowRef<string | null>(null);
   const text = shallowRef("");
 
   const markedText = computed(() => {
@@ -23,10 +23,11 @@ export function useMarkdown(selector: Ref, input: Ref<string>) {
       }
   };
 
-  const appleListStyle = (value: boolean) => {
+  const appleListStyle = () => {
     if (selected.value)
       if (!selected.value?.match("ul")) {
-        selected.value = "<ul class='ms-4'><li>" + selected.value + "</li></ul>"
+        selected.value =
+          "<ul class='ms-4'><li>" + selected.value + "</li></ul>";
       } else {
         const regex = new RegExp(`<\/?ul>`, "gi");
         const regexLi = new RegExp(`<\/?li>`, "gi");
@@ -45,17 +46,18 @@ export function useMarkdown(selector: Ref, input: Ref<string>) {
   };
 
   const getSelected = () => {
-    selected.value = "";
+    selected.value = null;
     text.value = "";
-
     const selectorToValue = toValue(selector);
     const start = selectorToValue.selectionStart;
     const finish = selectorToValue.selectionEnd;
     selected.value = selectorToValue.value.substring(start, finish);
-    text.value = selected.value;
+    text.value = selectorToValue.value.substring(start, finish);
   };
 
-  const clearFormatting = () => {};
+  const clearFormatting = () => {
+    return (selected.value = text.value);
+  };
 
   return {
     markedText,

@@ -50,7 +50,7 @@ const onSelect = (_id: number | string, key: string, value: User | Channels) => 
               @click.prevent="$emit('removeUser', user)"></v-btn>
             <v-sheet class="d-flex">
               <v-badge location="bottom end" :color="user.connected ? 'success' : 'grey'" class="ma-1"
-                :dot="user.newMessages ? false : true" >
+                :dot="user.newMessages && user.newMessages && lastActiveElement !== user._uuid ? false : true" >
                 <template #badge>
                   <span v-if="user.newMessages && lastActiveElement !== user._uuid"> {{ user.newMessages.total }}</span>
                 </template>

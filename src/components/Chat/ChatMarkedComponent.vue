@@ -36,13 +36,11 @@ watch(list, (newU) => {
   emit("update:list", newU)
 })
 
-
-
 </script>
 
 <template>
   <v-btn @click.stop="isMarkDown = !isMarkDown" icon density="compact">
-    <v-icon icon="mdi-format-header-pound"></v-icon>
+    <v-icon icon="mdi-format-text"></v-icon>
   </v-btn>
   <v-expand-transition>
     <v-sheet v-if="isMarkDown" class="d-inline ms-1">
@@ -63,16 +61,14 @@ watch(list, (newU) => {
           <v-icon icon="mdi-format-list-bulleted"></v-icon>
         </v-btn>
         <v-btn>
-
           <v-menu activator="parent" target="parent" :close-on-content-click="false" width="350">
             <v-list>
-              <v-text-field density="compact" hide-details v-model="link" class="ma-1">
+              <v-text-field density="compact" hide-details v-model="link" class="ma-1" label="URL">
                 <template #append-inner>
                   <v-btn density="compact" @click="$emit('update:link', link)" icon variant="text">
                     <v-icon icon="mdi-content-save-edit-outline" color="indigo"></v-icon></v-btn>
                 </template>
               </v-text-field>
-
             </v-list>
           </v-menu>
           <v-icon icon="mdi-link-variant"></v-icon>
@@ -80,10 +76,7 @@ watch(list, (newU) => {
         <v-btn @click="$emit('clear:formatting', true)">
           <v-icon icon="mdi-signature-text"></v-icon>
         </v-btn>
-
       </v-btn-toggle>
     </v-sheet>
-
-
   </v-expand-transition>
 </template>
