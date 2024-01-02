@@ -1,7 +1,7 @@
 import { shallowRef } from "vue";
 import type { App } from "vue";
-import { Locales, Options } from "@/types/Symbols.ts";
-import { langKey, SetLocale, Translate } from "@/types/Symbols.ts";
+import { Locales, Options } from "@/types/Symbols";
+import { langKey, SetLocale, Translate } from "@/types/Symbols";
 
 const defaultLocale = shallowRef("en");
 const storageLocale = localStorage.getItem("locale");

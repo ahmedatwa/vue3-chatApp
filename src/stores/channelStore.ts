@@ -7,11 +7,7 @@ import { nanoid } from "nanoid";
 import { remove, createDateTime, capitalize } from "@/helpers";
 // types
 import type { Snackbar, UploadedFiles, Typing } from "@/types/Chat";
-import type {
-  SendThreadPayload,
-  TenorGifs,
-  MessageReactions,
-} from "@/types/Chat";
+import type { SendThreadPayload, TenorGifs, MessageReactions } from "@/types/Chat";
 import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel";
 import type { ChannelSettings, ChannelMessages } from "@/types/Channel";
 // socket

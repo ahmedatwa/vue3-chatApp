@@ -4,8 +4,8 @@ import { inject, watchEffect } from "vue";
 import { MessageActionMenuComponent, MessageThreadChipComponent } from "@/components/Chat";
 import { MessageContentBodyComponent } from "@/components/Chat";
 // types
-import type { ChannelMessages, Channels } from "@/types/Channel";
-import type { MessagePagination, Typing, UploadedFiles } from "@/types/Chat";
+import type { ChannelMessages, Channels } from "@/types/Channel.d.ts";
+import type { MessagePagination, Typing, UploadedFiles } from "@/types/Chat.d.ts";
 import type { UserSessionData } from "@/types/User";
 import { formatDateLong } from "@/helpers";
 

@@ -2,7 +2,7 @@
 import { ref, computed, watch } from "vue";
 import { ChatUploadComponent, ChatMarkedComponent } from "@/components/Chat";
 import { ChatEmojiComponent, ChatTenorComponent, ChatRecorderComponent } from "@/components/Chat";
-import type { TenorGifs } from "@/types/Chat";
+import type { TenorGifs } from "@/types/Chat.d.ts";
 import { useMarkdown } from "@/composables/useMarkdown"
 
 
