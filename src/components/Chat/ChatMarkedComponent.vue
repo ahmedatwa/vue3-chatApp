@@ -40,7 +40,7 @@ watch(list, (newU) => {
 
 <template>
   <v-btn @click.stop="isMarkDown = !isMarkDown" icon density="compact">
-    <v-icon icon="mdi-format-text"></v-icon>
+    <v-icon icon="mdi-format-text-rotation-none"></v-icon>
   </v-btn>
   <v-expand-transition>
     <v-sheet v-if="isMarkDown" class="d-inline ms-1">
