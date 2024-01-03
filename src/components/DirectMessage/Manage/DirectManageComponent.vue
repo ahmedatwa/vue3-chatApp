@@ -53,7 +53,6 @@ onMounted(() => {
       <v-divider :thickness="3" color="info"></v-divider>
       <v-card-text>
         <v-sheet :border="true" class="ma-2 pa-2" rounded>
-          <p>{{ $lang('directMessages.textTopic') }}</p>
           <v-text-field v-model="topic" clearable :label="$lang('directMessages.textAddTopic')"
             append-icon="mdi-content-save-edit-outline"
             @click:append="$emit('update:userSettings', { key: 'topic', value: topic })">

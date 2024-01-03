@@ -25,7 +25,7 @@ defineEmits<{
   <v-btn @click="isTenor = !isTenor" id="menu-activator">
     <v-icon icon="mdi-file-gif-box" :color="iconColor ?? 'indigo'"></v-icon>
     <v-tooltip activator="parent" location="top" v-if="tooltip">{{ tooltip }}</v-tooltip>
-    <v-menu :location="location" width="300" height="300" target="parent" close-on-content-click
+    <v-menu :location="location" width="300" height="300" target="parent" :close-on-content-click="false"
       @mouseleave="isTenor = false" :offset="offset" v-model="isTenor" class="">
       <v-list>
         <v-sheet class="ma-1">

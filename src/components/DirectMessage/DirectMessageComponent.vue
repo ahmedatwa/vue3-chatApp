@@ -95,7 +95,7 @@ const updateThread = (message: UserMessages) => {
             <chat-form-component :id="user?._uuid" :key="`user-${user?._uuid}`" :text-area-row-height="10"
               :text-area-rows="2" :text-area-label="$lang('chat.input.send')"
               @update:typing="$emit('update:typing', $event)" @update:submit="$emit('update:sendMessage', $event)"
-              upload-button auto-grow>
+              upload-button auto-grow record-button marked-button>
             </chat-form-component>
             <!-- Typing -->
             <chat-typing-component :key="`direct-message-${user?._uuid}`"

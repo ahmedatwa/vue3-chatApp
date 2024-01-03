@@ -147,7 +147,7 @@ const updateMessageReaction = (event: { _id: string | number; emoji: string }) =
             <chat-form-component :id="channel?._channelID" :key="`channel-${channel?._channelID}`"
               :text-area-row-height="10" :text-area-rows="2" @update:typing="$emit('update:typing', $event)"
               :text-area-label="$lang('channel.input.send', [channel?.channelName])"
-              @update:submit="$emit('update:sendMessage', $event)" auto-grow upload-button>
+              @update:submit="$emit('update:sendMessage', $event)" auto-grow upload-button record-button marked-button>
             </chat-form-component>
             <!-- Typing -->
             <chat-typing-component :key="`channel-${channel?._channelID}`"

@@ -6,7 +6,7 @@ import type { TenorGifs } from "@/types/Chat.d.ts";
 import { useMarkdown } from "@/composables/useMarkdown"
 
 
-const formInputValue = ref("sdsds ahmed test")
+const formInputValue = ref("")
 const uploadedFiles = ref<File[] | null>(null);
 const error = ref("");
 const isEmoji = ref(false);
@@ -30,6 +30,7 @@ interface Props {
   submitButton?: boolean;
   markedButton?: boolean;
   tenorButton?: boolean;
+  recordButton?: boolean;
 }
 
 withDefaults(defineProps<Props>(), {
@@ -39,10 +40,11 @@ withDefaults(defineProps<Props>(), {
   autoGrow: false,
   noResize: false,
   uploadButton: false,
+  recordButton: false,
   emojiButton: true,
   submitButton: true,
   tenorButton: true,
-  markedButton: true,
+  markedButton: false,
 });
 // emits
 const emit = defineEmits<{
@@ -151,15 +153,15 @@ const { markedText, selected, getSelected, appleStyleTag, appleListStyle, applyL
             @update:model-value="updateTenor" offset="0" location="right">
           </chat-tenor-component>
           <v-divider :thickness="3" color="info" vertical></v-divider>
-          <chat-recorder-component :key="`chat-recorder-${id}`" v-model:file="audioFile"
+          <chat-recorder-component :key="`chat-recorder-${id}`" v-if="recordButton" v-model:file="audioFile"
             @update:recording-start="isAudioRecording = $event" @update:recording-src="audioSrc = $event"
             @update:recording-type="audioType = $event">
           </chat-recorder-component>
-          <chat-marked-component :key="`chat-marked-${id}`" @update:bold="appleStyleTag('strong', $event)"
-            @update:italic="appleStyleTag('i', $event)" @update:undeline="appleStyleTag('u', $event)"
-            @update:list="appleListStyle" @update:link="applyLink" @clear:formatting="clearFormatting">
+          <chat-marked-component :key="`chat-marked-${id}`" v-if="markedButton"
+            @update:bold="appleStyleTag('strong', $event)" @update:italic="appleStyleTag('i', $event)"
+            @update:undeline="appleStyleTag('u', $event)" @update:list="appleListStyle" @update:link="applyLink"
+            @clear:formatting="clearFormatting">
           </chat-marked-component>
-
         </v-sheet>
         <v-sheet cols="2">
           <v-btn v-if="submitButton" icon color="teal" :disabled="isDisabled" type="submit" @click.prevent="submitForm"

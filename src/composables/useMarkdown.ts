@@ -3,11 +3,11 @@ import type { Ref } from "vue";
 
 export function useMarkdown(selector: Ref, input: Ref<string>) {
   const selected = shallowRef<string | null>(null);
-  const text = shallowRef("");
+  const text = shallowRef<string | null>(null);
 
   const markedText = computed(() => {
-    if (selected.value) {
-      return input.value.replace(text.value, selected.value) ?? "";
+    if (selected.value && text.value) {
+      return input.value.replace(text.value, selected.value);
     }
   });
 
@@ -47,7 +47,7 @@ export function useMarkdown(selector: Ref, input: Ref<string>) {
 
   const getSelected = () => {
     selected.value = null;
-    text.value = "";
+    text.value = null;
     const selectorToValue = toValue(selector);
     const start = selectorToValue.selectionStart;
     const finish = selectorToValue.selectionEnd;
