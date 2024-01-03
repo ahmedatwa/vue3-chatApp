@@ -72,7 +72,6 @@ const submitForm = () => {
   if (formInputValue.value || uploadedFiles.value !== null || tenorGif.value !== null) {
     emit("update:submit", {
       content: markedText.value ? markedText.value : formInputValue.value,
-      //content: formInputValue.value,
       files: uploadedFiles.value || tenorGif.value
     })
     uploadedFiles.value = null;
@@ -163,7 +162,7 @@ const { markedText, selected, getSelected, appleStyleTag, appleListStyle, applyL
             @clear:formatting="clearFormatting">
           </chat-marked-component>
         </v-sheet>
-        <v-sheet cols="2">
+        <v-sheet class="mt-2">
           <v-btn v-if="submitButton" icon color="teal" :disabled="isDisabled" type="submit" @click.prevent="submitForm"
             variant="text">
             <v-icon icon="mdi-send" size="large"></v-icon>
