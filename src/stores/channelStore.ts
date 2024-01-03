@@ -7,8 +7,16 @@ import { nanoid } from "nanoid";
 import { remove, createDateTime, capitalize } from "@/helpers";
 // types
 import type { Snackbar, UploadedFiles, Typing } from "@/types/Chat.d.ts";
-import type { SendThreadPayload, TenorGifs, MessageReactions } from "@/types/Chat.d.ts";
-import type { Channels, ChannelForm, ChannelMembers } from "@/types/Channel.d.ts";
+import type {
+  SendThreadPayload,
+  TenorGifs,
+  MessageReactions,
+} from "@/types/Chat.d.ts";
+import type {
+  Channels,
+  ChannelForm,
+  ChannelMembers,
+} from "@/types/Channel.d.ts";
 import type { ChannelSettings, ChannelMessages } from "@/types/Channel.d.ts";
 // socket
 import socket, { _channelEmits, _channelListener } from "@/client";
@@ -617,6 +625,11 @@ export const useChannelStore = defineStore("channelStore", () => {
                   total: 1,
                 });
               }
+            } else {
+              message?.reactions?.push({
+                ...response.data,
+                total: 1,
+              });
             }
           }
         }
@@ -696,7 +709,7 @@ export const useChannelStore = defineStore("channelStore", () => {
           text: error.message,
           type: "error",
         };
-      })
+      });
   };
 
   // Channel Selected
