@@ -75,7 +75,7 @@ const startAudioRecording = () => {
 const StopAudioRecording = () => {
     stop().then((audioAsblob) => {
         isAudioStart.value = false
-       // emit("update:recordingStart", isAudioStart.value)
+        // emit("update:recordingStart", isAudioStart.value)
         playAudio(audioAsblob);
     }).catch(error => {
         switch (error.name) {
@@ -96,8 +96,6 @@ const playAudio = (recorderAudioAsBlob: any) => {
         let base64URL = e.target?.result;
         emit("update:recordingSrc", base64URL)
         emit("update:recordingType", recorderAudioAsBlob.type)
-       // audioElement.value.src = base64URL
-       // audioElement.value.type = 
         audioElement.value?.load();
         audioElement.value?.play();
     };
@@ -109,11 +107,15 @@ const playAudio = (recorderAudioAsBlob: any) => {
 <template>
     <div class="d-inline">
         <v-btn @click="StopAudioRecording" v-if="isAudioStart">
-            <v-icon icon="mdi-stop-circle-outline"> </v-icon>
+            <v-icon icon="mdi-stop-circle-outline" class="stop"> </v-icon>
         </v-btn>
         <v-btn @click="startAudioRecording" v-else>
             <v-icon icon="mdi-microphone"> </v-icon>
         </v-btn>
-       
     </div>
 </template>
+<style scoped>
+.stop {
+    background-color: #F44336 !important;
+}
+</style>
