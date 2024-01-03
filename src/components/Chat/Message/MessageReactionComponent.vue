@@ -31,7 +31,7 @@ const updateMessageReaction = (_id: string | number, emoji: string) => {
 </template>
 <style scoped>
 .reactions-wrapper {
-  margin-left: 70px;
+  margin-left: 1em;
   margin-top: 2px;
   background-color: transparent;
 }
