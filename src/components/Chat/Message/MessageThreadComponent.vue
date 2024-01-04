@@ -103,7 +103,8 @@ const cssVars = computed(() => {
 <style scoped>
 .text {
   overflow-y: scroll;
-  height: var(--card-height);
+  min-height: var(--card-height);
+  max-height: 450px;
   scroll-snap-type: y mandatory;
   overflow-x: hidden;
 }

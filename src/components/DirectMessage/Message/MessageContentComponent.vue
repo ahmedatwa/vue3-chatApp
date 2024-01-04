@@ -189,7 +189,7 @@ const showActionMenu = (visible: boolean, id: string | number | null) => {
 .container {
   overflow-y: scroll;
   overflow-x: hidden;
-  min-height: 430px;
+  min-height: 400px;
   max-height: 450px;
   scroll-snap-type: y mandatory;
   overflow-x: hidden;

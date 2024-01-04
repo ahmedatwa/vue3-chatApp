@@ -106,7 +106,7 @@ const updateThread = (message: UserMessages) => {
       <!-- Thread -->
       <v-col cols="3" v-if="isThread" :id="`thread-${user?._uuid}`">
         <message-thread-component :typing="typing.thread" :message="(threadMessage as UserMessages)"
-          :is-loading="isLoading.thread" :selected-user="user" height="430px"
+          :is-loading="isLoading.thread" :selected-user="user" height="400px"
           @send:thread-message="$emit('send:threadMessage', $event)"
           @update:thread-typing="$emit('update:threadTyping', $event)">
         </message-thread-component>
