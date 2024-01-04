@@ -27,11 +27,11 @@ export function useMarkdown(selector: Ref, input: Ref<string>) {
     if (selected.value)
       if (!selected.value?.match("ul")) {
         selected.value =
-          "<ul class='ms-4'><li>" + selected.value + "</li></ul>";
+          "<ul><li>" + selected.value + "</li></ul>";
       } else {
         const regex = new RegExp(`<\/?ul>`, "gi");
         const regexLi = new RegExp(`<\/?li>`, "gi");
-        selected.value = selected.value.replace(regex, "").replace(regexLi, "");
+        selected.value = selected.value.replace(regexLi, "").replace(regex, "");
       }
   };
 

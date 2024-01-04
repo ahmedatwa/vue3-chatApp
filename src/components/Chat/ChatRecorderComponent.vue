@@ -119,7 +119,7 @@ const playAudio = (recorderAudioAsBlob: any) => {
 <template>
     <div class="d-inline">
         <v-btn @click="StopAudioRecording" v-if="isAudioStart">
-            <v-icon icon="mdi-stop-circle-outline"> </v-icon>
+            <v-icon icon="mdi-stop-circle-outline" color="error"> </v-icon>
         </v-btn>
         <v-btn @click="startAudioRecording" v-else>
             <v-icon icon="mdi-microphone"> </v-icon>
