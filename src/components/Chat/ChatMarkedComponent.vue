@@ -39,7 +39,7 @@ watch(list, (newU) => {
 </script>
 
 <template>
-  <v-btn @click.stop="isMarkDown = !isMarkDown" icon density="compact">
+  <v-btn @click.stop="isMarkDown = !isMarkDown" icon density="compact" :active="isMarkDown">
     <v-icon icon="mdi-format-text-rotation-none"></v-icon>
   </v-btn>
   <v-expand-transition>
