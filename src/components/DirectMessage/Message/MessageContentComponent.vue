@@ -6,7 +6,7 @@ import { MessageActionMenuComponent, MessageThreadChipComponent } from "@/compon
 import { MessageContentBodyComponent } from "@/components/Chat";
 // types
 import type { User, UserMessages, UserSessionData } from "@/types/User";
-import type { MessagePagination, UploadedFiles } from "@/types/Chat.d.ts";
+import type { MessagePagination, UploadedFiles } from "@/types/Chat";
 
 const currentUser = inject<UserSessionData>("user");
 const pagination = ref<MessagePagination>({
@@ -51,7 +51,7 @@ const emit = defineEmits<{
     }
   ];
   "update:threadMessages": [value: UserMessages];
-  "update:messageReaction": [value: { _id: string | number; emoji: string }];
+  "update:messageReaction": [value: { _id: string | number | null, _messageID: string | number, emoji: string }];
   "update:deleteFile": [value: { fileID: string | number, messageID: string | number }];
   "update:downdloadFile": [value: UploadedFiles];
 }>();

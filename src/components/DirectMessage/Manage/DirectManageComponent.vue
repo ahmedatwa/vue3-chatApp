@@ -2,7 +2,7 @@
 import { ref, onMounted } from "vue"
 import { formatTimeShort, writeClipboard } from "@/helpers"
 // types
-import type { UserSessionData } from "@/types/User";
+import type { User } from "@/types/User";
 
 const isCopied = ref(false)
 const dialog = ref(false)
@@ -10,7 +10,7 @@ const topic = ref("")
 
 // Props
 const props = defineProps<{
-  currentUser: UserSessionData | undefined
+  currentUser: User | null
 }>();
 
 // emits

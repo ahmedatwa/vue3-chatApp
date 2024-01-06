@@ -7,25 +7,24 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{
-  "update:messageReaction": [value: { _id: string | number; emoji: string }];
+  "update:messageReaction": [value: { _id: string | number | null, _messageID: string | number, emoji: string }];
 }>();
 
 
-const updateMessageReaction = (_id: string | number, emoji: string) => {
-  emit('update:messageReaction', { _id, emoji, })
+const updateMessageReaction = (_messageID: string | number, reaction: MessageReactions) => {
+  emit('update:messageReaction', { _messageID, _id: reaction._id, emoji: reaction.emoji })
 }
 </script>
 
 <template>
   <v-sheet class="reactions-wrapper" :id="`reaction-${messageId}`">
-    <v-chip @click="updateMessageReaction(messageId, reaction.emoji)" size="small" class="mx-2" elevation="2"
-      v-for="reaction in reactions" :key="reaction._messageID">
+    <v-chip @click="updateMessageReaction(messageId, reaction)" size="small" class="mx-2" elevation="2"
+      v-for="reaction in reactions" :key="reaction._id">
       <v-badge :content="reaction.total" color="transparent" location="bottom end">
         <h4 class="me-2">{{ reaction.emoji }}</h4>
       </v-badge>
-      <v-tooltip activator="parent">{{
-        reaction.displayName
-      }}</v-tooltip>
+      <v-tooltip activator="parent">
+        {{ reaction.displayName }}</v-tooltip>
     </v-chip>
   </v-sheet>
 </template>

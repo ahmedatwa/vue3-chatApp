@@ -91,7 +91,7 @@ interface NewUserForm {
 }
 
 interface MessageReactions {
-  _id?: number;
+  _id: number;
   emoji: string;
   _uuid: string;
   _messageID: number | string;

@@ -1,15 +1,12 @@
 <script setup lang="ts">
-import { ref, provide, computed, inject } from "vue";
+import { ref, provide, computed } from "vue";
 import { ChatFormComponent, ChatTypingComponent, MessageThreadComponent } from "@/components/Chat";
 import { CreateChannelComponent, MessageContentComponent } from "@/components/Channel";
 // types
 import type { SearchUsers, Typing, SendThreadPayload } from "@/types/Chat";
-import type { TenorGifs, MessageReactions } from "@/types/Chat";
-import type { UserSessionData } from "@/types/User";
+import type { TenorGifs } from "@/types/Chat";
 import type { Channels, ChannelMessages } from "@/types/Channel";
 import type { ChannelForm, ChannelSettings } from "@/types/Channel";
-
-const currentUser = inject<UserSessionData>("user");
 
 // Props
 const props = defineProps<{
@@ -57,7 +54,7 @@ const emit = defineEmits<{
   "update:channelMembers": [
     { add: SearchUsers[]; remove: SearchUsers[] }
   ];
-  "update:messageReaction": [value: MessageReactions];
+  "update:messageReaction": [value: { _id: string | number | null, _messageID: string | number, emoji: string }];
   "update:threadTyping": [value: number];
   "send:threadMessage": [value: SendThreadPayload];
 }>();
@@ -97,17 +94,6 @@ const sendThreadMessage = (message: SendThreadPayload) => {
     })
   }
 }
-
-const updateMessageReaction = (event: { _id: string | number; emoji: string }) => {
-  if (currentUser) {
-    emit("update:messageReaction", {
-      _uuid: currentUser?._uuid,
-      _messageID: event._id,
-      emoji: event.emoji,
-      displayName: currentUser?.displayName,
-    })
-  }
-}
 </script>
 <template>
   <v-container class="flex-1-1-100 ma-2 pa-2" :id="`channel-${channel?._channelID}`"
@@ -141,7 +127,8 @@ const updateMessageReaction = (event: { _id: string | number; emoji: string }) =
           <message-content-component :key="`channel-${channel?._channelID}`" :thread-typing="typing.thread"
             :is-loading="isLoading" :channel="channel" :is-delete="isMessageDelete" @load-more-messages="loadMoreMessages"
             @delete-message="$emit('deleteMessage', $event)" @edit-message="$emit('editMessage', $event)"
-            :is-scroll="isScroll" @update:thread-messages="startThread" @update:message-reaction="updateMessageReaction">
+            :is-scroll="isScroll" @update:thread-messages="startThread"
+            @update:message-reaction="$emit('update:messageReaction', $event)">
           </message-content-component>
           <v-card-actions class="w-100 d-inline-block">
             <chat-form-component :id="channel?._channelID" :key="`channel-${channel?._channelID}`"

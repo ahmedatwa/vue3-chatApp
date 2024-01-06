@@ -599,37 +599,39 @@ export const useChannelStore = defineStore("channelStore", () => {
       });
   };
 
-  const updateMessageReaction = (reaction: MessageReactions) => {
+  const updateMessageReaction = (payload: {
+    _id: string | number | null;
+    _messageID: string | number;
+    emoji: string;
+  }) => {
+    const total = shallowRef(1);
+
     instance
       .post(_channelApi.updateMessageReaction, {
-        ...reaction,
+        _id: payload._id,
+        _messageID: payload._messageID,
+        _uuid: sessionStore.userSessionData?._uuid,
+        displayName: sessionStore.userSessionData?.displayName,
+        emoji: payload.emoji,
       })
       .then((response) => {
         if (response.status === 200 && response.statusText === "OK") {
           if (selectedChannel.value) {
             const message = selectedChannel.value.messages.find(
-              (message) => message._id === reaction._messageID
+              (message) => message._id === payload._messageID
             );
-            if (message?.reactions) {
-              if (message.reactions?.length > 0) {
-                const index = message.reactions?.findIndex(
-                  (emoji) => emoji._uuid === reaction._uuid
-                );
-
-                if (index > -1) {
-                  message.reactions?.splice(index, 1);
-                }
-              } else {
-                message.reactions?.push({
-                  ...response.data,
-                  total: 1,
-                });
-              }
-            } else {
+            if (payload._id === null) {
               message?.reactions?.push({
                 ...response.data,
-                total: 1,
+                total: total.value++,
               });
+            } else {
+              if (message?.reactions)
+                for (let i = 0; i < message.reactions.length; i++) {
+                  const element = message.reactions[i];
+                  if (element._id === payload._id)
+                    message.reactions.splice(i, 1);
+                }
             }
           }
         }

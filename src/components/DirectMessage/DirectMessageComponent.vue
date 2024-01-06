@@ -1,14 +1,12 @@
 <script setup lang="ts">
-import { ref, provide, inject } from "vue";
+import { ref, provide } from "vue";
 import { ChatFormComponent, ChatTypingComponent } from "@/components/Chat";
 import { MessageThreadComponent } from "@/components/Chat";
 import { MessageContentComponent, DirectManageComponent } from "@/components/DirectMessage";
 // types
-import type { User, UserMessages, UserSessionData } from "@/types/User";
+import type { User, UserMessages } from "@/types/User";
 import type { Typing, SendThreadPayload, TenorGifs } from "@/types/Chat";
-import type { UploadedFiles, MessageReactions } from "@/types/Chat";
-
-const currentUser = inject<UserSessionData>("user");
+import type { UploadedFiles } from "@/types/Chat";
 
 // thread
 const isThread = ref(false);
@@ -42,7 +40,7 @@ const emit = defineEmits<{
     }
   ];
   loadMoreMessages: [value: { _channelID: string; limit: number, offset: number; unshift: boolean }];
-  "update:messageReaction": [value: MessageReactions];
+  "update:messageReaction": [value: { _id: string | number | null, _messageID: string | number, emoji: string }];
   "update:threadTyping": [value: number];
   "send:threadMessage": [value: SendThreadPayload];
   "update:deleteFile": [value: { fileID: string | number, messageID: string | number }];
@@ -53,17 +51,6 @@ const emit = defineEmits<{
   "update:selectedTxt": [value: string];
   "update:userSettings": [value: { key: string, value: string }]
 }>();
-
-const updateMessageReaction = (event: { _id: string | number; emoji: string }) => {
-  if (currentUser) {
-    emit("update:messageReaction", {
-      _uuid: currentUser?._uuid,
-      _messageID: event._id,
-      emoji: event.emoji,
-      displayName: currentUser?.displayName,
-    })
-  }
-}
 
 const updateThread = (message: UserMessages) => {
   isThread.value = true
@@ -79,7 +66,7 @@ const updateThread = (message: UserMessages) => {
       <v-col :id="`direct-${user?._uuid}`">
         <v-card class="mx-auto" id="container" :loading="isLoading.messages">
           <v-card-title>
-            <direct-manage-component :current-user="currentUser"
+            <direct-manage-component :current-user="user"
               @update:user-settings="$emit('update:userSettings', $event)">
             </direct-manage-component>
           </v-card-title>
@@ -87,7 +74,7 @@ const updateThread = (message: UserMessages) => {
           <message-content-component :key="`direct-${user?._uuid}`" :selected-user="user" :is-loading="isLoading"
             @update:thread-messages="updateThread" :is-scroll="isScroll"
             @load-more-messages="$emit('loadMoreMessages', $event)" @delete-message="$emit('deleteMessage', $event)"
-            @edit-message="$emit('editMessage', $event)" @update:messageReaction="updateMessageReaction"
+            @edit-message="$emit('editMessage', $event)" @update:messageReaction="$emit('update:messageReaction', $event)"
             @update:delete-file="$emit('update:deleteFile', $event)"
             @update:downdload-file="$emit('update:downdloadFile', $event)">
           </message-content-component>

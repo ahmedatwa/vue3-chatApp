@@ -10,6 +10,7 @@ interface User {
   lastName: string;
   email: string;
   image: string;
+  topic?: string;
   connected: boolean | string;
   self?: boolean;
   visible: boolean;
@@ -60,7 +61,6 @@ interface UserSessionData {
   firstName: string;
   lastName: string;
   displayName: string;
-  topic?: string;
   email: string;
   image: string;
   connected: boolean;

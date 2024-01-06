@@ -32,7 +32,7 @@ const emit = defineEmits<{
         }
     ];
     "update:threadMessages": [value: UserMessages | ChannelMessages];
-    "update:messageReaction": [value: { _id: string | number; emoji: string }];
+    "update:messageReaction": [value: { _id: string | number | null, _messageID: string | number, emoji: string }];
     "update:actionMenu": [value: boolean];
     "update:messageValue": [value: string | number | null];
 }>();
@@ -46,8 +46,8 @@ const startThread = (
     }
 };
 
-const messageReaction = (_id: string | number, emoji: string) => {
-    emit('update:messageReaction', { _id, emoji })
+const messageReaction = (_messageID: string | number, emoji: string) => {
+    emit('update:messageReaction', { _id: null, _messageID, emoji })
 }
 
 watch(isEmoji, (val) => {

@@ -48,7 +48,7 @@ const emit = defineEmits<{
   ];
   "update:threadMessages": [value: ChannelMessages];
   "update:scroll": [value: boolean];
-  "update:messageReaction": [value: { _id: string | number; emoji: string }];
+  "update:messageReaction": [value: { _id: string | number | null, _messageID: string | number, emoji: string }];
   "update:deleteFile": [value: { fileID: string | number, messageID: string | number }];
   "update:downdloadFile": [value: UploadedFiles];
 }>();

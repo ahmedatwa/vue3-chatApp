@@ -5,11 +5,7 @@ import { useSessionStore, useUserStore } from "@/stores";
 import { instance, _directMessageApi } from "@/axios";
 import { createDateTime, getRandom } from "@/helpers";
 // types
-import type {
-  Snackbar,
-  UploadedFiles,
-  MessageReactions,
-} from "@/types/Chat.d.ts";
+import type { Snackbar, UploadedFiles } from "@/types/Chat.d.ts";
 import type { SendThreadPayload, Typing, TenorGifs } from "@/types/Chat.d.ts";
 import type { User } from "@/types/User.d.ts";
 import type {
@@ -451,36 +447,36 @@ export const useDirectMessageStore = defineStore("directMessageStore", () => {
     }
   });
 
-  const updateMessageReaction = (reaction: MessageReactions) => {
+  const updateMessageReaction = (payload: {
+    _id: string | number | null;
+    _messageID: string | number;
+    emoji: string;
+  }) => {
     const total = shallowRef(1);
     instance
       .post(_directMessageApi.updateMessageReaction, {
-        ...reaction,
+        _id: payload._id,
+        _messageID: payload._messageID,
+        _uuid: sessionStore.userSessionData?._uuid,
+        displayName: sessionStore.userSessionData?.displayName,
+        emoji: payload.emoji,
       })
       .then((response) => {
         if (response.status === 200) {
           const message = selectedUser.value?.messages?.find(
-            (m) => m._id === reaction._messageID
+            (m) => m._id === payload._messageID
           );
-          if (message?.reactions) {
-            if (message.reactions?.length > 0) {
-              const reactionIndex = message.reactions?.findIndex(
-                (o) => o._uuid === reaction._uuid
-              );
-              if (reactionIndex > -1) {
-                message.reactions?.splice(reactionIndex, 1);
-              }
-            } else {
-              message.reactions?.push({
-                ...response.data,
-                total: total.value++,
-              });
-            }
-          } else {
+          if (payload._id === null) {
             message?.reactions?.push({
               ...response.data,
               total: total.value++,
             });
+          } else {
+            if (message?.reactions)
+              for (let i = 0; i < message.reactions.length; i++) {
+                const element = message.reactions[i];
+                if (element._id === payload._id) message.reactions.splice(i, 1);
+              }
           }
         }
       })
