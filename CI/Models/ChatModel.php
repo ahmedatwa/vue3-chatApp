@@ -43,7 +43,7 @@ class ChatModel extends Model
         $data = [];
         $builder = $this->db->table('users as u');
 
-        $builder->select('u._id, u._uuid, u.firstName, u.lastName, u.email, u.status, u.createdAt, u2c.displayName, u2c.image, u2c.settings, u2c.visible, u2c.connected');
+        $builder->select('u._id, u._uuid, u.firstName, u.lastName, u.email, u.status, u.createdAt, u2c.displayName, u2c.image, u2c.settings, u2c.visible, u2c.connected, u2c.topic');
         $builder->join('chat_users_settings as u2c', "u2c._uuid = u._uuid", "Left");
         $query = $builder->get();
         foreach ($query->getResultArray() as $result) {
@@ -54,6 +54,7 @@ class ChatModel extends Model
                 "lastName"  => $result['lastName'],
                 "email"     => $result['email'],
                 "image"     => $result['image'],
+                "topic"     => $result['topic'],
                 "settings"     => json_decode($result['settings'], true),
                 "visible" => $result['visible'] === "1" ? true : false,
                 "connected" => $result['connected'] === "1" ? true : false,
@@ -105,16 +106,11 @@ class ChatModel extends Model
         $builder->update();
     }
 
-    public function updateUserStatus(string $_uuid, array $data)
+    public function updateUser(string $_uuid, array $data)
     {
         $builder = $this->db->table('chat_users_settings');
         $builder->where('_uuid', $_uuid);
-        if(isset($data["connected"])) {
-            $builder->set("connected", $data["connected"] === "true" ? 1 : 0);
-        }
-        if(isset($data["visible"])) {
-            $builder->set("visible", $data["visible"] === "true" ? 1 : 0);
-        }
+        $builder->set($data["key"], $data["value"] == "true" ? 1 : 0);
         $builder->update();
     }
 
@@ -153,11 +149,10 @@ class ChatModel extends Model
 
     public function getSession(string $sessionID)
     {
-        //var_dump($sessionID);
 
         $data = [];
         $builder = $this->db->table('sessions as s');
-        $builder->select('u._id, u.firstName, u.lastName, u.email, s.connected, s.sessionID, s._uuid, s.createdAt, u2c.displayName, u2c.image, u2c.settings');
+        $builder->select('u._id, u.firstName, u.lastName, u.email, s.connected, s.sessionID, s._uuid, s.createdAt, u2c.displayName, u2c.image, u2c.settings, u2c.topic');
         $builder->join('users as u', 'u._uuid = s._uuid', "LEFT");
         $builder->join('chat_users_settings as u2c', 'u2c._uuid = s._uuid', "LEFT");
         $builder->where([
@@ -173,6 +168,7 @@ class ChatModel extends Model
          "lastName"  => $row['lastName'],
          "email"     => $row['email'],
          "image"     => $row['image'],
+         "topic"     => $row["topic"],
          "settings"     => json_decode($row['settings'], true),
          "connected" => $row['connected'] = 1 ? true : false,
          "sessionID" => $row['sessionID'],

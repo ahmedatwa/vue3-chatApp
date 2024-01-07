@@ -125,6 +125,7 @@ class DirectMessageModel extends Model
         $builder->where("_messageID", $_messageID)->groupBy("emoji");
         foreach ($builder->get()->getResultArray() as $result) {
             $data[] = [
+                "_id" => (int) $result["_id"],
                 "_messageID" => (int) $result["_messageID"],
                 "emoji" => $result["emoji"],
                 "total" => (int) $result["total"],
@@ -196,7 +197,7 @@ class DirectMessageModel extends Model
         return $this->db->insertID();
     }
 
-    public function deleteFile(array $data)
+    public function removeFile(array $data)
     {
         $builder = $this->db->table("direct_messages_files");
         $direct_messages = $this->db->table("direct_messages");

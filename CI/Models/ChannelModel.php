@@ -232,9 +232,22 @@ class ChannelModel extends Model
     public function updateMessageReaction(array $data)
     {
         $builder = $this->db->table("channel_messages_reactions");
-        $builder->set($data);
-        $builder->insert();
-        return $this->db->insertID();
+        $builder->where([
+            "_uuid" => $data["_uuid"],
+            "emoji" => $data["emoji"],
+            "_messageID" => $data["_messageID"],
+        ]);
+        if ($builder->get()->getRowArray()) {
+            $builder->delete([
+                "_uuid" => $data["_uuid"],
+                "emoji" => $data["emoji"],
+                "_messageID" => $data["_messageID"],
+            ]);
+        } else {
+            $builder->set($data);
+            $builder->insert();
+            return $this->db->insertID();
+        }
     }
 
 
