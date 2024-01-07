@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost
--- Generation Time: Dec 29, 2023 at 03:31 PM
+-- Generation Time: Jan 07, 2024 at 08:07 PM
 -- Server version: 8.2.0
 -- PHP Version: 8.3.1
 
@@ -40,13 +40,6 @@ CREATE TABLE `channels` (
   `updatedAt` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Dumping data for table `channels`
---
-
-INSERT INTO `channels` (`_id`, `_channelID`, `channelName`, `channelTopic`, `channelDescription`, `channelImage`, `createdBy`, `status`, `createdAt`, `updatedAt`) VALUES
-(1, 'sT7tOBUNXwY2IB7', 'Atwa Channel', 'Atwa channel Topic', '', '', 'jal7kd4hd1wRBG2PmJMU', 1, '2023-12-24 14:13:45', '2023-12-26 20:01:36');
-
 -- --------------------------------------------------------
 
 --
@@ -63,14 +56,6 @@ CREATE TABLE `channel_members` (
   `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `channel_members`
---
-
-INSERT INTO `channel_members` (`_id`, `_channelID`, `_uuid`, `displayName`, `status`, `settings`, `createdAt`, `updatedAt`) VALUES
-(8, 'sT7tOBUNXwY2IB7', 'jal7kd4hd1wRBG2PmJMU', 'Atwa', 1, '{\"muteNotifications\": \"none\"}', '2023-12-24 14:46:13', NULL),
-(9, 'sT7tOBUNXwY2IB7', 'mJTPA_ms5iG9ENQaYPdN', 'Mi7s', 1, '{\"muteNotifications\": \"none\"}', '2023-12-24 14:46:13', NULL);
 
 -- --------------------------------------------------------
 
@@ -89,13 +74,6 @@ CREATE TABLE `channel_messages` (
   `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `channel_messages`
---
-
-INSERT INTO `channel_messages` (`_id`, `_channelID`, `from`, `fromName`, `content`, `editContent`, `files`, `createdAt`, `updatedAt`) VALUES
-(1, 'sT7tOBUNXwY2IB7', 'jal7kd4hd1wRBG2PmJMU', 'Atwa', '1st msg\n', NULL, NULL, '2023-12-28 21:44:39', NULL);
 
 -- --------------------------------------------------------
 
@@ -162,20 +140,11 @@ CREATE TABLE `chat_users_settings` (
   `displayName` varchar(132) NOT NULL,
   `image` varchar(128) NOT NULL,
   `_uuid` char(36) NOT NULL,
+  `topic` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci,
   `settings` json DEFAULT NULL,
   `visible` tinyint(1) NOT NULL,
   `connected` tinyint(1) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `chat_users_settings`
---
-
-INSERT INTO `chat_users_settings` (`_id`, `displayName`, `image`, `_uuid`, `settings`, `visible`, `connected`) VALUES
-(1, 'Atwa', '', 'jal7kd4hd1wRBG2PmJMU', '{\"theme\": \"light\", \"leftOff\": \"1\", \"muteConnectionNotif\": \"0\"}', 1, 1),
-(2, 'Mi7s', '', 'mJTPA_ms5iG9ENQaYPdN', '{\"theme\": \"light\", \"leftOff\": \"1\", \"muteConnectionNotif\": \"0\"}', 1, 1),
-(4, 'test1', '', 'lTkZuX4i_3JL_lkC2h8Z', '{\"theme\": \"light\", \"leftOff\": \"1\", \"muteConnectionNotif\": \"0\"}', 1, 1),
-(5, 'test2', '', '9SmlFM2cWZRg0CTKQSEM', '{\"theme\": \"light\", \"leftOff\": \"1\", \"muteConnectionNotif\": \"0\"}', 0, 0);
 
 -- --------------------------------------------------------
 
@@ -196,19 +165,6 @@ CREATE TABLE `direct_messages` (
   `updatedAt` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Dumping data for table `direct_messages`
---
-
-INSERT INTO `direct_messages` (`_id`, `_channelID`, `from`, `to`, `content`, `editContent`, `files`, `seen`, `createdAt`, `updatedAt`) VALUES
-(1, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', '1st msg\n', '', NULL, 0, '2023-12-28 21:44:33', NULL),
-(2, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', 'sdsds ahmed test\n', '', '[\"1\"]', 0, '2023-12-29 07:11:45', NULL),
-(3, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', '(vue3)[<a href=\"https://vuejs.org/guide/reusability/composables.html]\" target=\"blank\">https://vuejs.org/guide/reusability/composables.html]</a>\n', '', NULL, 0, '2023-12-29 09:33:24', NULL),
-(4, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', '(link)[ <a href=\"https://vuejs.org/guide/reusability/composables.html]\" target=\"blank\">https://vuejs.org/guide/reusability/composables.html]</a>\n', '', NULL, 0, '2023-12-29 09:36:04', NULL),
-(5, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', '<a href=\"https://vuejs.org/guide/reusability/composables.html\" target=\"blank\">vue3</a>\n', NULL, NULL, 0, '2023-12-29 09:39:40', NULL),
-(6, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', 'sdsds ahmed test\n', NULL, NULL, 0, '2023-12-29 15:26:52', NULL),
-(7, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', '', NULL, '[\"2\"]', 0, '2023-12-29 15:27:04', NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -222,13 +178,6 @@ CREATE TABLE `direct_messages_channels` (
   `to` char(36) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL,
   `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `direct_messages_channels`
---
-
-INSERT INTO `direct_messages_channels` (`_id`, `_channelID`, `from`, `to`, `createdAt`) VALUES
-(1, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'jal7kd4hd1wRBG2PmJMU', '2023-12-28 21:44:33');
 
 -- --------------------------------------------------------
 
@@ -248,14 +197,6 @@ CREATE TABLE `direct_messages_files` (
   `url` varchar(164) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL,
   `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `direct_messages_files`
---
-
-INSERT INTO `direct_messages_files` (`_id`, `_channelID`, `_uuid`, `name`, `randomName`, `size`, `type`, `path`, `url`, `createdAt`) VALUES
-(1, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'Cantwait Milkandmocha GIF', '15070333734785127107', 527035, 'image/gif', NULL, 'https://media.tenor.com/0SSUr4x0EsMAAAAC/cantwait-milkandmocha.gif', '2023-12-29 07:11:45'),
-(2, '6LUsAFzXyzRiyK-Ga6ef-ZoV1wZqpr', 'jal7kd4hd1wRBG2PmJMU', 'Shaq Shimmy GIF', '2048765052329044460', 1312418, 'image/gif', NULL, 'https://media.tenor.com/HG6s9dROqewAAAAC/shaq-shimmy.gif', '2023-12-29 15:27:04');
 
 -- --------------------------------------------------------
 
@@ -304,13 +245,6 @@ CREATE TABLE `sessions` (
   `deletedAt` datetime DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
---
--- Dumping data for table `sessions`
---
-
-INSERT INTO `sessions` (`_id`, `_uuid`, `sessionID`, `connected`, `createdAt`, `updatedAt`, `deletedAt`) VALUES
-(4, 'jal7kd4hd1wRBG2PmJMU', 'RWxtYWwium1FKTPgvhgIyG2kalShEUgKm-RC', 1, '2023-12-29 15:21:49', '2023-12-29 15:21:49', NULL);
-
 -- --------------------------------------------------------
 
 --
@@ -327,16 +261,6 @@ CREATE TABLE `users` (
   `createdAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updatedAt` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `users`
---
-
-INSERT INTO `users` (`_id`, `_uuid`, `firstName`, `lastName`, `email`, `status`, `createdAt`, `updatedAt`) VALUES
-(1, 'jal7kd4hd1wRBG2PmJMU', 'ahmed', 'atwa', 'atwa@mail.com', 1, '2023-12-07 20:34:34', '2023-12-07 20:34:34'),
-(2, 'mJTPA_ms5iG9ENQaYPdN', 'amira', 'mi7s', 'mi7s@mail.com', 1, '2023-12-07 21:21:04', '2023-12-07 21:21:04'),
-(6, 'lTkZuX4i_3JL_lkC2h8Z', 'test1', 'test1', 'test1@test.com', 1, '2023-12-12 20:03:53', '2023-12-12 20:03:53'),
-(7, '9SmlFM2cWZRg0CTKQSEM', 'test2', 'test2', 'test2@test.com', 1, '2023-12-12 20:05:53', '2023-12-12 20:05:53');
 
 -- --------------------------------------------------------
 
@@ -391,7 +315,8 @@ ALTER TABLE `channel_messages_files`
 --
 ALTER TABLE `channel_messages_reactions`
   ADD PRIMARY KEY (`_id`),
-  ADD KEY `channelmessagesfiles__messageid_foreign` (`_messageID`);
+  ADD KEY `channelmessagesfiles__messageid_foreign` (`_messageID`),
+  ADD KEY `_channelID` (`_channelID`);
 
 --
 -- Indexes for table `channel_messages_thread`
@@ -472,13 +397,13 @@ ALTER TABLE `channels`
 -- AUTO_INCREMENT for table `channel_members`
 --
 ALTER TABLE `channel_members`
-  MODIFY `_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `channel_messages`
 --
 ALTER TABLE `channel_messages`
-  MODIFY `_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `channel_messages_files`
@@ -508,25 +433,25 @@ ALTER TABLE `chat_users_settings`
 -- AUTO_INCREMENT for table `direct_messages`
 --
 ALTER TABLE `direct_messages`
-  MODIFY `_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `direct_messages_channels`
 --
 ALTER TABLE `direct_messages_channels`
-  MODIFY `_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `direct_messages_files`
 --
 ALTER TABLE `direct_messages_files`
-  MODIFY `_id` int UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `_id` int UNSIGNED NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `direct_messages_reactions`
 --
 ALTER TABLE `direct_messages_reactions`
-  MODIFY `_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `direct_messages_thread`
@@ -557,10 +482,10 @@ ALTER TABLE `user_downloads`
 --
 
 --
--- Constraints for table `direct_messages`
+-- Constraints for table `channel_messages_reactions`
 --
-ALTER TABLE `direct_messages`
-  ADD CONSTRAINT `direct_messages_ibfk_1` FOREIGN KEY (`_channelID`) REFERENCES `direct_messages_channels` (`_channelID`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+ALTER TABLE `channel_messages_reactions`
+  ADD CONSTRAINT `channel_messages_reactions_ibfk_1` FOREIGN KEY (`_messageID`) REFERENCES `channel_messages` (`_id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

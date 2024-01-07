@@ -133,8 +133,8 @@ class DirectMessages extends ResourceController
     public function deleteFile()
     {
         $data = $this->request->getPost();
-        $this->model->deleteFile($data);
-        return $this->respondDeleted();
+        $this->model->removeFile($data);
+        return $this->respond($data, 200);
     }
 
 

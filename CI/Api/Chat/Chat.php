@@ -80,10 +80,15 @@ class Chat extends ResourceController
         return $this->respond(200);
     }
 
-    public function updateUserStatus()
+    public function updateUser()
     {
-        $data = $this->request->getPost();
-        $this->model->updateUserStatus($this->request->getVar("_uuid"), $data);
+
+        $data = [];
+        foreach ($this->request->getPost("data") as $key => $value) {
+           $data[$key] = $value;
+        }
+        //var_dump($data);
+        $this->model->updateUser($this->request->getVar("_uuid"), $data);
         return $this->respondCreated($data);
     }
 
